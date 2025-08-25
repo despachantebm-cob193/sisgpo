@@ -5,6 +5,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const militarController = require('../controllers/militarController');
 const obmController = require('../controllers/obmController');
+const viaturaController = require('../controllers/viaturaController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Rota pública de login
@@ -13,32 +14,20 @@ router.post('/login', authController.login);
 // --- ROTAS PROTEGIDAS ABAIXO ---
 router.use(authMiddleware);
 
-// Rota de teste
-router.get('/teste', (req, res) => {
-  res.json({
-    message: 'Você está autenticado!',
-    user: { id: req.userId, perfil: req.userPerfil },
-  });
-});
+// ... (demais rotas de teste, militares e obms)
 
-// --- ROTAS DE MILITARES (CRUD COMPLETO) ---
-router.get('/militares', militarController.getAll);
-router.post('/militares', militarController.create);
-router.put('/militares/:id', militarController.update);
-router.delete('/militares/:id', militarController.delete);
+// --- ROTAS DE VIATURAS (CRUD COMPLETO) ---
+// GET /api/admin/viaturas - Lista todas as viaturas
+router.get('/viaturas', viaturaController.getAll);
 
-// --- ROTAS DE OBMS (CRUD COMPLETO) ---
-// GET /api/admin/obms - Lista todas as OBMs
-router.get('/obms', obmController.getAll);
+// POST /api/admin/viaturas - Cadastra uma nova viatura
+router.post('/viaturas', viaturaController.create);
 
-// POST /api/admin/obms - Cria uma nova OBM
-router.post('/obms', obmController.create);
+// PUT /api/admin/viaturas/:id - Atualiza uma viatura existente
+router.put('/viaturas/:id', viaturaController.update);
 
-// PUT /api/admin/obms/:id - Atualiza uma OBM existente
-router.put('/obms/:id', obmController.update);
-
-// DELETE /api/admin/obms/:id - Exclui uma OBM
-router.delete('/obms/:id', obmController.delete);
+// DELETE /api/admin/viaturas/:id - Exclui uma viatura
+router.delete('/viaturas/:id', viaturaController.delete);
 
 
 module.exports = router;
