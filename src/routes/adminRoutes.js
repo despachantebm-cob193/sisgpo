@@ -4,16 +4,16 @@ const router = express.Router();
 // Importa os controllers e middlewares
 const authController = require('../controllers/authController');
 const militarController = require('../controllers/militarController');
+const obmController = require('../controllers/obmController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Rota pública de login (não passa pelo middleware abaixo)
+// Rota pública de login
 router.post('/login', authController.login);
 
 // --- ROTAS PROTEGIDAS ABAIXO ---
-// O middleware é aplicado a todas as rotas definidas daqui para baixo
 router.use(authMiddleware);
 
-// Rota de teste para verificar o middleware
+// Rota de teste
 router.get('/teste', (req, res) => {
   res.json({
     message: 'Você está autenticado!',
@@ -22,18 +22,23 @@ router.get('/teste', (req, res) => {
 });
 
 // --- ROTAS DE MILITARES (CRUD COMPLETO) ---
-
-// GET /api/admin/militares - Lista todos os militares
 router.get('/militares', militarController.getAll);
-
-// POST /api/admin/militares - Cria um novo militar
 router.post('/militares', militarController.create);
-
-// PUT /api/admin/militares/:id - Atualiza um militar existente
 router.put('/militares/:id', militarController.update);
-
-// DELETE /api/admin/militares/:id - Exclui um militar
 router.delete('/militares/:id', militarController.delete);
+
+// --- ROTAS DE OBMS (CRUD COMPLETO) ---
+// GET /api/admin/obms - Lista todas as OBMs
+router.get('/obms', obmController.getAll);
+
+// POST /api/admin/obms - Cria uma nova OBM
+router.post('/obms', obmController.create);
+
+// PUT /api/admin/obms/:id - Atualiza uma OBM existente
+router.put('/obms/:id', obmController.update);
+
+// DELETE /api/admin/obms/:id - Exclui uma OBM
+router.delete('/obms/:id', obmController.delete);
 
 
 module.exports = router;
