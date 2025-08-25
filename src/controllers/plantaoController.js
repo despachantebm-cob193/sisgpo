@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const AppError = require('../utils/AppError');
 
 const plantaoController = {
   /**
@@ -7,25 +8,16 @@ const plantaoController = {
    */
   create: async (req, res) => {
     const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
-    if (!data_plantao || !viatura_id || !obm_id) {
-      return res.status(400).json({ message: 'Data, Viatura e OBM são campos obrigatórios.' });
-    }
-    if (!guarnicao || !Array.isArray(guarnicao) || guarnicao.length === 0) {
-      return res.status(400).json({ message: 'A guarnição (lista de militares) é obrigatória.' });
-    }
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       const plantaoExists = await client.query('SELECT id FROM plantoes WHERE data_plantao = $1 AND viatura_id = $2', [data_plantao, viatura_id]);
       if (plantaoExists.rowCount > 0) {
-        throw new Error('Já existe um plantão cadastrado para esta viatura nesta data.');
+        throw new AppError('Já existe um plantão cadastrado para esta viatura nesta data.', 409);
       }
       const plantaoResult = await client.query('INSERT INTO plantoes (data_plantao, viatura_id, obm_id, observacoes) VALUES ($1, $2, $3, $4) RETURNING *', [data_plantao, viatura_id, obm_id, observacoes]);
       const novoPlantao = plantaoResult.rows[0];
       const guarnicaoPromises = guarnicao.map(militar => {
-        if (!militar.militar_id || !militar.funcao) {
-          throw new Error('Cada militar na guarnição deve ter "militar_id" e "funcao".');
-        }
         return client.query('INSERT INTO plantoes_militares (plantao_id, militar_id, funcao) VALUES ($1, $2, $3)', [novoPlantao.id, militar.militar_id, militar.funcao]);
       });
       await Promise.all(guarnicaoPromises);
@@ -33,32 +25,68 @@ const plantaoController = {
       res.status(201).json({ ...novoPlantao, guarnicao });
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error('Erro ao criar plantão:', error.message);
-      res.status(409).json({ message: error.message || 'Erro ao criar plantão.' });
+      throw error; // Re-lança o erro para ser pego pelo middleware central
     } finally {
       client.release();
     }
   },
 
   /**
-   * @description Lista todos os plantões.
-   * @route GET /api/admin/plantoes
+   * @description Lista todos os plantões com paginação e filtro por data.
+   * @route GET /api/admin/plantoes?page=1&limit=10&data_inicio=YYYY-MM-DD&data_fim=YYYY-MM-DD
    */
   getAll: async (req, res) => {
-    try {
-      const query = `
-        SELECT p.id, p.data_plantao, p.observacoes, v.prefixo AS viatura_prefixo, o.abreviatura AS obm_abreviatura
-        FROM plantoes p
-        JOIN viaturas v ON p.viatura_id = v.id
-        JOIN obms o ON p.obm_id = o.id
-        ORDER BY p.data_plantao DESC, v.prefixo ASC;
-      `;
-      const result = await pool.query(query);
-      res.status(200).json(result.rows);
-    } catch (error) {
-      console.error('Erro ao listar plantões:', error);
-      res.status(500).json({ message: 'Erro interno do servidor.' });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const offset = (page - 1) * limit;
+    const { data_inicio, data_fim } = req.query;
+
+    let baseQuery = `
+      FROM plantoes p
+      JOIN viaturas v ON p.viatura_id = v.id
+      JOIN obms o ON p.obm_id = o.id
+    `;
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (data_inicio) {
+      conditions.push(`p.data_plantao >= $${paramIndex++}`);
+      params.push(data_inicio);
     }
+    if (data_fim) {
+      conditions.push(`p.data_plantao <= $${paramIndex++}`);
+      params.push(data_fim);
+    }
+
+    if (conditions.length > 0) {
+      baseQuery += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    const dataQuery = `
+      SELECT p.id, p.data_plantao, p.observacoes, v.prefixo AS viatura_prefixo, o.abreviatura AS obm_abreviatura
+      ${baseQuery}
+      ORDER BY p.data_plantao DESC, v.prefixo ASC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+    `;
+    const countQuery = `SELECT COUNT(*) ${baseQuery};`;
+
+    const dataParams = [...params, limit, offset];
+    const countParams = [...params];
+
+    const [dataResult, countResult] = await Promise.all([
+      pool.query(dataQuery, dataParams),
+      pool.query(countQuery, countParams)
+    ]);
+
+    const plantoes = dataResult.rows;
+    const totalRecords = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json({
+      data: plantoes,
+      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
+    });
   },
 
   /**
@@ -67,32 +95,27 @@ const plantaoController = {
    */
   getById: async (req, res) => {
     const { id } = req.params;
-    try {
-      const plantaoQuery = `
-        SELECT p.id, p.data_plantao, p.observacoes, p.created_at, p.updated_at, v.id AS viatura_id, v.prefixo AS viatura_prefixo, o.id AS obm_id, o.nome AS obm_nome
-        FROM plantoes p
-        JOIN viaturas v ON p.viatura_id = v.id
-        JOIN obms o ON p.obm_id = o.id
-        WHERE p.id = $1;
-      `;
-      const plantaoResult = await pool.query(plantaoQuery, [id]);
-      if (plantaoResult.rowCount === 0) {
-        return res.status(404).json({ message: 'Plantão não encontrado.' });
-      }
-      const guarnicaoQuery = `
-        SELECT m.id AS militar_id, m.posto_graduacao, m.nome_guerra, pm.funcao
-        FROM plantoes_militares pm
-        JOIN militares m ON pm.militar_id = m.id
-        WHERE pm.plantao_id = $1
-        ORDER BY m.id;
-      `;
-      const guarnicaoResult = await pool.query(guarnicaoQuery, [id]);
-      const plantaoDetalhado = { ...plantaoResult.rows[0], guarnicao: guarnicaoResult.rows };
-      res.status(200).json(plantaoDetalhado);
-    } catch (error) {
-      console.error('Erro ao buscar plantão por ID:', error);
-      res.status(500).json({ message: 'Erro interno do servidor.' });
+    const plantaoQuery = `
+      SELECT p.id, p.data_plantao, p.observacoes, p.created_at, p.updated_at, v.id AS viatura_id, v.prefixo AS viatura_prefixo, o.id AS obm_id, o.nome AS obm_nome
+      FROM plantoes p
+      JOIN viaturas v ON p.viatura_id = v.id
+      JOIN obms o ON p.obm_id = o.id
+      WHERE p.id = $1;
+    `;
+    const plantaoResult = await pool.query(plantaoQuery, [id]);
+    if (plantaoResult.rowCount === 0) {
+      throw new AppError('Plantão não encontrado.', 404);
     }
+    const guarnicaoQuery = `
+      SELECT m.id AS militar_id, m.posto_graduacao, m.nome_guerra, pm.funcao
+      FROM plantoes_militares pm
+      JOIN militares m ON pm.militar_id = m.id
+      WHERE pm.plantao_id = $1
+      ORDER BY m.id;
+    `;
+    const guarnicaoResult = await pool.query(guarnicaoQuery, [id]);
+    const plantaoDetalhado = { ...plantaoResult.rows[0], guarnicao: guarnicaoResult.rows };
+    res.status(200).json(plantaoDetalhado);
   },
 
   /**
@@ -102,25 +125,16 @@ const plantaoController = {
   update: async (req, res) => {
     const { id } = req.params;
     const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
-    if (!data_plantao || !viatura_id || !obm_id) {
-      return res.status(400).json({ message: 'Data, Viatura e OBM são campos obrigatórios.' });
-    }
-    if (!guarnicao || !Array.isArray(guarnicao) || guarnicao.length === 0) {
-      return res.status(400).json({ message: 'A guarnição (lista de militares) é obrigatória.' });
-    }
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const plantaoExists = await client.query('SELECT id FROM plantoes WHERE id = $1', [id]);
+      const plantaoExists = await pool.query('SELECT id FROM plantoes WHERE id = $1', [id]);
       if (plantaoExists.rowCount === 0) {
-        throw new Error('Plantão não encontrado.');
+        throw new AppError('Plantão não encontrado.', 404);
       }
       await client.query('UPDATE plantoes SET data_plantao = $1, viatura_id = $2, obm_id = $3, observacoes = $4, updated_at = NOW() WHERE id = $5', [data_plantao, viatura_id, obm_id, observacoes, id]);
       await client.query('DELETE FROM plantoes_militares WHERE plantao_id = $1', [id]);
       const guarnicaoPromises = guarnicao.map(militar => {
-        if (!militar.militar_id || !militar.funcao) {
-          throw new Error('Cada militar na guarnição deve ter "militar_id" e "funcao".');
-        }
         return client.query('INSERT INTO plantoes_militares (plantao_id, militar_id, funcao) VALUES ($1, $2, $3)', [id, militar.militar_id, militar.funcao]);
       });
       await Promise.all(guarnicaoPromises);
@@ -128,8 +142,7 @@ const plantaoController = {
       res.status(200).json({ message: 'Plantão atualizado com sucesso.' });
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error('Erro ao atualizar plantão:', error);
-      res.status(500).json({ message: error.message || 'Erro interno do servidor.' });
+      throw error;
     } finally {
       client.release();
     }
@@ -147,15 +160,13 @@ const plantaoController = {
       await client.query('DELETE FROM plantoes_militares WHERE plantao_id = $1', [id]);
       const result = await client.query('DELETE FROM plantoes WHERE id = $1', [id]);
       if (result.rowCount === 0) {
-        await client.query('ROLLBACK');
-        return res.status(404).json({ message: 'Plantão não encontrado.' });
+        throw new AppError('Plantão não encontrado.', 404);
       }
       await client.query('COMMIT');
       res.status(204).send();
     } catch (error) {
       await client.query('ROLLBACK');
-      console.error('Erro ao excluir plantão:', error);
-      res.status(500).json({ message: 'Erro interno do servidor.' });
+      throw error;
     } finally {
       client.release();
     }

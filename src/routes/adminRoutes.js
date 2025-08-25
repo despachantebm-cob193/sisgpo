@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-// 1. Importa todos os controllers e middlewares necessários
+// ... (importações de controllers e authMiddleware)
 const authController = require('../controllers/authController');
 const militarController = require('../controllers/militarController');
 const obmController = require('../controllers/obmController');
@@ -9,45 +9,44 @@ const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// 2. Rota pública de login
+// Validadores
+const validationMiddleware = require('../validators/validationMiddleware');
+const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
+const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
+const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
+// 1. Importa os novos schemas de Plantão
+const { createPlantaoSchema, updatePlantaoSchema } = require('../validators/plantaoValidator');
+
+// Rota pública
 router.post('/login', authController.login);
 
-// --- ROTAS PROTEGIDAS ABAIXO ---
-// 3. O middleware é aplicado a todas as rotas definidas daqui para baixo
+// Middleware de autenticação
 router.use(authMiddleware);
 
-// Rota de teste para verificar o middleware
-router.get('/teste', (req, res) => {
-  res.json({
-    message: 'Você está autenticado!',
-    user: { id: req.userId, perfil: req.userPerfil },
-  });
-});
-
-// --- ROTAS DE MILITARES (CRUD COMPLETO) ---
+// Militares
 router.get('/militares', militarController.getAll);
-router.post('/militares', militarController.create);
-router.put('/militares/:id', militarController.update);
+router.post('/militares', validationMiddleware(createMilitarSchema), militarController.create);
+router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
 
-// --- ROTAS DE OBMS (CRUD COMPLETO) ---
+// OBMs
 router.get('/obms', obmController.getAll);
-router.post('/obms', obmController.create);
-router.put('/obms/:id', obmController.update);
+router.post('/obms', validationMiddleware(createObmSchema), obmController.create);
+router.put('/obms/:id', validationMiddleware(updateObmSchema), obmController.update);
 router.delete('/obms/:id', obmController.delete);
 
-// --- ROTAS DE VIATURAS (CRUD COMPLETO) ---
+// Viaturas
 router.get('/viaturas', viaturaController.getAll);
-router.post('/viaturas', viaturaController.create);
-router.put('/viaturas/:id', viaturaController.update);
+router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
+router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
 router.delete('/viaturas/:id', viaturaController.delete);
 
-// --- ROTAS DE PLANTÕES (CRUD COMPLETO) ---
-router.post('/plantoes', plantaoController.create);
+// --- ROTAS DE PLANTÕES (AGORA COM VALIDAÇÃO) ---
+// 2. Aplica o middleware de validação nas rotas de criação e atualização
+router.post('/plantoes', validationMiddleware(createPlantaoSchema), plantaoController.create);
 router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
-router.put('/plantoes/:id', plantaoController.update);
+router.put('/plantoes/:id', validationMiddleware(updatePlantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
-
 
 module.exports = router;
