@@ -1,89 +1,78 @@
 const pool = require('../config/database');
 const AppError = require('../utils/AppError');
+const QueryBuilder = require('../utils/QueryBuilder');
 
 const obmController = {
-  /**
-   * @description Lista todas as OBMs com paginação e filtros.
-   * @route GET /api/admin/obms?page=1&limit=10&nome=Batalhao&cidade=Goiania
-   */
   getAll: async (req, res) => {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const offset = (page - 1) * limit;
-    const { nome, cidade } = req.query;
-
-    let baseQuery = 'FROM obms';
-    const conditions = [];
-    const params = [];
-    let paramIndex = 1;
-
-    if (nome) {
-      conditions.push(`nome ILIKE $${paramIndex++}`);
-      params.push(`%${nome}%`);
-    }
-    if (cidade) {
-      conditions.push(`cidade ILIKE $${paramIndex++}`);
-      params.push(`%${cidade}%`);
-    }
-
-    if (conditions.length > 0) {
-      baseQuery += ' WHERE ' + conditions.join(' AND ');
-    }
-
-    const dataQuery = `SELECT * ${baseQuery} ORDER BY nome ASC LIMIT $${paramIndex++} OFFSET $${paramIndex++};`;
-    const countQuery = `SELECT COUNT(*) ${baseQuery};`;
-
-    const dataParams = [...params, limit, offset];
-    const countParams = [...params];
-
-    const [dataResult, countResult] = await Promise.all([
-      pool.query(dataQuery, dataParams),
-      pool.query(countQuery, countParams)
-    ]);
-
+    const filterConfig = {
+      nome: { column: 'nome', operator: 'ILIKE' },
+      abreviatura: { column: 'abreviatura', operator: 'ILIKE' },
+      cidade: { column: 'cidade', operator: 'ILIKE' }
+    };
+    const { dataQuery, countQuery, dataParams, countParams, page, limit } = QueryBuilder(req.query, "obms", filterConfig, "nome ASC");
+    const [dataResult, countResult] = await Promise.all([ pool.query(dataQuery, dataParams), pool.query(countQuery, countParams) ]);
     const obms = dataResult.rows;
     const totalRecords = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
-
-    res.status(200).json({
-      data: obms,
-      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
-    });
+    res.status(200).json({ data: obms, pagination: { currentPage: page, perPage: limit, totalPages, totalRecords } });
   },
 
   create: async (req, res) => {
-    const { nome, abreviatura, cidade } = req.body;
-    const abreviaturaExists = await pool.query('SELECT id FROM obms WHERE abreviatura = $1', [abreviatura]);
+    const { nome, abreviatura, cidade, ativo = true } = req.body;
+    const abreviaturaExists = await pool.query("SELECT id FROM obms WHERE abreviatura = $1", [abreviatura]);
     if (abreviaturaExists.rowCount > 0) {
-      throw new AppError('Abreviatura já cadastrada no sistema.', 409);
+      throw new AppError("Abreviatura já cadastrada no sistema.", 409);
     }
     const result = await pool.query(
-      'INSERT INTO obms (nome, abreviatura, cidade) VALUES ($1, $2, $3) RETURNING *',
-      [nome, abreviatura, cidade || null]
+      "INSERT INTO obms (nome, abreviatura, cidade, ativo) VALUES ($1, $2, $3, $4) RETURNING *",
+      [nome, abreviatura, cidade || null, ativo]
     );
     res.status(201).json(result.rows[0]);
   },
 
   update: async (req, res) => {
     const { id } = req.params;
-    const { nome, abreviatura, cidade, ativo } = req.body;
+
     const obmExists = await pool.query('SELECT id FROM obms WHERE id = $1', [id]);
     if (obmExists.rowCount === 0) {
       throw new AppError('OBM não encontrada.', 404);
     }
-    const abreviaturaConflict = await pool.query('SELECT id FROM obms WHERE abreviatura = $1 AND id != $2', [abreviatura, id]);
-    if (abreviaturaConflict.rowCount > 0) {
-      throw new AppError('A nova abreviatura já está em uso por outra OBM.', 409);
+
+    // Constrói a query de update dinamicamente
+    const fields = [];
+    const params = [];
+    let paramIndex = 1;
+
+    Object.keys(req.body).forEach(key => {
+      if (req.body[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex++}`);
+        params.push(req.body[key]);
+      }
+    });
+
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'Nenhum campo fornecido para atualização.' });
     }
-    const result = await pool.query(
-      `UPDATE obms SET nome = $1, abreviatura = $2, cidade = $3, ativo = $4, updated_at = NOW() WHERE id = $5 RETURNING *`,
-      [nome, abreviatura, cidade || null, ativo, id]
-    );
+
+    // Adiciona o ID ao final dos parâmetros para a cláusula WHERE
+    params.push(id);
+
+    const updateQuery = `
+      UPDATE obms 
+      SET ${fields.join(', ')}, updated_at = NOW() 
+      WHERE id = $${paramIndex} 
+      RETURNING *;
+    `;
+
+    const result = await pool.query(updateQuery, params);
     res.status(200).json(result.rows[0]);
   },
 
   delete: async (req, res) => {
     const { id } = req.params;
+    if (isNaN(parseInt(id))) {
+      throw new AppError("ID da OBM inválido.", 400);
+    }
     const result = await pool.query('DELETE FROM obms WHERE id = $1', [id]);
     if (result.rowCount === 0) {
       throw new AppError('OBM não encontrada.', 404);

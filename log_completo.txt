@@ -1,0 +1,159 @@
+
+> sisgpo-api@1.0.0 test
+> npm run test:setup && dotenv -e .env -- jest --runInBand --detectOpenHandles
+
+
+> sisgpo-api@1.0.0 test:setup
+> knex migrate:latest --env test
+
+Using environment: [35mtest[39m
+[36mAlready up to date[39m
+[Database] Conectando ao banco de dados do ambiente: TEST
+[Global Setup] Iniciando configuração do ambiente de teste...
+[Global Setup] Limpando tabelas...
+[Global Setup] Criando usuário "admin" para os testes...
+[Global Setup] Ambiente de teste configurado com sucesso.
+FAIL __tests__/integration/obm.test.js
+  ● Console
+
+    console.log
+      [Database] Conectando ao banco de dados do ambiente: TEST
+
+      at Object.log (src/config/database.js:27:9)
+
+    console.log
+      [AuthController] Buscando usuário com login: admin
+
+      at log (src/controllers/authController.js:15:13)
+
+    console.log
+      [AuthController] Usuário encontrado: admin
+
+      at log (src/controllers/authController.js:21:13)
+
+    console.log
+      [AuthController] A senha fornecida é válida? true
+
+      at log (src/controllers/authController.js:30:13)
+
+  ● Testes de Integração para a Rota /obms › PUT /obms/:id - Deve atualizar uma OBM existente com sucesso
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+    [0m [90m 54 |[39m     expect(response[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 55 |[39m     expect(response[33m.[39mbody[33m.[39mnome)[33m.[39mtoBe(dadosAtualizados[33m.[39mnome)[33m;[39m
+    [31m[1m>[22m[39m[90m 56 |[39m     expect(response[33m.[39mbody[33m.[39mativa)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 57 |[39m   })[33m;[39m
+     [90m 58 |[39m
+     [90m 59 |[39m   it([32m'DELETE /obms/:id - Deve excluir uma OBM com sucesso'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/integration/obm.test.js:56:33)
+
+PASS __tests__/integration/viatura.test.js
+  ● Console
+
+    console.log
+      [Database] Conectando ao banco de dados do ambiente: TEST
+
+      at Object.log (src/config/database.js:27:9)
+
+    console.log
+      [AuthController] Buscando usuário com login: admin
+
+      at log (src/controllers/authController.js:15:13)
+
+    console.log
+      [AuthController] Usuário encontrado: admin
+
+      at log (src/controllers/authController.js:21:13)
+
+    console.log
+      [AuthController] A senha fornecida é válida? true
+
+      at log (src/controllers/authController.js:30:13)
+
+PASS __tests__/integration/militar.test.js
+  ● Console
+
+    console.log
+      [Database] Conectando ao banco de dados do ambiente: TEST
+
+      at Object.log (src/config/database.js:27:9)
+
+    console.log
+      [AuthController] Buscando usuário com login: admin
+
+      at log (src/controllers/authController.js:15:13)
+
+    console.log
+      [AuthController] Usuário encontrado: admin
+
+      at log (src/controllers/authController.js:21:13)
+
+    console.log
+      [AuthController] A senha fornecida é válida? true
+
+      at log (src/controllers/authController.js:30:13)
+
+PASS __tests__/integration/dashboard.test.js
+  ● Console
+
+    console.log
+      [Database] Conectando ao banco de dados do ambiente: TEST
+
+      at Object.log (src/config/database.js:27:9)
+
+    console.log
+      [AuthController] Buscando usuário com login: admin
+
+      at log (src/controllers/authController.js:15:13)
+
+    console.log
+      [AuthController] Usuário encontrado: admin
+
+      at log (src/controllers/authController.js:21:13)
+
+    console.log
+      [AuthController] A senha fornecida é válida? true
+
+      at log (src/controllers/authController.js:30:13)
+
+------------------------------------------|---------|----------|---------|---------|---------------------
+File                                      | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s   
+------------------------------------------|---------|----------|---------|---------|---------------------
+All files                                 |   38.29 |    31.93 |      35 |   38.44 |                     
+ controllers                              |   41.55 |     34.4 |   45.45 |   41.55 |                     
+  authController.js                       |   85.71 |       60 |     100 |   85.71 | 11,24,33            
+  dashboardController.js                  |   83.33 |      100 |     100 |   83.33 | 29-30               
+  militarController.js                    |   28.57 |     4.54 |      25 |   28.57 | 7-18,25,35-80       
+  obmController.js                        |   71.42 |    53.33 |      80 |   71.42 | 7-17,24,38,54,74,78 
+  plantaoController.js                    |    4.65 |        0 |       0 |    4.65 | 10-171              
+  viaturaController.js                    |   68.57 |    60.71 |      75 |   68.57 | 10-21,31,49,56,85   
+ database/migrations                      |       0 |      100 |       0 |       0 |                     
+  20250826000000_create_initial_schema.js |       0 |      100 |       0 |       0 | 5-71                
+ middlewares                              |   72.41 |       50 |      80 |   74.07 |                     
+  authMiddleware.js                       |   76.47 |       50 |     100 |   76.47 | 10,17,23,30         
+  validationMiddleware.js                 |   66.66 |       50 |   66.66 |      70 | 6,12-17             
+ routes                                   |     100 |      100 |     100 |     100 |                     
+  authRoutes.js                           |     100 |      100 |     100 |     100 |                     
+ utils                                    |    4.16 |        0 |       0 |    4.16 |                     
+  QueryBuilder.js                         |    4.16 |        0 |       0 |    4.16 | 21-62               
+ validators                               |      64 |        0 |       0 |   69.56 |                     
+  militarValidator.js                     |     100 |      100 |     100 |     100 |                     
+  obmValidator.js                         |     100 |      100 |     100 |     100 |                     
+  plantaoValidator.js                     |     100 |      100 |     100 |     100 |                     
+  validationMiddleware.js                 |       0 |        0 |       0 |       0 | 1-15                
+  viaturaValidator.js                     |     100 |      100 |     100 |     100 |                     
+------------------------------------------|---------|----------|---------|---------|---------------------
+
+Test Suites: 1 failed, 3 passed, 4 total
+Tests:       1 failed, 7 passed, 8 total
+Snapshots:   0 total
+Time:        6.45 s
+Ran all test suites.
+[Global Teardown] Encerrando a conexão com o banco de dados...
+[Global Teardown] Conexão com o banco de dados encerrada.
