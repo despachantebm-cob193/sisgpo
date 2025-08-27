@@ -2,18 +2,26 @@ const express = require('express');
 const router = express.Router();
 
 // 1. Importa os controllers e middlewares
+const authController = require('../controllers/authController');
 const militarController = require('../controllers/militarController');
 const obmController = require('../controllers/obmController');
 const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
-const validationMiddleware = require('../middlewares/validationMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 // 2. Importa os validadores
+const validationMiddleware = require('../validators/validationMiddleware');
 const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
-const { plantaoSchema } = require('../validators/plantaoValidator');
+const { plantaoSchema } = require('../validators/plantaoValidator'); // Schema de plantão importado
+
+// Rota pública de login
+router.post('/login', authController.login);
+
+// Aplica o middleware de autenticação para todas as rotas abaixo
+router.use(authMiddleware);
 
 // --- ROTA DE DASHBOARD ---
 router.get('/dashboard/stats', dashboardController.getStats);

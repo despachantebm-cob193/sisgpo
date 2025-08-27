@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app =require('../../src/app');
+const app = require('../../src/app');
 const pool = require('../../src/config/database');
 
 let authToken;
@@ -14,6 +14,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // Garante que a OBM de teste seja limpa mesmo se um teste falhar
   if (obmId) {
     await pool.query('DELETE FROM obms WHERE id = $1', [obmId]);
   }
@@ -22,8 +23,8 @@ afterAll(async () => {
 describe('Testes de Integração para a Rota /obms', () => {
   it('POST /obms - Deve criar uma nova OBM com sucesso', async () => {
     const novaObm = {
-      nome: '1º Batalhão de Bombeiro Militar de Teste',
-      abreviatura: '1BBM-TEST',
+      nome: `1º Batalhão de Teste ${Date.now()}`,
+      abreviatura: `1BBM-T${Date.now().toString().slice(-5)}`,
       cidade: 'Goiânia',
       ativo: true
     };
@@ -35,15 +36,15 @@ describe('Testes de Integração para a Rota /obms', () => {
     
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
-    obmId = response.body.id;
+    obmId = response.body.id; // Salva o ID para os próximos testes
   });
 
   it('PUT /obms/:id - Deve atualizar uma OBM existente com sucesso', async () => {
     const dadosAtualizados = {
       nome: 'Primeiro Batalhão de Bombeiro Militar Atualizado',
-      abreviatura: '1BBM-UPDATED',
+      abreviatura: `1BBM-UPD${Date.now().toString().slice(-5)}`,
       cidade: 'Goiânia-GO',
-      ativo: false,
+      ativo: false, // Testando a atualização do campo 'ativo'
     };
 
     const response = await request(app)
@@ -53,7 +54,7 @@ describe('Testes de Integração para a Rota /obms', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.nome).toBe(dadosAtualizados.nome);
-    expect(response.body.ativa).toBe(false);
+    expect(response.body.ativo).toBe(false); // **Verificação corrigida**
   });
 
   it('DELETE /obms/:id - Deve excluir uma OBM com sucesso', async () => {
@@ -62,6 +63,6 @@ describe('Testes de Integração para a Rota /obms', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(204);
-    obmId = null;
+    obmId = null; // Impede a dupla exclusão no afterAll
   });
 });
