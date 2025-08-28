@@ -12,7 +12,7 @@ const credentials = {
   project_id: process.env.GOOGLE_CREDENTIALS_PROJECT_ID,
   private_key_id: process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY_ID,
   // O Render pode alterar a formatação de quebras de linha. O replace garante que a chave seja válida.
-  private_key: (process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  private_key: JSON.parse(`"${process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY || ''}"`),
   client_email: process.env.GOOGLE_CREDENTIALS_CLIENT_EMAIL,
   client_id: process.env.GOOGLE_CREDENTIALS_CLIENT_ID,
   auth_uri: process.env.GOOGLE_CREDENTIALS_AUTH_URI,
