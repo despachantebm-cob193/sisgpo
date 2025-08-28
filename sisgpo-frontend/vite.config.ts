@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tsconfigPaths from 'vite-tsconfig-paths' // 1. Importe o plugin
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // 2. Adicione o plugin à lista de plugins
-  plugins: [react( ), tsconfigPaths()], 
-  
-  // 3. A seção 'resolve.alias' manual pode ser removida
+  plugins: [react( ), tsconfigPaths()],
+  // A configuração explícita de CSS/PostCSS não é necessária aqui
+  // se os arquivos de configuração (postcss.config.js) existirem na raiz.
+  // Vamos remover essa seção para simplificar e evitar conflitos.
 })

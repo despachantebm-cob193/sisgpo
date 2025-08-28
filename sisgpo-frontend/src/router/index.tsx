@@ -2,14 +2,13 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import AppLayout from '../components/layout/AppLayout';
 
-// CORREÇÃO: Importando todos os componentes de página com PascalCase,
-// exatamente como os nomes dos arquivos.
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import NotFound from '../pages/NotFound';
 import Obms from '../pages/Obms';
 import Viaturas from '../pages/Viaturas';
 import Militares from '../pages/Militares';
+import Plantoes from '../pages/Plantoes'; // 1. Importe a nova página
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +20,7 @@ export const router = createBrowserRouter([
       { path: 'obms', element: <Obms /> },
       { path: 'viaturas', element: <Viaturas /> },
       { path: 'militares', element: <Militares /> },
+      { path: 'plantoes', element: <Plantoes /> }, // 2. Adicione a nova rota
     ],
   },
   {

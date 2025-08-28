@@ -1,89 +1,73 @@
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { LayoutDashboard, Building, Car, Users, Calendar, LogOut } from 'lucide-react';
 
-/**
- * AppLayout é o componente de layout principal para seções autenticadas da aplicação.
- * Ele envolve as páginas que exigem que o usuário esteja logado.
- */
+// Componente para os links da navegação, para evitar repetição
+const NavItem = ({ to, icon: Icon, label }: { to: string; icon: React.ElementType; label: string }) => (
+  <NavLink
+    to={to}
+    end // Garante que o link só fica ativo na rota exata
+    className={({ isActive }) =>
+      `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+        isActive
+          ? 'bg-indigo-700 text-white'
+          : 'text-gray-300 hover:bg-indigo-600 hover:text-white'
+      }`
+    }
+  >
+    <Icon className="w-5 h-5 mr-3" />
+    {label}
+  </NavLink>
+);
+
 export default function AppLayout() {
-  // Obtém o token e a função de logout do nosso store de autenticação (Zustand).
-  const { token, logout } = useAuthStore();
+  const { token, logout, user } = useAuthStore();
 
-  // 1. Lógica de Proteção de Rota
-  // Se não houver token no estado, o usuário não está autenticado.
-  // O componente <Navigate> do React Router o redirecionará para a página de login.
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // 2. Função de Logout
-  const handleLogout = () => {
-    logout();
-  };
-
-  // 3. Estilo para Links Ativos
-  // Função que retorna um objeto de estilo para o NavLink ativo,
-  // melhorando a experiência do usuário ao destacar a página atual.
-  const getActiveLinkStyle = ({ isActive }: { isActive: boolean }) => {
-    return isActive
-      ? {
-          color: '#4f46e5', // Cor índigo-600 do Tailwind
-          fontWeight: '600',
-          borderBottom: '2px solid #4f46e5',
-          paddingBottom: '4px', // Adiciona um pequeno espaço para o sublinhado
-        }
-      : {
-          color: '#4b5563', // Cor gray-600 do Tailwind
-          paddingBottom: '4px',
-        };
-  };
-
-  // 4. Estrutura do Layout
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Cabeçalho fixo da aplicação */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          
-          {/* Seção Esquerda: Título e Navegação */}
-          <div className="flex items-center gap-8">
-            <h1 className="text-xl font-bold leading-6 text-gray-900">
-              SISGPO
-            </h1>
-            <nav className="flex gap-6 items-center">
-              <NavLink to="/" style={getActiveLinkStyle}>
-                Dashboard
-              </NavLink>
-              <NavLink to="/obms" style={getActiveLinkStyle}>
-                OBMs
-              </NavLink>
-              <NavLink to="/viaturas" style={getActiveLinkStyle}>
-                Viaturas
-              </NavLink>
-              <NavLink to="/militares" style={getActiveLinkStyle}>
-                Militares
-              </NavLink>
-              {/* Futuramente, o link para Plantões virá aqui */}
-            </nav>
-          </div>
-
-          {/* Seção Direita: Botão de Sair */}
-          <button
-            onClick={handleLogout}
-            className="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+    <div className="flex h-screen bg-gray-100 font-sans">
+      {/* --- Barra Lateral (Sidebar) --- */}
+      <aside className="w-64 flex-shrink-0 bg-gray-800 text-white flex flex-col">
+        <div className="h-16 flex items-center justify-center px-4 border-b border-gray-700">
+          <h1 className="text-xl font-bold text-white">SISGPO</h1>
+        </div>
+        <nav className="flex-1 px-4 py-4 space-y-2">
+          <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
+          <NavItem to="/obms" icon={Building} label="OBMs" />
+          <NavItem to="/viaturas" icon={Car} label="Viaturas" />
+          <NavItem to="/militares" icon={Users} label="Militares" />
+          <NavItem to="/plantoes" icon={Calendar} label="Plantões" />
+        </nav>
+        <div className="px-4 py-4 border-t border-gray-700">
+           <button
+            onClick={logout}
+            className="flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
           >
+            <LogOut className="w-5 h-5 mr-3" />
             Sair
           </button>
         </div>
-      </header>
-      
-      {/* Conteúdo Principal */}
-      <main>
-        <div className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-          {/* O <Outlet> renderiza o componente da rota filha (Dashboard, Obms, etc.) */}
-          <Outlet />
-        </div>
-      </main>
+      </aside>
+
+      {/* --- Área de Conteúdo Principal --- */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Cabeçalho da Área de Conteúdo */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6">
+          <div className="flex items-center">
+            <span className="text-sm text-gray-600">Bem-vindo, <span className="font-semibold">{user?.login}</span></span>
+          </div>
+        </header>
+
+        {/* Conteúdo da Página */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
