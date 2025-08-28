@@ -5,7 +5,7 @@ const pool = require('../config/database');
 const AppError = require('../utils/AppError');
 
 // --- Configuração das Credenciais e da API ---
-const KEYFILEPATH = path.join(process.cwd(), 'credentials.json');
+const KEYFILEPATH = path.join(__dirname, '..', '..', 'credentials.json');
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
 const auth = new google.auth.GoogleAuth({
