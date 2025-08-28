@@ -4,10 +4,11 @@ import api from '../services/api';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import MilitarForm from '../components/forms/MilitarForm';
-import Pagination from '../components/ui/Pagination'; // Importe o componente
-import Input from '../components/ui/Input'; // Importe o Input
+import Pagination from '../components/ui/Pagination';
+import Input from '../components/ui/Input';
+import Spinner from '../components/ui/Spinner'; // 1. Importar o Spinner
 
-// Interfaces (a de PaginationState foi adicionada)
+// Interfaces
 interface Militar {
   id: number;
   matricula: string;
@@ -42,7 +43,6 @@ export default function Militares() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para paginação e filtros
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtroNome, setFiltroNome] = useState('');
@@ -51,14 +51,13 @@ export default function Militares() {
   const [militarToEdit, setMilitarToEdit] = useState<Militar | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Função de busca de dados atualizada
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(currentPage),
         limit: '10',
-        nome_completo: filtroNome, // O filtro será por nome completo
+        nome_completo: filtroNome,
       });
 
       const [militaresRes, obmsRes] = await Promise.all([
@@ -91,7 +90,6 @@ export default function Militares() {
     setCurrentPage(1);
   };
 
-  // ... (funções de modal, save e delete permanecem as mesmas, com a lógica de paginação na exclusão) ...
   const handleOpenModal = (militar: Militar | null = null) => {
     setMilitarToEdit(militar);
     setIsModalOpen(true);
@@ -149,7 +147,6 @@ export default function Militares() {
         <Button onClick={() => handleOpenModal()}>Adicionar Novo Militar</Button>
       </div>
 
-      {/* Barra de filtro */}
       <div className="mb-4">
         <Input
           type="text"
@@ -173,7 +170,14 @@ export default function Militares() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-4">Carregando...</td></tr>
+              // 2. Substituir o texto pelo Spinner
+              <tr>
+                <td colSpan={5} className="text-center py-10">
+                  <div className="flex justify-center items-center">
+                    <Spinner className="h-8 w-8 text-gray-500" />
+                  </div>
+                </td>
+              </tr>
             ) : militares.length > 0 ? (
               militares.map((militar) => (
                 <tr key={militar.id}>
@@ -197,7 +201,6 @@ export default function Militares() {
           </tbody>
         </table>
         
-        {/* Componente de Paginação */}
         {pagination && (
           <Pagination
             currentPage={pagination.currentPage}

@@ -4,10 +4,12 @@ import api from '../services/api';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ObmForm from '../components/forms/ObmForm';
-import Pagination from '../components/ui/Pagination'; // 1. Importe o componente de Paginação
-import Input from '../components/ui/Input'; // Importe o Input para o filtro
+import Pagination from '../components/ui/Pagination';
+import Input from '../components/ui/Input';
+import Spinner from '../components/ui/Spinner';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// ... (interfaces Obm e ApiResponse permanecem as mesmas) ...
+// Interfaces
 interface Obm {
   id: number;
   nome: string;
@@ -15,81 +17,76 @@ interface Obm {
   cidade: string | null;
   ativo: boolean;
 }
-
 interface PaginationState {
   currentPage: number;
   totalPages: number;
-  totalRecords: number;
-  perPage: number;
 }
-
 interface ApiResponse {
   data: Obm[];
   pagination: PaginationState;
+}
+// 1. Interface para o erro de validação
+interface ValidationError {
+  field: string;
+  message: string;
 }
 
 export default function Obms() {
   const [obms, setObms] = useState<Obm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // 2. Estados para paginação e filtros
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtroNome, setFiltroNome] = useState('');
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [obmToEdit, setObmToEdit] = useState<Obm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [obmToDeleteId, setObmToDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // 2. Estado para armazenar os erros de validação
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  // 3. Função de busca de dados com useCallback para otimização
   const fetchObms = useCallback(async () => {
+    // ... (função sem alterações)
     setIsLoading(true);
     try {
-      // Adiciona os parâmetros de paginação e filtro à URL
-      const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: '10', // Define um limite de 10 itens por página
-        nome: filtroNome,
-      });
-
+      const params = new URLSearchParams({ page: String(currentPage), limit: '10', nome: filtroNome });
       const response = await api.get<ApiResponse>(`/obms?${params.toString()}`);
       setObms(response.data.data);
       setPagination(response.data.pagination);
     } catch (err) {
-      setError('Não foi possível carregar as OBMs.');
       toast.error('Não foi possível carregar as OBMs.');
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, filtroNome]); // A função será recriada se a página ou o filtro mudarem
+  }, [currentPage, filtroNome]);
 
   useEffect(() => {
     fetchObms();
-  }, [fetchObms]); // O useEffect agora depende da função memoizada
+  }, [fetchObms]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
+  const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiltroNome(e.target.value);
-    setCurrentPage(1); // Reseta para a primeira página ao filtrar
+    setCurrentPage(1);
   };
 
-  // ... (funções de modal e save/delete permanecem as mesmas) ...
-  const handleOpenModal = (obm: Obm | null = null) => {
+  const handleOpenFormModal = (obm: Obm | null = null) => {
     setObmToEdit(obm);
-    setIsModalOpen(true);
+    setValidationErrors([]); // 3. Limpa os erros ao abrir o modal
+    setIsFormModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseFormModal = () => {
+    setIsFormModalOpen(false);
     setObmToEdit(null);
+    setValidationErrors([]); // Limpa os erros ao fechar
   };
 
   const handleSaveObm = async (obmData: Omit<Obm, 'id'> & { id?: number }) => {
     setIsSaving(true);
+    setValidationErrors([]); // Limpa erros antigos
     const action = obmData.id ? 'atualizada' : 'criada';
     try {
       if (obmData.id) {
@@ -98,58 +95,68 @@ export default function Obms() {
         await api.post('/obms', obmData);
       }
       toast.success(`OBM ${action} com sucesso!`);
-      handleCloseModal();
+      handleCloseFormModal();
       fetchObms();
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || `Erro ao salvar OBM.`;
-      toast.error(errorMessage);
+      // 4. Captura e armazena os erros de validação
+      if (err.response && err.response.status === 400 && err.response.data.errors) {
+        setValidationErrors(err.response.data.errors);
+        toast.error('Por favor, corrija os erros no formulário.');
+      } else {
+        const errorMessage = err.response?.data?.message || `Erro ao salvar OBM.`;
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteObm = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta OBM?')) {
-      try {
-        await api.delete(`/obms/${id}`);
-        toast.success('OBM excluída com sucesso!');
-        // Se o item excluído for o último da página, volta para a página anterior
-        if (obms.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        } else {
-          fetchObms();
-        }
-      } catch (err: any) {
-        const errorMessage = err.response?.data?.message || 'Erro ao excluir OBM.';
-        toast.error(errorMessage);
+  const handleDeleteClick = (id: number) => {
+    setObmToDeleteId(id);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setIsConfirmModalOpen(false);
+    setObmToDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    // ... (função sem alterações)
+    if (!obmToDeleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/obms/${obmToDeleteId}`);
+      toast.success('OBM excluída com sucesso!');
+      if (obms.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchObms();
       }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Erro ao excluir OBM.';
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+      handleCloseConfirmModal();
     }
   };
 
   return (
     <div>
+      {/* ... (JSX do cabeçalho e tabela sem alterações) ... */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">OBMs</h2>
           <p className="text-gray-600 mt-2">Gerencie as Organizações Bombeiro Militar.</p>
         </div>
-        <Button onClick={() => handleOpenModal()}>Adicionar Nova OBM</Button>
+        <Button onClick={() => handleOpenFormModal()}>Adicionar Nova OBM</Button>
       </div>
-
-      {/* 4. Adicionar a barra de filtro */}
       <div className="mb-4">
-        <Input
-          type="text"
-          placeholder="Filtrar por nome..."
-          value={filtroNome}
-          onChange={handleFiltroChange}
-          className="max-w-xs"
-        />
+        <Input type="text" placeholder="Filtrar por nome..." value={filtroNome} onChange={handleFiltroChange} className="max-w-xs" />
       </div>
-
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
-          {/* ... (thead da tabela permanece o mesmo) ... */}
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
@@ -161,7 +168,13 @@ export default function Obms() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-4">Carregando...</td></tr>
+              <tr>
+                <td colSpan={5} className="text-center py-10">
+                  <div className="flex justify-center items-center">
+                    <Spinner className="h-8 w-8 text-gray-500" />
+                  </div>
+                </td>
+              </tr>
             ) : obms.length > 0 ? (
               obms.map((obm) => (
                 <tr key={obm.id}>
@@ -174,8 +187,8 @@ export default function Obms() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleOpenModal(obm)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
-                    <button onClick={() => handleDeleteObm(obm.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
+                    <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
+                    <button onClick={() => handleDeleteClick(obm.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
                   </td>
                 </tr>
               ))
@@ -184,30 +197,30 @@ export default function Obms() {
             )}
           </tbody>
         </table>
-        
-        {/* 5. Adicionar o componente de Paginação */}
-        {pagination && (
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
+        {pagination && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
       </div>
 
-      {/* ... (Modal permanece o mesmo) ... */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        title={obmToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}
-      >
+      {/* Modal de Formulário */}
+      <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={obmToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}>
         <ObmForm
           obmToEdit={obmToEdit}
           onSave={handleSaveObm}
-          onCancel={handleCloseModal}
+          onCancel={handleCloseFormModal}
           isLoading={isSaving}
+          // 5. Passar os erros para o formulário
+          errors={validationErrors}
         />
       </Modal>
+
+      {/* Modal de Confirmação */}
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseConfirmModal}
+        onConfirm={handleConfirmDelete}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir esta OBM? Esta ação não pode ser desfeita."
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

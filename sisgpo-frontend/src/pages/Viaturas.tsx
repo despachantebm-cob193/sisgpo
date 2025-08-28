@@ -4,10 +4,12 @@ import api from '../services/api';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ViaturaForm from '../components/forms/ViaturaForm';
-import Pagination from '../components/ui/Pagination'; // Importe o componente
-import Input from '../components/ui/Input'; // Importe o Input
+import Pagination from '../components/ui/Pagination';
+import Input from '../components/ui/Input';
+import Spinner from '../components/ui/Spinner';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces (a de PaginationState foi adicionada)
+// Interfaces
 interface Viatura {
   id: number;
   prefixo: string;
@@ -18,62 +20,51 @@ interface Viatura {
   ativa: boolean;
   obm_id: number | null;
 }
-
 interface Obm {
   id: number;
   nome: string;
   abreviatura: string;
 }
-
 interface PaginationState {
   currentPage: number;
   totalPages: number;
-  totalRecords: number;
-  perPage: number;
 }
-
 interface ApiResponse<T> {
   data: T[];
   pagination: PaginationState;
+}
+interface ValidationError {
+  field: string;
+  message: string;
 }
 
 export default function Viaturas() {
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [obms, setObms] = useState<Obm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Estados para paginação e filtros
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtroPrefixo, setFiltroPrefixo] = useState('');
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [viaturaToEdit, setViaturaToEdit] = useState<Viatura | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [viaturaToDeleteId, setViaturaToDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  // Função de busca de dados atualizada
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: '10',
-        prefixo: filtroPrefixo,
-      });
-
-      // Busca viaturas e OBMs em paralelo
+      const params = new URLSearchParams({ page: String(currentPage), limit: '10', prefixo: filtroPrefixo });
       const [viaturasRes, obmsRes] = await Promise.all([
         api.get<ApiResponse<Viatura>>(`/viaturas?${params.toString()}`),
         api.get<ApiResponse<Obm>>('/obms?limit=500')
       ]);
-      
       setViaturas(viaturasRes.data.data);
       setPagination(viaturasRes.data.pagination);
       setObms(obmsRes.data.data);
-
     } catch (err) {
-      setError('Não foi possível carregar os dados.');
       toast.error('Não foi possível carregar os dados das viaturas.');
     } finally {
       setIsLoading(false);
@@ -84,28 +75,27 @@ export default function Viaturas() {
     fetchData();
   }, [fetchData]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
+  const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFiltroPrefixo(e.target.value);
     setCurrentPage(1);
   };
 
-  // ... (funções de modal, save e delete permanecem as mesmas, com a lógica de paginação na exclusão) ...
-  const handleOpenModal = (viatura: Viatura | null = null) => {
+  const handleOpenFormModal = (viatura: Viatura | null = null) => {
     setViaturaToEdit(viatura);
-    setIsModalOpen(true);
+    setValidationErrors([]);
+    setIsFormModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseFormModal = () => {
+    setIsFormModalOpen(false);
     setViaturaToEdit(null);
+    setValidationErrors([]);
   };
 
   const handleSaveViatura = async (viaturaData: Omit<Viatura, 'id'> & { id?: number }) => {
     setIsSaving(true);
+    setValidationErrors([]);
     const action = viaturaData.id ? 'atualizada' : 'criada';
     try {
       if (viaturaData.id) {
@@ -114,30 +104,48 @@ export default function Viaturas() {
         await api.post('/viaturas', viaturaData);
       }
       toast.success(`Viatura ${action} com sucesso!`);
-      handleCloseModal();
+      handleCloseFormModal();
       fetchData();
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Erro ao salvar viatura.';
-      toast.error(errorMessage);
+      if (err.response && err.response.status === 400 && err.response.data.errors) {
+        setValidationErrors(err.response.data.errors);
+        toast.error('Por favor, corrija os erros no formulário.');
+      } else {
+        const errorMessage = err.response?.data?.message || 'Erro ao salvar viatura.';
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteViatura = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta viatura?')) {
-      try {
-        await api.delete(`/viaturas/${id}`);
-        toast.success('Viatura excluída com sucesso!');
-        if (viaturas.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        } else {
-          fetchData();
-        }
-      } catch (err: any) {
-        const errorMessage = err.response?.data?.message || 'Erro ao excluir viatura.';
-        toast.error(errorMessage);
+  const handleDeleteClick = (id: number) => {
+    setViaturaToDeleteId(id);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setIsConfirmModalOpen(false);
+    setViaturaToDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!viaturaToDeleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/viaturas/${viaturaToDeleteId}`);
+      toast.success('Viatura excluída com sucesso!');
+      if (viaturas.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchData();
       }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Erro ao excluir viatura.';
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+      handleCloseConfirmModal();
     }
   };
 
@@ -148,18 +156,11 @@ export default function Viaturas() {
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Viaturas</h2>
           <p className="text-gray-600 mt-2">Gerencie a frota de viaturas.</p>
         </div>
-        <Button onClick={() => handleOpenModal()}>Adicionar Nova Viatura</Button>
+        <Button onClick={() => handleOpenFormModal()}>Adicionar Nova Viatura</Button>
       </div>
 
-      {/* Barra de filtro */}
       <div className="mb-4">
-        <Input
-          type="text"
-          placeholder="Filtrar por prefixo..."
-          value={filtroPrefixo}
-          onChange={handleFiltroChange}
-          className="max-w-xs"
-        />
+        <Input type="text" placeholder="Filtrar por prefixo..." value={filtroPrefixo} onChange={handleFiltroChange} className="max-w-xs" />
       </div>
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -175,7 +176,13 @@ export default function Viaturas() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-4">Carregando...</td></tr>
+              <tr>
+                <td colSpan={5} className="text-center py-10">
+                  <div className="flex justify-center items-center">
+                    <Spinner className="h-8 w-8 text-gray-500" />
+                  </div>
+                </td>
+              </tr>
             ) : viaturas.length > 0 ? (
               viaturas.map((viatura) => (
                 <tr key={viatura.id}>
@@ -188,8 +195,8 @@ export default function Viaturas() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleOpenModal(viatura)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
-                    <button onClick={() => handleDeleteViatura(viatura.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
+                    <button onClick={() => handleOpenFormModal(viatura)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
+                    <button onClick={() => handleDeleteClick(viatura.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
                   </td>
                 </tr>
               ))
@@ -199,29 +206,28 @@ export default function Viaturas() {
           </tbody>
         </table>
         
-        {/* Componente de Paginação */}
-        {pagination && (
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
+        {pagination && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        title={viaturaToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}
-      >
+      <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={viaturaToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm
           viaturaToEdit={viaturaToEdit}
           obms={obms}
           onSave={handleSaveViatura}
-          onCancel={handleCloseModal}
+          onCancel={handleCloseFormModal}
           isLoading={isSaving}
+          errors={validationErrors}
         />
       </Modal>
+
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseConfirmModal}
+        onConfirm={handleConfirmDelete}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir esta viatura? Esta ação não pode ser desfeita."
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
