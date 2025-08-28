@@ -3,34 +3,50 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const pool = require('./src/config/database');
 
-async function atualizarSenha() {
-  const loginParaAtualizar = 'admin';
-  const novaSenha = 'cbmgo@2025'; // <<< Use esta senha. É segura e fácil de lembrar para o teste.
+async function setupAdminUser() {
+  const login = 'admin';
+  const senhaPlana = 'cbmgo@2025'; // A senha que usaremos
+  const perfil = 'Admin';
+
+  const client = await pool.connect();
+  console.log('Conectado ao banco de dados de produção...');
 
   try {
+    // 1. Verificar se o usuário 'admin' já existe
+    const userExists = await client.query('SELECT * FROM usuarios WHERE login = $1', [login]);
+
     // Criptografa a nova senha
-    const senhaHash = await bcrypt.hash(novaSenha, 10);
+    console.log('Criptografando a senha...');
+    const salt = await bcrypt.genSalt(10);
+    const senhaHash = await bcrypt.hash(senhaPlana, salt);
+    console.log('Senha criptografada com sucesso!');
 
-    // Atualiza a senha no banco de dados para o usuário 'admin'
-    const result = await pool.query(
-      'UPDATE usuarios SET senha_hash = $1 WHERE login = $2 RETURNING id, login, perfil;',
-      [senhaHash, loginParaAtualizar]
-    );
-
-    if (result.rowCount > 0) {
-      console.log('Senha do usuário "admin" atualizada com sucesso!');
-      console.log('Use as seguintes credenciais nos seus testes:');
-      console.log(`Login: ${loginParaAtualizar}`);
-      console.log(`Senha: ${novaSenha}`);
+    if (userExists.rows.length > 0) {
+      // 2a. Se existe, ATUALIZA a senha
+      console.log('Usuário "admin" encontrado. Atualizando a senha...');
+      await client.query(
+        'UPDATE usuarios SET senha_hash = $1, perfil = $2 WHERE login = $3',
+        [senhaHash, perfil, login]
+      );
+      console.log('✅ Senha do usuário "admin" atualizada com sucesso em produção!');
     } else {
-      console.log('Usuário "admin" não encontrado.');
+      // 2b. Se não existe, CRIA o usuário
+      console.log('Usuário "admin" não encontrado. Criando novo usuário...');
+      await client.query(
+        'INSERT INTO usuarios (login, senha_hash, perfil) VALUES ($1, $2, $3)',
+        [login, senhaHash, perfil]
+      );
+      console.log('🎉 Usuário "admin" criado com sucesso em produção!');
     }
 
   } catch (error) {
-    console.error('Erro ao atualizar a senha:', error.message);
+    console.error('❌ Erro ao configurar o usuário admin:', error);
   } finally {
+    // 3. Fecha a conexão
+    await client.release();
     await pool.end();
+    console.log('Conexão com o banco de dados encerrada.');
   }
 }
 
-atualizarSenha();
+setupAdminUser();

@@ -9,6 +9,7 @@ const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const sheetsController = require('../controllers/sheetsController');
 
 // 2. Importa os validadores
 const validationMiddleware = require('../validators/validationMiddleware');
@@ -50,5 +51,8 @@ router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
 router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
+
+// --- ROTAS DE SINCRONIZAÇÃO COM GOOGLE SHEETS ---
+router.post('/sheets/sync-militares', sheetsController.syncMilitares);
 
 module.exports = router;
