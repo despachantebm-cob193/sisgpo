@@ -1,36 +1,51 @@
 // src/services/sheetsService.js
+console.log('--- EXECUTANDO sheetsService.js VERSÃO COM VARIÁVEIS DE AMBIENTE ---');
+
 const { google } = require('googleapis');
 const path = require('path');
 const pool = require('../config/database');
 const AppError = require('../utils/AppError');
 
-// --- Configuração das Credenciais e da API ---
-const KEYFILEPATH = path.join(__dirname, '..', '..', 'credentials.json');
+// --- NOVA Configuração das Credenciais via Variáveis de Ambiente ---
+const credentials = {
+  type: process.env.GOOGLE_CREDENTIALS_TYPE,
+  project_id: process.env.GOOGLE_CREDENTIALS_PROJECT_ID,
+  private_key_id: process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY_ID,
+  // O Render pode alterar a formatação de quebras de linha. O replace garante que a chave seja válida.
+  private_key: (process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  client_email: process.env.GOOGLE_CREDENTIALS_CLIENT_EMAIL,
+  client_id: process.env.GOOGLE_CREDENTIALS_CLIENT_ID,
+  auth_uri: process.env.GOOGLE_CREDENTIALS_AUTH_URI,
+  token_uri: process.env.GOOGLE_CREDENTIALS_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.GOOGLE_CREDENTIALS_AUTH_PROVIDER_CERT_URL,
+  client_x509_cert_url: process.env.GOOGLE_CREDENTIALS_CLIENT_CERT_URL,
+};
+
+// Valida se as credenciais essenciais foram carregadas
+if (!credentials.client_email || !credentials.private_key) {
+  throw new AppError('As credenciais do Google não estão configuradas corretamente nas variáveis de ambiente.', 500);
+}
+
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: KEYFILEPATH,
+  credentials, // Usa o objeto de credenciais montado
   scopes: SCOPES,
 } );
 
 const sheets = google.sheets({ version: 'v4', auth });
 
-// --- Lógica de Sincronização ---
+// O restante do serviço (sheetsService) permanece exatamente o mesmo
 const sheetsService = {
-  /**
-   * Lê os dados da planilha e sincroniza com o banco de dados.
-   * @returns {Promise<{totalRows: number, inserted: number, updated: number, failed: number}>}
-   */
   syncMilitaresFromSheet: async () => {
-    // ID da sua planilha e o nome/range da aba
     const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
-    const RANGE = 'Militares!A2:F'; // Ex: 'NomeDaAba!A2:F' (da coluna A até F, começando da linha 2)
+    const RANGE = 'Militares!A2:F';
 
     if (!SPREADSHEET_ID) {
       throw new AppError('O ID da planilha do Google Sheets não está configurado no .env', 500);
     }
 
-    // 1. Buscar dados da planilha
+    // ... (o resto da função continua igual)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: RANGE,
@@ -42,11 +57,9 @@ const sheetsService = {
       return { totalRows: 0, inserted: 0, updated: 0, failed: 0 };
     }
 
-    // 2. Buscar todas as OBMs para mapear abreviatura -> id
     const obmsResult = await pool.query('SELECT id, abreviatura FROM obms');
     const obmMap = new Map(obmsResult.rows.map(obm => [obm.abreviatura.toUpperCase(), obm.id]));
 
-    // 3. Processar cada linha da planilha
     let inserted = 0;
     let updated = 0;
     let failed = 0;
@@ -56,7 +69,6 @@ const sheetsService = {
       for (const row of rows) {
         const [matricula, nome_completo, nome_guerra, posto_graduacao, obm_abreviatura, ativo_str] = row;
 
-        // Validação mínima dos dados da linha
         if (!matricula || !nome_completo || !obm_abreviatura) {
           console.warn(`Linha ignorada por falta de dados essenciais: ${row.join(', ')}`);
           failed++;
@@ -72,24 +84,18 @@ const sheetsService = {
 
         const ativo = ativo_str ? ativo_str.toUpperCase() === 'SIM' : true;
 
-        // Inicia uma transação para cada militar para garantir a atomicidade
         await client.query('BEGIN');
-
         const militarExists = await client.query('SELECT id FROM militares WHERE matricula = $1', [matricula]);
 
         if (militarExists.rowCount > 0) {
-          // Atualiza o militar existente
           await client.query(
-            `UPDATE militares SET nome_completo = $1, nome_guerra = $2, posto_graduacao = $3, obm_id = $4, ativo = $5, updated_at = NOW()
-             WHERE matricula = $6`,
+            `UPDATE militares SET nome_completo = $1, nome_guerra = $2, posto_graduacao = $3, obm_id = $4, ativo = $5, updated_at = NOW() WHERE matricula = $6`,
             [nome_completo, nome_guerra, posto_graduacao, obm_id, ativo, matricula]
           );
           updated++;
         } else {
-          // Insere um novo militar
           await client.query(
-            `INSERT INTO militares (matricula, nome_completo, nome_guerra, posto_graduacao, obm_id, ativo)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
+            `INSERT INTO militares (matricula, nome_completo, nome_guerra, posto_graduacao, obm_id, ativo) VALUES ($1, $2, $3, $4, $5, $6)`,
             [matricula, nome_completo, nome_guerra, posto_graduacao, obm_id, ativo]
           );
           inserted++;
@@ -98,7 +104,6 @@ const sheetsService = {
       }
     } catch (error) {
       await client.query('ROLLBACK');
-      // Lança o erro para ser capturado pelo controller
       throw new AppError(`Erro durante a transação no banco de dados: ${error.message}`, 500);
     } finally {
       client.release();
