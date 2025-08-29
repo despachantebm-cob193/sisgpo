@@ -1,43 +1,33 @@
-const { Pool } = require('pg');
-require('dotenv').config(); // Garante que as variáveis de ambiente sejam carregadas
+// src/config/database.js
+const knex = require('knex');
+const knexConfig = require('../../knexfile'); // Caminho para o knexfile na raiz do projeto
 
-// Define as configurações de conexão para cada ambiente
-const connectionConfigs = {
-  development: {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-  },
-  test: {
-    host: process.env.DB_HOST_TEST,
-    port: process.env.DB_PORT_TEST,
-    user: process.env.DB_USER_TEST,
-    password: process.env.DB_PASSWORD_TEST,
-    database: process.env.DB_DATABASE_TEST,
-  }
-};
-
-// Escolhe a configuração com base no ambiente atual (NODE_ENV)
-// O Jest define automaticamente NODE_ENV='test'
+// Determina o ambiente. O Render define NODE_ENV='production' automaticamente.
 const env = process.env.NODE_ENV || 'development';
-const connectionConfig = connectionConfigs[env];
 
-console.log(`[Database] Conectando ao banco de dados do ambiente: ${env.toUpperCase()}`);
+// Seleciona a configuração correta do knexfile.js
+const config = knexConfig[env];
 
-// Cria o pool de conexões com a configuração correta
-const pool = new Pool(connectionConfig);
+console.log(`[Database] Inicializando Knex para o ambiente: ${env.toUpperCase()}`);
 
-// Testa a conexão apenas se não estiver em ambiente de teste para evitar logs desnecessários
-if (env !== 'test') {
-  pool.connect((err, client, release) => {
-    if (err) {
-      return console.error('Erro ao conectar com o banco de dados:', err.stack);
+// Cria e exporta a instância do Knex com a configuração correta
+const db = knex(config);
+
+// Testa a conexão para dar um feedback no log
+db.raw('SELECT 1+1 AS result')
+  .then(() => {
+    // Em produção, não exponha detalhes do banco.
+    if (env === 'production') {
+      console.log('✅ Conexão com o banco de dados de produção estabelecida com sucesso!');
+    } else {
+      console.log(`✅ Conexão com o banco de dados (${db.client.config.connection.database}) estabelecida com sucesso!`);
     }
-    console.log(`✅ Conexão com o banco de dados (${connectionConfig.database}) estabelecida com sucesso!`);
-    client.release();
+  })
+  .catch((err) => {
+    console.error('!!!!!!!!!! FALHA CRÍTICA AO CONECTAR COM O BANCO DE DADOS !!!!!!!!!!');
+    console.error(err.message);
+    // Em um cenário real, você poderia querer que a aplicação parasse se não puder conectar.
+    // process.exit(1); 
   });
-}
 
-module.exports = pool;
+module.exports = db;
