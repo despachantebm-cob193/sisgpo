@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "knex": "knex",
+    "knex": "knex --knexfile knexfile.js",
     "migrate:dev": "knex migrate:latest --env development",
+    "migrate:prod": "knex migrate:latest --env production",
     "test:setup": "knex migrate:latest --env test",
     "test": "npm run test:setup && dotenv -e .env -- jest --runInBand --detectOpenHandles"
   },
