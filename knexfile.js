@@ -1,4 +1,4 @@
-// Carrega as variáveis de ambiente do arquivo .env
+// knexfile.js
 require('dotenv').config();
 
 module.exports = {
@@ -12,21 +12,34 @@ module.exports = {
       database: process.env.DB_DATABASE,
     },
     migrations: {
-      directory: './src/database/migrations' // Ajuste o caminho se necessário
+      directory: './src/database/migrations'
     }
   },
 
   test: {
     client: 'pg',
     connection: {
-      host: process.env.DB_HOST_TEST || 'localhost',
-      port: process.env.DB_PORT_TEST || '5433', // Use uma porta ou DB diferente para testes
-      user: process.env.DB_USER_TEST || 'postgres',
-      password: process.env.DB_PASSWORD_TEST || 'docker',
-      database: process.env.DB_DATABASE_TEST || 'sisgpo_test',
+      host: process.env.DB_HOST_TEST,
+      port: process.env.DB_PORT_TEST,
+      user: process.env.DB_USER_TEST,
+      password: process.env.DB_PASSWORD_TEST,
+      database: process.env.DB_DATABASE_TEST,
     },
     migrations: {
-      directory: './src/database/migrations' // O mesmo caminho das migrations
+      directory: './src/database/migrations'
+    }
+  },
+
+  // --- SEÇÃO DE PRODUÇÃO ---
+  // Garanta que esta seção esteja exatamente assim.
+  production: {
+    client: 'pg', // A propriedade 'client' que estava faltando
+    connection: {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false } // Necessário para conexões SSL no Render
+    },
+    migrations: {
+      directory: './src/database/migrations'
     }
   }
 };
