@@ -1,13 +1,14 @@
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-// O Vite irá injetar a URL correta do arquivo .env apropriado durante o build/dev
+// A baseURL aponta para a raiz da API, definida no arquivo .env do frontend
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const api = axios.create({
   baseURL: baseURL,
 });
 
+// Interceptor que adiciona o token JWT em todas as requisições protegidas
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = useAuthStore.getState().token;

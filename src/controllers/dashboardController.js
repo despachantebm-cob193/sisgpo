@@ -1,27 +1,39 @@
-const pool = require('../config/database');
+// src/controllers/dashboardController.js
+const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const dashboardController = {
   getStats: async (req, res) => {
     try {
-      // Correção: A coluna se chama 'data_plantao', e não 'data'.
-      const query = `
-        SELECT
-          (SELECT COUNT(*) FROM militares WHERE ativo = TRUE) AS total_militares_ativos,
-          (SELECT COUNT(*) FROM viaturas WHERE ativa = TRUE) AS total_viaturas_disponiveis,
-          (SELECT COUNT(*) FROM obms WHERE ativo = TRUE) AS total_obms,
-          (SELECT COUNT(*) FROM plantoes WHERE data_plantao >= date_trunc('month', CURRENT_DATE) AND data_plantao < date_trunc('month', CURRENT_DATE) + interval '1 month') AS total_plantoes_mes
-      `;
+      // Usando Knex para construir as queries de contagem
+      const totalMilitaresAtivos = db('militares').where({ ativo: true }).count({ count: '*' }).first();
+      const totalViaturasDisponiveis = db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
+      const totalObms = db('obms').where({ ativo: true }).count({ count: '*' }).first();
       
-      const result = await pool.query(query);
-      const stats = result.rows[0];
+      // Para contagem de plantões no mês corrente, a query raw ainda é mais direta
+      const totalPlantoesMes = db.raw(
+        "SELECT COUNT(*) FROM plantoes WHERE data_plantao >= date_trunc('month', CURRENT_DATE) AND data_plantao < date_trunc('month', CURRENT_DATE) + interval '1 month'"
+      );
 
-      // Converte os valores para inteiros, pois o COUNT retorna BigInt
+      // Executa todas as queries em paralelo
+      const [
+        militaresResult,
+        viaturasResult,
+        obmsResult,
+        plantoesResult
+      ] = await Promise.all([
+        totalMilitaresAtivos,
+        totalViaturasDisponiveis,
+        totalObms,
+        totalPlantoesMes
+      ]);
+
+      // Formata os resultados
       const formattedStats = {
-        total_militares_ativos: parseInt(stats.total_militares_ativos, 10),
-        total_viaturas_disponiveis: parseInt(stats.total_viaturas_disponiveis, 10),
-        total_obms: parseInt(stats.total_obms, 10),
-        total_plantoes_mes: parseInt(stats.total_plantoes_mes, 10),
+        total_militares_ativos: parseInt(militaresResult.count, 10),
+        total_viaturas_disponiveis: parseInt(viaturasResult.count, 10),
+        total_obms: parseInt(obmsResult.count, 10),
+        total_plantoes_mes: parseInt(plantoesResult.rows[0].count, 10),
       };
 
       res.status(200).json(formattedStats);

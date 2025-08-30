@@ -29,7 +29,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // AQUI ESTÁ A MUDANÇA: Usar a nova rota de autenticação
+      // CAMINHO CORRETO PARA A ROTA DE LOGIN
       const response = await api.post<LoginResponse>('/api/auth/login', { login, senha } );
       
       setToken(response.data.token);
@@ -44,7 +44,6 @@ export default function Login() {
     }
   };
 
-  // O restante do JSX permanece o mesmo...
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md">

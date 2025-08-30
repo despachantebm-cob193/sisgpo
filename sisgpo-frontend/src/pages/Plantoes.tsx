@@ -6,7 +6,7 @@ import Pagination from '../components/ui/Pagination';
 import Modal from '../components/ui/Modal';
 import PlantaoForm from '../components/forms/PlantaoForm';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner'; // 1. Importar o Spinner
+import Spinner from '../components/ui/Spinner';
 
 // Interfaces
 interface Plantao {
@@ -74,10 +74,11 @@ export default function Plantoes() {
       if (dataInicio) params.append('data_inicio', dataInicio);
       if (dataFim) params.append('data_fim', dataFim);
       
+      // CORREÇÃO APLICADA AQUI (em todas as chamadas)
       const [plantoesRes, viaturasRes, militaresRes] = await Promise.all([
-        api.get<ApiResponse<Plantao>>(`/plantoes?${params.toString()}`),
-        api.get<ApiResponse<Viatura>>('/viaturas?limit=500'),
-        api.get<ApiResponse<Militar>>('/militares?limit=1000')
+        api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`),
+        api.get<ApiResponse<Viatura>>('/api/admin/viaturas?limit=500'),
+        api.get<ApiResponse<Militar>>('/api/admin/militares?limit=1000')
       ]);
 
       setPlantoes(plantoesRes.data.data);
@@ -103,7 +104,8 @@ export default function Plantoes() {
   const handleOpenModal = async (plantao: Plantao | null = null) => {
     if (plantao) {
       try {
-        const response = await api.get<PlantaoDetalhado>(`/plantoes/${plantao.id}`);
+        // CORREÇÃO APLICADA AQUI
+        const response = await api.get<PlantaoDetalhado>(`/api/admin/plantoes/${plantao.id}`);
         setPlantaoToEdit(response.data);
       } catch (error) {
         toast.error("Não foi possível carregar os detalhes do plantão.");
@@ -125,9 +127,11 @@ export default function Plantoes() {
     const action = data.id ? 'atualizado' : 'criado';
     try {
       if (data.id) {
-        await api.put(`/plantoes/${data.id}`, data);
+        // CORREÇÃO APLICADA AQUI
+        await api.put(`/api/admin/plantoes/${data.id}`, data);
       } else {
-        await api.post('/plantoes', data);
+        // CORREÇÃO APLICADA AQUI
+        await api.post('/api/admin/plantoes', data);
       }
       toast.success(`Plantão ${action} com sucesso!`);
       handleCloseModal();
@@ -143,7 +147,8 @@ export default function Plantoes() {
   const handleDeletePlantao = async (id: number) => {
     if (window.confirm('Tem certeza que deseja excluir este plantão?')) {
       try {
-        await api.delete(`/plantoes/${id}`);
+        // CORREÇÃO APLICADA AQUI
+        await api.delete(`/api/admin/plantoes/${id}`);
         toast.success('Plantão excluído com sucesso!');
         if (plantoes.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
@@ -210,7 +215,6 @@ export default function Plantoes() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              // 2. Substituir o texto pelo Spinner
               <tr>
                 <td colSpan={4} className="text-center py-10">
                   <div className="flex justify-center items-center">

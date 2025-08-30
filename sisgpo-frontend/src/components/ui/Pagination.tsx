@@ -7,7 +7,6 @@ interface PaginationProps {
 }
 
 const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
-  // Não renderiza nada se houver apenas uma página ou nenhuma
   if (totalPages <= 1) {
     return null;
   }

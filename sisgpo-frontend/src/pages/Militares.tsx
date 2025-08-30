@@ -6,7 +6,7 @@ import Modal from '../components/ui/Modal';
 import MilitarForm from '../components/forms/MilitarForm';
 import Pagination from '../components/ui/Pagination';
 import Input from '../components/ui/Input';
-import Spinner from '../components/ui/Spinner'; // 1. Importar o Spinner
+import Spinner from '../components/ui/Spinner';
 
 // Interfaces
 interface Militar {
@@ -60,9 +60,10 @@ export default function Militares() {
         nome_completo: filtroNome,
       });
 
+      // CORREÇÃO APLICADA AQUI (em ambas as chamadas)
       const [militaresRes, obmsRes] = await Promise.all([
-        api.get<ApiResponse<Militar>>(`/militares?${params.toString()}`),
-        api.get<ApiResponse<Obm>>('/obms?limit=500')
+        api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`),
+        api.get<ApiResponse<Obm>>('/api/admin/obms?limit=500')
       ]);
       
       setMilitares(militaresRes.data.data);
@@ -105,9 +106,11 @@ export default function Militares() {
     const action = militarData.id ? 'atualizado' : 'criado';
     try {
       if (militarData.id) {
-        await api.put(`/militares/${militarData.id}`, militarData);
+        // CORREÇÃO APLICADA AQUI
+        await api.put(`/api/admin/militares/${militarData.id}`, militarData);
       } else {
-        await api.post('/militares', militarData);
+        // CORREÇÃO APLICADA AQUI
+        await api.post('/api/admin/militares', militarData);
       }
       toast.success(`Militar ${action} com sucesso!`);
       handleCloseModal();
@@ -123,7 +126,8 @@ export default function Militares() {
   const handleDeleteMilitar = async (id: number) => {
     if (window.confirm('Tem certeza que deseja excluir este militar?')) {
       try {
-        await api.delete(`/militares/${id}`);
+        // CORREÇÃO APLICADA AQUI
+        await api.delete(`/api/admin/militares/${id}`);
         toast.success('Militar excluído com sucesso!');
         if (militares.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
@@ -170,7 +174,6 @@ export default function Militares() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              // 2. Substituir o texto pelo Spinner
               <tr>
                 <td colSpan={5} className="text-center py-10">
                   <div className="flex justify-center items-center">

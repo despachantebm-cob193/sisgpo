@@ -9,27 +9,11 @@ import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces
-interface Obm {
-  id: number;
-  nome: string;
-  abreviatura: string;
-  cidade: string | null;
-  ativo: boolean;
-}
-interface PaginationState {
-  currentPage: number;
-  totalPages: number;
-}
-interface ApiResponse {
-  data: Obm[];
-  pagination: PaginationState;
-}
-// 1. Interface para o erro de validação
-interface ValidationError {
-  field: string;
-  message: string;
-}
+// Interfaces (sem alterações)
+interface Obm { id: number; nome: string; abreviatura: string; cidade: string | null; ativo: boolean; }
+interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
+interface ApiResponse { data: Obm[]; pagination: PaginationState; }
+interface ValidationError { field: string; message: string; }
 
 export default function Obms() {
   const [obms, setObms] = useState<Obm[]>([]);
@@ -43,16 +27,14 @@ export default function Obms() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [obmToDeleteId, setObmToDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // 2. Estado para armazenar os erros de validação
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   const fetchObms = useCallback(async () => {
-    // ... (função sem alterações)
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: '10', nome: filtroNome });
-      const response = await api.get<ApiResponse>(`/obms?${params.toString()}`);
+      // CORREÇÃO: Adicionado '/api'
+      const response = await api.get<ApiResponse>(`/api/admin/obms?${params.toString()}`);
       setObms(response.data.data);
       setPagination(response.data.pagination);
     } catch (err) {
@@ -62,43 +44,29 @@ export default function Obms() {
     }
   }, [currentPage, filtroNome]);
 
-  useEffect(() => {
-    fetchObms();
-  }, [fetchObms]);
+  useEffect(() => { fetchObms(); }, [fetchObms]);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFiltroNome(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handleOpenFormModal = (obm: Obm | null = null) => {
-    setObmToEdit(obm);
-    setValidationErrors([]); // 3. Limpa os erros ao abrir o modal
-    setIsFormModalOpen(true);
-  };
-
-  const handleCloseFormModal = () => {
-    setIsFormModalOpen(false);
-    setObmToEdit(null);
-    setValidationErrors([]); // Limpa os erros ao fechar
-  };
+  const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFiltroNome(e.target.value); setCurrentPage(1); };
+  const handleOpenFormModal = (obm: Obm | null = null) => { setObmToEdit(obm); setValidationErrors([]); setIsFormModalOpen(true); };
+  const handleCloseFormModal = () => { setIsFormModalOpen(false); setObmToEdit(null); setValidationErrors([]); };
 
   const handleSaveObm = async (obmData: Omit<Obm, 'id'> & { id?: number }) => {
     setIsSaving(true);
-    setValidationErrors([]); // Limpa erros antigos
+    setValidationErrors([]);
     const action = obmData.id ? 'atualizada' : 'criada';
     try {
       if (obmData.id) {
-        await api.put(`/obms/${obmData.id}`, obmData);
+        // CORREÇÃO: Adicionado '/api'
+        await api.put(`/api/admin/obms/${obmData.id}`, obmData);
       } else {
-        await api.post('/obms', obmData);
+        // CORREÇÃO: Adicionado '/api'
+        await api.post('/api/admin/obms', obmData);
       }
       toast.success(`OBM ${action} com sucesso!`);
       handleCloseFormModal();
       fetchObms();
     } catch (err: any) {
-      // 4. Captura e armazena os erros de validação
       if (err.response && err.response.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
         toast.error('Por favor, corrija os erros no formulário.');
@@ -111,22 +79,15 @@ export default function Obms() {
     }
   };
 
-  const handleDeleteClick = (id: number) => {
-    setObmToDeleteId(id);
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleCloseConfirmModal = () => {
-    setIsConfirmModalOpen(false);
-    setObmToDeleteId(null);
-  };
+  const handleDeleteClick = (id: number) => { setObmToDeleteId(id); setIsConfirmModalOpen(true); };
+  const handleCloseConfirmModal = () => { setIsConfirmModalOpen(false); setObmToDeleteId(null); };
 
   const handleConfirmDelete = async () => {
-    // ... (função sem alterações)
     if (!obmToDeleteId) return;
     setIsDeleting(true);
     try {
-      await api.delete(`/obms/${obmToDeleteId}`);
+      // CORREÇÃO: Adicionado '/api'
+      await api.delete(`/api/admin/obms/${obmToDeleteId}`);
       toast.success('OBM excluída com sucesso!');
       if (obms.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
@@ -142,9 +103,9 @@ export default function Obms() {
     }
   };
 
+  // O JSX da página permanece o mesmo
   return (
     <div>
-      {/* ... (JSX do cabeçalho e tabela sem alterações) ... */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">OBMs</h2>
@@ -168,13 +129,7 @@ export default function Obms() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-10">
-                  <div className="flex justify-center items-center">
-                    <Spinner className="h-8 w-8 text-gray-500" />
-                  </div>
-                </td>
-              </tr>
+              <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-8 w-8 text-gray-500 mx-auto" /></td></tr>
             ) : obms.length > 0 ? (
               obms.map((obm) => (
                 <tr key={obm.id}>
@@ -182,9 +137,7 @@ export default function Obms() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${obm.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {obm.ativo ? 'Ativa' : 'Inativa'}
-                    </span>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${obm.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{obm.ativo ? 'Ativa' : 'Inativa'}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
@@ -197,30 +150,12 @@ export default function Obms() {
             )}
           </tbody>
         </table>
-        {pagination && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
+        {pagination && pagination.totalPages > 1 && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
       </div>
-
-      {/* Modal de Formulário */}
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={obmToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}>
-        <ObmForm
-          obmToEdit={obmToEdit}
-          onSave={handleSaveObm}
-          onCancel={handleCloseFormModal}
-          isLoading={isSaving}
-          // 5. Passar os erros para o formulário
-          errors={validationErrors}
-        />
+        <ObmForm obmToEdit={obmToEdit} onSave={handleSaveObm} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-
-      {/* Modal de Confirmação */}
-      <ConfirmationModal
-        isOpen={isConfirmModalOpen}
-        onClose={handleCloseConfirmModal}
-        onConfirm={handleConfirmDelete}
-        title="Confirmar Exclusão"
-        message="Tem certeza que deseja excluir esta OBM? Esta ação não pode ser desfeita."
-        isLoading={isDeleting}
-      />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta OBM? Esta ação não pode ser desfeita." isLoading={isDeleting} />
     </div>
   );
 }

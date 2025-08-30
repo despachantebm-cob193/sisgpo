@@ -1,80 +1,59 @@
-const pool = require('../config/database');
+// src/controllers/militarController.js
+const db = require('../config/database');
 const AppError = require('../utils/AppError');
 const QueryBuilder = require('../utils/QueryBuilder');
 
 const militarController = {
   getAll: async (req, res) => {
     const filterConfig = {
-      nome_completo: { column: 'nome_completo', operator: 'ILIKE' },
-      posto_graduacao: { column: 'posto_graduacao', operator: 'ILIKE' },
-      matricula: { column: 'matricula', operator: 'ILIKE' },
+      nome_completo: { column: 'nome_completo', operator: 'ilike' },
+      posto_graduacao: { column: 'posto_graduacao', operator: 'ilike' },
+      matricula: { column: 'matricula', operator: 'ilike' },
       obm_id: { column: 'obm_id', operator: '=' }
     };
-    const { dataQuery, countQuery, dataParams, countParams, page, limit } = QueryBuilder(req.query, 'militares', filterConfig, 'nome_completo ASC');
-    const [dataResult, countResult] = await Promise.all([ pool.query(dataQuery, dataParams), pool.query(countQuery, countParams) ]);
-    const militares = dataResult.rows;
-    const totalRecords = parseInt(countResult.rows[0].count, 10);
-    const totalPages = Math.ceil(totalRecords / limit);
-    res.status(200).json({ data: militares, pagination: { currentPage: page, perPage: limit, totalPages, totalRecords } });
-  },
 
+    const { query, countQuery, page, limit } = QueryBuilder(db, req.query, 'militares', filterConfig, 'nome_completo ASC');
+    
+    const [militares, totalResult] = await Promise.all([query, countQuery]);
+    const totalRecords = parseInt(totalResult.count, 10);
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json({
+      data: militares,
+      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
+    });
+  },
+  // ... os métodos create, update e delete permanecem os mesmos da etapa anterior ...
   create: async (req, res) => {
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
-    const matriculaExists = await pool.query('SELECT id FROM militares WHERE matricula = $1', [matricula]);
-    if (matriculaExists.rowCount > 0) {
+    const matriculaExists = await db('militares').where({ matricula }).first();
+    if (matriculaExists) {
       throw new AppError('Matrícula já cadastrada no sistema.', 409);
     }
-    const result = await pool.query(
-      'INSERT INTO militares (matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id]
-    );
-    res.status(201).json(result.rows[0]);
+    const [novoMilitar] = await db('militares').insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id }).returning('*');
+    res.status(201).json(novoMilitar);
   },
-
   update: async (req, res) => {
     const { id } = req.params;
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
-
-    const militarAtualResult = await pool.query('SELECT * FROM militares WHERE id = $1', [id]);
-    if (militarAtualResult.rowCount === 0) {
+    const militarAtual = await db('militares').where({ id }).first();
+    if (!militarAtual) {
       throw new AppError('Militar não encontrado.', 404);
     }
-    const militarAtual = militarAtualResult.rows[0];
-
     if (matricula && matricula !== militarAtual.matricula) {
-      const matriculaConflict = await pool.query('SELECT id FROM militares WHERE matricula = $1 AND id != $2', [matricula, id]);
-      if (matriculaConflict.rowCount > 0) {
+      const matriculaConflict = await db('militares').where('matricula', matricula).andWhere('id', '!=', id).first();
+      if (matriculaConflict) {
         throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
       }
     }
-
-    const result = await pool.query(
-      `UPDATE militares SET 
-        matricula = $1, 
-        nome_completo = $2, 
-        nome_guerra = $3, 
-        posto_graduacao = $4, 
-        ativo = $5, 
-        obm_id = $6, 
-        updated_at = NOW() 
-      WHERE id = $7 RETURNING *`,
-      [
-        matricula || militarAtual.matricula,
-        nome_completo || militarAtual.nome_completo,
-        nome_guerra || militarAtual.nome_guerra,
-        posto_graduacao || militarAtual.posto_graduacao,
-        ativo,
-        obm_id || militarAtual.obm_id,
-        id
-      ]
-    );
-    res.status(200).json(result.rows[0]);
+    const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, updated_at: db.fn.now() };
+    const [militarAtualizado] = await db('militares').where({ id }).update(dadosAtualizacao).returning('*');
+    res.status(200).json(militarAtualizado);
   },
-
   delete: async (req, res) => {
     const { id } = req.params;
-    const result = await pool.query('DELETE FROM militares WHERE id = $1', [id]);
-    if (result.rowCount === 0) {
+    const result = await db('militares').where({ id }).del();
+    if (result === 0) {
       throw new AppError('Militar não encontrado.', 404);
     }
     res.status(204).send();

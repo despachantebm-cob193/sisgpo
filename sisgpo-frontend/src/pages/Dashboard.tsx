@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import api from '@/services/api'; // Usando alias
-import StatCard from '@/components/ui/StatCard'; // CORREÇÃO: Usando alias para o novo componente
-
-// ... o restante do arquivo permanece o mesmo ...
+import api from '@/services/api';
+import StatCard from '@/components/ui/StatCard';
+import Spinner from '@/components/ui/Spinner';
 
 interface DashboardStats {
   total_militares_ativos: number;
@@ -20,7 +19,7 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         setIsLoading(true);
-        // AQUI ESTÁ A MUDANÇA: Adicionar o caminho completo
+        // CORREÇÃO: Adicionado '/api' ao caminho da rota
         const response = await api.get<DashboardStats>('/api/admin/dashboard/stats');
         setStats(response.data);
         setError(null);

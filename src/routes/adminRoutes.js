@@ -9,7 +9,7 @@ const obmController = require('../controllers/obmController');
 const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
-const sheetsController = require('../controllers/sheetsController');
+// sheetsController foi removido
 
 // 2. Importa os validadores
 const validationMiddleware = require('../middlewares/validationMiddleware');
@@ -17,12 +17,6 @@ const { createMilitarSchema, updateMilitarSchema } = require('../validators/mili
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
-
-// --- ROTA PÚBLICA DE LOGIN (movida para fora do middleware de autenticação) ---
-// Esta rota é especial e não deve estar neste arquivo, pois este router está protegido.
-// A rota de login é registrada separadamente no app.js (ou em um authRoutes.js).
-// Para manter a consistência com o seu pedido, vou assumir que a rota de login está em um arquivo separado.
-// router.post('/login', authController.login); // Esta linha seria de um `authRoutes.js`
 
 // --- ROTA DE DASHBOARD ---
 // Acessível em: GET /api/admin/dashboard/stats
@@ -57,8 +51,6 @@ router.get('/plantoes/:id', plantaoController.getById);
 router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
 
-// --- ROTA DE SINCRONIZAÇÃO COM GOOGLE SHEETS ---
-// Acessível em: POST /api/admin/sheets/sync-militares
-router.post('/sheets/sync-militares', sheetsController.syncMilitares);
+// --- ROTA DE SINCRONIZAÇÃO REMOVIDA ---
 
 module.exports = router;

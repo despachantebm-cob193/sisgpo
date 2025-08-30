@@ -2,16 +2,13 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
-import FormError from '../ui/FormError'; // 1. Importar o FormError
+import FormError from '../ui/FormError';
 
-// Interface para um único erro de validação
+// Interfaces
 interface ValidationError {
   field: string;
   message: string;
 }
-
-type ObmFormData = Omit<Obm, 'id'> & { id?: number };
-
 interface Obm {
   id?: number;
   nome: string;
@@ -19,13 +16,13 @@ interface Obm {
   cidade: string | null;
   ativo: boolean;
 }
+type ObmFormData = Omit<Obm, 'id'> & { id?: number };
 
 interface ObmFormProps {
   obmToEdit?: Obm | null;
   onSave: (obm: ObmFormData) => void;
   onCancel: () => void;
   isLoading: boolean;
-  // 2. Adicionar propriedade para receber os erros
   errors?: ValidationError[];
 }
 
@@ -37,7 +34,6 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoadin
     ativo: true,
   });
 
-  // 3. Função para encontrar a mensagem de erro para um campo específico
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
 
   useEffect(() => {
