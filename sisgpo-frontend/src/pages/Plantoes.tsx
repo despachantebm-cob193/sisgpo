@@ -5,9 +5,10 @@ import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import Modal from '../components/ui/Modal';
 import PlantaoForm from '../components/forms/PlantaoForm';
-import Input from '../components/ui/Input'; // Importar o Input para os filtros
+import Input from '../components/ui/Input';
+import Spinner from '../components/ui/Spinner'; // 1. Importar o Spinner
 
-// ... (Interfaces permanecem as mesmas) ...
+// Interfaces
 interface Plantao {
   id: number;
   data_plantao: string;
@@ -47,7 +48,6 @@ interface PlantaoDetalhado {
   guarnicao: { militar_id: number; funcao: string }[];
 }
 
-
 export default function Plantoes() {
   const [plantoes, setPlantoes] = useState<Plantao[]>([]);
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
@@ -61,7 +61,6 @@ export default function Plantoes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [plantaoToEdit, setPlantaoToEdit] = useState<PlantaoDetalhado | null>(null);
 
-  // 1. Adicionar estados para os filtros de data
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
 
@@ -72,7 +71,6 @@ export default function Plantoes() {
         page: String(currentPage),
         limit: '15',
       });
-      // Adiciona os filtros à query se eles estiverem preenchidos
       if (dataInicio) params.append('data_inicio', dataInicio);
       if (dataFim) params.append('data_fim', dataFim);
       
@@ -92,7 +90,7 @@ export default function Plantoes() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, dataInicio, dataFim]); // 2. Adicionar filtros como dependências
+  }, [currentPage, dataInicio, dataFim]);
 
   useEffect(() => {
     fetchData();
@@ -102,7 +100,6 @@ export default function Plantoes() {
     setCurrentPage(page);
   };
 
-  // ... (handleOpenModal, handleCloseModal, handleSavePlantao, handleDeletePlantao, formatDate permanecem os mesmos) ...
   const handleOpenModal = async (plantao: Plantao | null = null) => {
     if (plantao) {
       try {
@@ -175,7 +172,6 @@ export default function Plantoes() {
         </Button>
       </div>
 
-      {/* 3. Adicionar os campos de filtro de data */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
         <div className="col-span-1">
           <label htmlFor="data_inicio" className="block text-sm font-medium text-gray-700">Data Início</label>
@@ -203,7 +199,6 @@ export default function Plantoes() {
       </div>
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {/* ... (o restante do JSX permanece o mesmo) ... */}
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -215,7 +210,14 @@ export default function Plantoes() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
-              <tr><td colSpan={4} className="text-center py-4">Carregando...</td></tr>
+              // 2. Substituir o texto pelo Spinner
+              <tr>
+                <td colSpan={4} className="text-center py-10">
+                  <div className="flex justify-center items-center">
+                    <Spinner className="h-8 w-8 text-gray-500" />
+                  </div>
+                </td>
+              </tr>
             ) : plantoes.length > 0 ? (
               plantoes.map((plantao) => (
                 <tr key={plantao.id}>

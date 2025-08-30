@@ -2,37 +2,43 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
+import FormError from '../ui/FormError'; // 1. Importar o FormError
 
-// CORREÇÃO 1: Usar um tipo mais preciso para os dados do formulário.
-// Omit<Obm, 'id'> pega todos os campos de Obm, exceto 'id'.
-// '& { id?: number }' adiciona de volta o 'id' como opcional.
-// Isso representa perfeitamente um objeto que pode ser para criação (sem id) ou edição (com id).
+// Interface para um único erro de validação
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
 type ObmFormData = Omit<Obm, 'id'> & { id?: number };
 
-// Interface da OBM que o formulário manipula internamente
 interface Obm {
   id?: number;
   nome: string;
   abreviatura: string;
-  cidade: string | null; // CORREÇÃO 2: Alinhado com a página principal
+  cidade: string | null;
   ativo: boolean;
 }
 
 interface ObmFormProps {
   obmToEdit?: Obm | null;
-  onSave: (obm: ObmFormData) => void; // CORREÇÃO 3: A função onSave espera os dados do formulário
+  onSave: (obm: ObmFormData) => void;
   onCancel: () => void;
   isLoading: boolean;
+  // 2. Adicionar propriedade para receber os erros
+  errors?: ValidationError[];
 }
 
-const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoading }) => {
-  // CORREÇÃO 4: O estado inicial agora corresponde à interface corrigida.
+const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoading, errors = [] }) => {
   const [formData, setFormData] = useState<Obm>({
     nome: '',
     abreviatura: '',
-    cidade: null, // Inicia como null
+    cidade: null,
     ativo: true,
   });
+
+  // 3. Função para encontrar a mensagem de erro para um campo específico
+  const getError = (field: string) => errors.find(e => e.field === field)?.message;
 
   useEffect(() => {
     if (obmToEdit) {
@@ -59,15 +65,18 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoadin
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="nome">Nome da OBM</Label>
-        <Input id="nome" name="nome" value={formData.nome} onChange={handleChange} required />
+        <Input id="nome" name="nome" value={formData.nome} onChange={handleChange} required hasError={!!getError('nome')} />
+        <FormError message={getError('nome')} />
       </div>
       <div>
         <Label htmlFor="abreviatura">Abreviatura</Label>
-        <Input id="abreviatura" name="abreviatura" value={formData.abreviatura} onChange={handleChange} required />
+        <Input id="abreviatura" name="abreviatura" value={formData.abreviatura} onChange={handleChange} required hasError={!!getError('abreviatura')} />
+        <FormError message={getError('abreviatura')} />
       </div>
       <div>
         <Label htmlFor="cidade">Cidade</Label>
-        <Input id="cidade" name="cidade" value={formData.cidade || ''} onChange={handleChange} />
+        <Input id="cidade" name="cidade" value={formData.cidade || ''} onChange={handleChange} hasError={!!getError('cidade')} />
+        <FormError message={getError('cidade')} />
       </div>
       <div className="flex items-center">
         <input id="ativo" name="ativo" type="checkbox" checked={formData.ativo} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />

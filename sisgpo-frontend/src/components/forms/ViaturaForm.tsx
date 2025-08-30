@@ -2,53 +2,56 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
+import FormError from '../ui/FormError'; // Importar
 
-// Interface para OBM, usada no select
+// Interfaces
+interface ValidationError {
+  field: string;
+  message: string;
+}
 interface Obm {
   id: number;
   nome: string;
   abreviatura: string;
 }
-
-// Interface para os dados da Viatura que o formulário manipula
 interface Viatura {
   id?: number;
   prefixo: string;
   placa: string;
-  modelo: string | null; // Alinhado para aceitar null
-  ano: number | null;    // Alinhado para aceitar null
+  modelo: string | null;
+  ano: number | null;
   tipo: string;
   ativa: boolean;
   obm_id: number | null;
 }
-
-// Tipo para os dados que são enviados para a função onSave
 type ViaturaFormData = Omit<Viatura, 'id'> & { id?: number };
 
 interface ViaturaFormProps {
   viaturaToEdit?: Viatura | null;
   obms: Obm[];
-  onSave: (viatura: ViaturaFormData) => void; // Espera o tipo correto
+  onSave: (viatura: ViaturaFormData) => void;
   onCancel: () => void;
   isLoading: boolean;
+  errors?: ValidationError[]; // Prop para erros
 }
 
-const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, obms, onSave, onCancel, isLoading }) => {
+const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, obms, onSave, onCancel, isLoading, errors = [] }) => {
   const [formData, setFormData] = useState<Viatura>({
     prefixo: '',
     placa: '',
-    modelo: null, // Inicia como null
-    ano: null,    // Inicia como null
+    modelo: null,
+    ano: null,
     tipo: '',
     ativa: true,
     obm_id: null,
   });
 
+  const getError = (field: string) => errors.find(e => e.field === field)?.message;
+
   useEffect(() => {
     if (viaturaToEdit) {
       setFormData(viaturaToEdit);
     } else {
-      // Reseta para o estado inicial limpo
       setFormData({ prefixo: '', placa: '', modelo: null, ano: null, tipo: '', ativa: true, obm_id: null });
     }
   }, [viaturaToEdit]);
@@ -74,32 +77,38 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, obms, onSave, 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="prefixo">Prefixo</Label>
-          <Input id="prefixo" name="prefixo" value={formData.prefixo} onChange={handleChange} required />
+          <Input id="prefixo" name="prefixo" value={formData.prefixo} onChange={handleChange} required hasError={!!getError('prefixo')} />
+          <FormError message={getError('prefixo')} />
         </div>
         <div>
           <Label htmlFor="placa">Placa</Label>
-          <Input id="placa" name="placa" value={formData.placa} onChange={handleChange} required />
+          <Input id="placa" name="placa" value={formData.placa} onChange={handleChange} required hasError={!!getError('placa')} />
+          <FormError message={getError('placa')} />
         </div>
         <div>
           <Label htmlFor="modelo">Modelo</Label>
-          <Input id="modelo" name="modelo" value={formData.modelo || ''} onChange={handleChange} />
+          <Input id="modelo" name="modelo" value={formData.modelo || ''} onChange={handleChange} hasError={!!getError('modelo')} />
+          <FormError message={getError('modelo')} />
         </div>
         <div>
           <Label htmlFor="ano">Ano</Label>
-          <Input id="ano" name="ano" type="number" value={formData.ano || ''} onChange={handleChange} />
+          <Input id="ano" name="ano" type="number" value={formData.ano || ''} onChange={handleChange} hasError={!!getError('ano')} />
+          <FormError message={getError('ano')} />
         </div>
         <div>
           <Label htmlFor="tipo">Tipo</Label>
-          <Input id="tipo" name="tipo" value={formData.tipo} onChange={handleChange} required />
+          <Input id="tipo" name="tipo" value={formData.tipo} onChange={handleChange} required hasError={!!getError('tipo')} />
+          <FormError message={getError('tipo')} />
         </div>
         <div>
           <Label htmlFor="obm_id">OBM</Label>
-          <select id="obm_id" name="obm_id" value={formData.obm_id || ''} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+          <select id="obm_id" name="obm_id" value={formData.obm_id || ''} onChange={handleChange} required className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none sm:text-sm ${getError('obm_id') ? 'border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'}`}>
             <option value="">Selecione uma OBM</option>
             {obms.map(obm => (
               <option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>
             ))}
           </select>
+          <FormError message={getError('obm_id')} />
         </div>
       </div>
       <div className="flex items-center">

@@ -1,33 +1,39 @@
-// src/config/database.js
-const knex = require('knex');
-const knexConfig = require('../../knexfile'); // Caminho para o knexfile na raiz do projeto
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Determina o ambiente. O Render define NODE_ENV='production' automaticamente.
-const env = process.env.NODE_ENV || 'development';
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Seleciona a configuração correta do knexfile.js
-const config = knexConfig[env];
+// Configuração de conexão para produção
+const productionConfig = {
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+};
 
-console.log(`[Database] Inicializando Knex para o ambiente: ${env.toUpperCase()}`);
+// Configuração de conexão para desenvolvimento
+const developmentConfig = {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+};
 
-// Cria e exporta a instância do Knex com a configuração correta
-const db = knex(config);
+// Escolhe a configuração com base no ambiente
+const connectionConfig = isProduction ? productionConfig : developmentConfig;
 
-// Testa a conexão para dar um feedback no log
-db.raw('SELECT 1+1 AS result')
-  .then(() => {
-    // Em produção, não exponha detalhes do banco.
-    if (env === 'production') {
-      console.log('✅ Conexão com o banco de dados de produção estabelecida com sucesso!');
-    } else {
-      console.log(`✅ Conexão com o banco de dados (${db.client.config.connection.database}) estabelecida com sucesso!`);
-    }
-  })
-  .catch((err) => {
-    console.error('!!!!!!!!!! FALHA CRÍTICA AO CONECTAR COM O BANCO DE DADOS !!!!!!!!!!');
-    console.error(err.message);
-    // Em um cenário real, você poderia querer que a aplicação parasse se não puder conectar.
-    // process.exit(1); 
-  });
+console.log(`[Database] Conectando ao banco de dados do ambiente: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 
-module.exports = db;
+const pool = new Pool(connectionConfig);
+
+// Testa a conexão
+pool.connect((err, client, release) => {
+  if (err) {
+    return console.error('Erro ao conectar com o banco de dados:', err.stack);
+  }
+  console.log(`✅ Conexão com o banco de dados estabelecida com sucesso!`);
+  client.release();
+});
+
+module.exports = pool;
