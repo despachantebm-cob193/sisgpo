@@ -1,8 +1,6 @@
 {
   "name": "sisgpo-api",
   "version": "1.0.0",
-  "description": "API RESTful para o Sistema de Gestão do Poder Operacional (SISGPO) do CBMGO.",
-  "main": "src/server.js",
   "scripts": {
     "dev": "dotenv -e .env -- nodemon src/server.js",
     "start": "node src/server.js",
@@ -10,6 +8,8 @@
     "knex": "knex --knexfile knexfile.js",
     "migrate:dev": "knex migrate:latest --env development",
     "migrate:prod": "knex migrate:latest --env production",
+    "seed:prod": "knex seed:run --env production",
+    "render:build": "npm install && npm run migrate:prod && npm run seed:prod",
     "test:setup": "knex migrate:latest --env test",
     "test": "npm run test:setup && dotenv -e .env -- jest --runInBand --detectOpenHandles"
   },

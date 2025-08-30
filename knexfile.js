@@ -1,7 +1,5 @@
 // knexfile.js
-const path = require('path'); // 1. Importe o módulo 'path' do Node.js
-
-// 2. Configure o dotenv para carregar o arquivo .env da pasta raiz do projeto
+const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, './.env') });
 
 module.exports = {
@@ -16,20 +14,19 @@ module.exports = {
     },
     migrations: {
       directory: './src/database/migrations'
+    },
+    seeds: { // <-- ADICIONAR ESTA SEÇÃO
+      directory: './src/database/seeds'
     }
   },
 
   test: {
-    client: 'pg',
-    connection: {
-      host: process.env.DB_HOST_TEST,
-      port: process.env.DB_PORT_TEST,
-      user: process.env.DB_USER_TEST,
-      password: process.env.DB_PASSWORD_TEST,
-      database: process.env.DB_DATABASE_TEST,
-    },
+    // ... configuração de teste
     migrations: {
       directory: './src/database/migrations'
+    },
+    seeds: { // <-- ADICIONAR ESTA SEÇÃO
+      directory: './src/database/seeds'
     }
   },
 
@@ -41,6 +38,9 @@ module.exports = {
     },
     migrations: {
       directory: './src/database/migrations'
+    },
+    seeds: { // <-- ADICIONAR ESTA SEÇÃO
+      directory: './src/database/seeds'
     }
   }
 };
