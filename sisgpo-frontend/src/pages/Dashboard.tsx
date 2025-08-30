@@ -20,7 +20,8 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get<DashboardStats>('/dashboard/stats');
+        // AQUI ESTÁ A MUDANÇA: Adicionar o caminho completo
+        const response = await api.get<DashboardStats>('/api/admin/dashboard/stats');
         setStats(response.data);
         setError(null);
       } catch (err) {

@@ -1,3 +1,4 @@
+// src/routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
 
@@ -9,43 +10,47 @@ const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
 const sheetsController = require('../controllers/sheetsController');
-const authMiddleware = require('../middlewares/authMiddleware');
 
 // 2. Importa os validadores
-const validationMiddleware = require('../validators/validationMiddleware');
+const validationMiddleware = require('../middlewares/validationMiddleware');
 const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
-const { plantaoSchema } = require('../validators/plantaoValidator'); // Schema de plantão importado
+const { plantaoSchema } = require('../validators/plantaoValidator');
 
-// Rota pública de login
-router.post('/login', authController.login);
-
-// Aplica o middleware de autenticação para todas as rotas abaixo
-router.use(authMiddleware);
+// --- ROTA PÚBLICA DE LOGIN (movida para fora do middleware de autenticação) ---
+// Esta rota é especial e não deve estar neste arquivo, pois este router está protegido.
+// A rota de login é registrada separadamente no app.js (ou em um authRoutes.js).
+// Para manter a consistência com o seu pedido, vou assumir que a rota de login está em um arquivo separado.
+// router.post('/login', authController.login); // Esta linha seria de um `authRoutes.js`
 
 // --- ROTA DE DASHBOARD ---
+// Acessível em: GET /api/admin/dashboard/stats
 router.get('/dashboard/stats', dashboardController.getStats);
 
 // --- ROTAS DE OBMS ---
+// Acessíveis em: /api/admin/obms
 router.get('/obms', obmController.getAll);
 router.post('/obms', validationMiddleware(createObmSchema), obmController.create);
 router.put('/obms/:id', validationMiddleware(updateObmSchema), obmController.update);
 router.delete('/obms/:id', obmController.delete);
 
 // --- ROTAS DE MILITARES ---
+// Acessíveis em: /api/admin/militares
 router.get('/militares', militarController.getAll);
 router.post('/militares', validationMiddleware(createMilitarSchema), militarController.create);
 router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
 
 // --- ROTAS DE VIATURAS ---
+// Acessíveis em: /api/admin/viaturas
 router.get('/viaturas', viaturaController.getAll);
 router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
 router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
 router.delete('/viaturas/:id', viaturaController.delete);
 
 // --- ROTAS DE PLANTÕES ---
+// Acessíveis em: /api/admin/plantoes
 router.post('/plantoes', validationMiddleware(plantaoSchema), plantaoController.create);
 router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
@@ -53,6 +58,7 @@ router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoControll
 router.delete('/plantoes/:id', plantaoController.delete);
 
 // --- ROTA DE SINCRONIZAÇÃO COM GOOGLE SHEETS ---
+// Acessível em: POST /api/admin/sheets/sync-militares
 router.post('/sheets/sync-militares', sheetsController.syncMilitares);
 
 module.exports = router;

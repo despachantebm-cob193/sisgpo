@@ -1,5 +1,8 @@
 // knexfile.js
-require('dotenv').config();
+const path = require('path'); // 1. Importe o módulo 'path' do Node.js
+
+// 2. Configure o dotenv para carregar o arquivo .env da pasta raiz do projeto
+require('dotenv').config({ path: path.resolve(__dirname, './.env') });
 
 module.exports = {
   development: {
@@ -30,13 +33,11 @@ module.exports = {
     }
   },
 
-  // --- SEÇÃO DE PRODUÇÃO ---
-  // Garanta que esta seção esteja exatamente assim.
   production: {
-    client: 'pg', // A propriedade 'client' que estava faltando
+    client: 'pg',
     connection: {
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false } // Necessário para conexões SSL no Render
+      ssl: { rejectUnauthorized: false }
     },
     migrations: {
       directory: './src/database/migrations'

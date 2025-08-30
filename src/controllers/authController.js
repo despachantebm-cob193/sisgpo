@@ -1,4 +1,5 @@
-const pool = require('../config/database');
+// src/controllers/authController.js
+const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/AppError');
@@ -11,22 +12,21 @@ const authController = {
       throw new AppError('Login e senha são obrigatórios.', 400);
     }
 
-    // DEBUG: Log para ver o que está sendo buscado
     console.log(`[AuthController] Buscando usuário com login: ${login}`);
     
-    const result = await pool.query('SELECT * FROM usuarios WHERE login = $1', [login]);
-    const user = result.rows[0];
+    // 2. MUDANÇA: Usar a sintaxe do Knex para a consulta
+    const user = await db('usuarios').where({ login }).first();
 
-    // DEBUG: Log para ver se o usuário foi encontrado
     console.log(`[AuthController] Usuário encontrado:`, user ? user.login : 'Nenhum');
 
     if (!user) {
+      // Mensagem genérica para não informar se o usuário existe ou não (segurança)
       throw new AppError('Credenciais inválidas.', 401);
     }
 
+    // A comparação do bcrypt deve funcionar corretamente agora
     const isPasswordValid = await bcrypt.compare(senha, user.senha_hash);
 
-    // DEBUG: Log para ver se a senha é válida
     console.log(`[AuthController] A senha fornecida é válida? ${isPasswordValid}`);
 
     if (!isPasswordValid) {
@@ -39,10 +39,13 @@ const authController = {
       { expiresIn: '8h' }
     );
 
+    // Remove o hash da senha do objeto retornado para o cliente
+    delete user.senha_hash;
+
     res.status(200).json({
       message: 'Login bem-sucedido!',
       token,
-      user: { id: user.id, login: user.login, perfil: user.perfil },
+      user,
     });
   },
 };

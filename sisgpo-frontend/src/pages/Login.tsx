@@ -1,8 +1,8 @@
-import React, { useState, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
-import api from '../services/api';
+import api from '../services/api'; // Nossa instância base do Axios
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
@@ -29,7 +29,9 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await api.post<LoginResponse>('/login', { login, senha });
+      // AQUI ESTÁ A MUDANÇA: Fornecemos o caminho completo da rota de login
+      const response = await api.post<LoginResponse>('/api/admin/login', { login, senha });
+      
       setToken(response.data.token);
       setUser(response.data.user);
       navigate('/');
@@ -42,6 +44,7 @@ export default function Login() {
     }
   };
 
+  // O restante do JSX permanece o mesmo...
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md">
