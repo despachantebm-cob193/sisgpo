@@ -29,8 +29,8 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // AQUI ESTÁ A MUDANÇA: Fornecemos o caminho completo da rota de login
-      const response = await api.post<LoginResponse>('/api/admin/login', { login, senha });
+      // AQUI ESTÁ A MUDANÇA: Usar a nova rota de autenticação
+      const response = await api.post<LoginResponse>('/api/auth/login', { login, senha });
       
       setToken(response.data.token);
       setUser(response.data.user);

@@ -3,10 +3,11 @@ require('dotenv').config();
 const express = require('express');
 require('express-async-errors');
 const cors = require('cors');
-const knex = require('./config/database'); // Importa a instância do Knex
+const knex = require('./config/database');
 
 // Importa os arquivos de rota
-const adminRoutes = require('./routes/adminRoutes'); // Rotas protegidas
+const authRoutes = require('./routes/authRoutes');     // Rotas públicas de autenticação
+const adminRoutes = require('./routes/adminRoutes');    // Rotas protegidas
 
 // Importa os middlewares
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -17,7 +18,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Rota raiz para verificação de status
 app.get('/', (req, res) => {
   res.json({ message: 'API do SISGPO está funcionando!' });
 });
@@ -26,14 +26,19 @@ app.get('/', (req, res) => {
 // REGISTRO DAS ROTAS
 // ===================================================================
 
-// Rotas de administração PROTEGIDAS
-// O prefixo '/api/admin' é aplicado a todas as rotas definidas em adminRoutes.
-// O middleware de autenticação também é aplicado aqui.
+// 1. Rotas de Autenticação (PÚBLICAS)
+// Prefixo: /api/auth
+// Exemplo: POST /api/auth/login
+app.use('/api/auth', authRoutes);
+
+// 2. Rotas de Administração (PROTEGIDAS)
+// Prefixo: /api/admin
+// Todas as rotas aqui dentro exigirão um token válido.
+// Exemplo: GET /api/admin/dashboard/stats
 app.use('/api/admin', authMiddleware, adminRoutes);
 
 // ===================================================================
 
-// Middleware de erro (deve ser o último middleware registrado)
 app.use(errorMiddleware);
 
 module.exports = app;
