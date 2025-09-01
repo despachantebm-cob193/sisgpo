@@ -15,10 +15,6 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 interface Viatura {
   id: number;
   prefixo: string;
-  placa: string;
-  modelo: string | null;
-  ano: number | null;
-  tipo: string;
   ativa: boolean;
   obm_id: number | null;
   obm_abreviatura?: string;
@@ -150,12 +146,10 @@ export default function Viaturas() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
-      const { viaturas, obms, errors, message } = response.data;
-      toast.success(`${viaturas.inserted} viaturas inseridas, ${viaturas.updated} atualizadas. ${message || ''}`);
-      
-      if (errors && errors.length > 0) {
-        toast.error(`${errors.length} erros durante o processamento. Verifique o console para detalhes.`);
-        console.error("Erros de importação:", errors);
+      toast.success(`${response.data.inserted} viaturas inseridas, ${response.data.updated} atualizadas. ${response.data.message || ''}`);
+      if (response.data.errors && response.data.errors.length > 0) {
+        toast.error(`${response.data.errors.length} erros durante o processamento. Verifique o console para detalhes.`);
+        console.error("Erros de importação:", response.data.errors);
       }
       
       setSelectedFile(null);
@@ -234,7 +228,7 @@ export default function Viaturas() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viatura.prefixo}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.obm_cidade || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.obm_abreviatura || 'N/A'}</td>
-                  {/* --- CORREÇÃO FINAL APLICADA AQUI --- */}
+                  {/* --- CORREÇÃO FINAL AQUI --- */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.obm_telefone || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{viatura.ativa ? 'Ativa' : 'Inativa'}</span>
