@@ -8,9 +8,11 @@ const dashboardController = {
       // Usando Knex para construir as queries de contagem
       const totalMilitaresAtivos = db('militares').where({ ativo: true }).count({ count: '*' }).first();
       const totalViaturasDisponiveis = db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
-      const totalObms = db('obms').where({ ativo: true }).count({ count: '*' }).first();
       
-      // Para contagem de plantões no mês corrente, a query raw ainda é mais direta
+      // --- CORREÇÃO APLICADA AQUI ---
+      // Removemos a condição .where({ ativo: true }) para contar todas as OBMs.
+      const totalObms = db('obms').count({ count: '*' }).first();
+      
       const totalPlantoesMes = db.raw(
         "SELECT COUNT(*) FROM plantoes WHERE data_plantao >= date_trunc('month', CURRENT_DATE) AND data_plantao < date_trunc('month', CURRENT_DATE) + interval '1 month'"
       );

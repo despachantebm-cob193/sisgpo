@@ -9,13 +9,20 @@ import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces (sem alterações)
-interface Obm { id: number; nome: string; abreviatura: string; cidade: string | null; ativo: boolean; }
+// Interfaces (sem alteração)
+interface Obm {
+  id: number;
+  nome: string;
+  abreviatura: string;
+  cidade: string | null;
+  telefone: string | null;
+}
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
 interface ApiResponse { data: Obm[]; pagination: PaginationState; }
 interface ValidationError { field: string; message: string; }
 
 export default function Obms() {
+  // Lógica de estados (sem alteração)
   const [obms, setObms] = useState<Obm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationState | null>(null);
@@ -29,11 +36,11 @@ export default function Obms() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
+  // Funções de busca e modais (sem alteração)
   const fetchObms = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: '10', nome: filtroNome });
-      // CORREÇÃO: Adicionado '/api'
       const response = await api.get<ApiResponse>(`/api/admin/obms?${params.toString()}`);
       setObms(response.data.data);
       setPagination(response.data.pagination);
@@ -51,17 +58,22 @@ export default function Obms() {
   const handleOpenFormModal = (obm: Obm | null = null) => { setObmToEdit(obm); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => { setIsFormModalOpen(false); setObmToEdit(null); setValidationErrors([]); };
 
+  // --- FUNÇÃO handleSaveObm CORRIGIDA ---
   const handleSaveObm = async (obmData: Omit<Obm, 'id'> & { id?: number }) => {
     setIsSaving(true);
     setValidationErrors([]);
-    const action = obmData.id ? 'atualizada' : 'criada';
+    
+    // Desestrutura o objeto para separar o ID do resto dos dados
+    const { id, ...dataToSend } = obmData;
+    const action = id ? 'atualizada' : 'criada';
+
     try {
-      if (obmData.id) {
-        // CORREÇÃO: Adicionado '/api'
-        await api.put(`/api/admin/obms/${obmData.id}`, obmData);
+      if (id) {
+        // Envia a requisição PUT para o endpoint com o ID, e o corpo SEM o ID
+        await api.put(`/api/admin/obms/${id}`, dataToSend);
       } else {
-        // CORREÇÃO: Adicionado '/api'
-        await api.post('/api/admin/obms', obmData);
+        // Envia a requisição POST para criar, o corpo já não tem o ID
+        await api.post('/api/admin/obms', dataToSend);
       }
       toast.success(`OBM ${action} com sucesso!`);
       handleCloseFormModal();
@@ -79,14 +91,13 @@ export default function Obms() {
     }
   };
 
+  // Funções de exclusão (sem alteração)
   const handleDeleteClick = (id: number) => { setObmToDeleteId(id); setIsConfirmModalOpen(true); };
   const handleCloseConfirmModal = () => { setIsConfirmModalOpen(false); setObmToDeleteId(null); };
-
   const handleConfirmDelete = async () => {
     if (!obmToDeleteId) return;
     setIsDeleting(true);
     try {
-      // CORREÇÃO: Adicionado '/api'
       await api.delete(`/api/admin/obms/${obmToDeleteId}`);
       toast.success('OBM excluída com sucesso!');
       if (obms.length === 1 && currentPage > 1) {
@@ -103,7 +114,7 @@ export default function Obms() {
     }
   };
 
-  // O JSX da página permanece o mesmo
+  // JSX (sem alteração)
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -123,7 +134,7 @@ export default function Obms() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abreviatura</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cidade</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
               <th className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
             </tr>
           </thead>
@@ -136,9 +147,7 @@ export default function Obms() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{obm.nome}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${obm.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{obm.ativo ? 'Ativa' : 'Inativa'}</span>
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
                     <button onClick={() => handleDeleteClick(obm.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>

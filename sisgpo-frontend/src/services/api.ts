@@ -8,11 +8,12 @@ const api = axios.create({
   baseURL: baseURL,
 });
 
-// Interceptor que adiciona o token JWT em todas as requisições protegidas
+// Interceptor que adiciona o token JWT em todas as requisições
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = useAuthStore.getState().token;
-    if (token) {
+    // A rota de login não precisa de token
+    if (token && config.url !== '/api/auth/login') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

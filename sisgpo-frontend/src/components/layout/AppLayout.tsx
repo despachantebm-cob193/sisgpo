@@ -1,6 +1,6 @@
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { LayoutDashboard, Building, Car, Users, Calendar, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building, Car, Users, Calendar, LogOut, Contact } from 'lucide-react'; // 1. Importar o ícone 'Contact'
 
 // Componente para os links da navegação, para evitar repetição
 const NavItem = ({ to, icon: Icon, label }: { to: string; icon: React.ElementType; label: string }) => (
@@ -40,6 +40,7 @@ export default function AppLayout() {
           <NavItem to="/viaturas" icon={Car} label="Viaturas" />
           <NavItem to="/militares" icon={Users} label="Militares" />
           <NavItem to="/plantoes" icon={Calendar} label="Plantões" />
+          <NavItem to="/lista-telefonica" icon={Contact} label="Lista Telefônica" /> {/* 2. Adicionar o novo link */}
         </nav>
         <div className="px-4 py-4 border-t border-gray-700">
            <button
