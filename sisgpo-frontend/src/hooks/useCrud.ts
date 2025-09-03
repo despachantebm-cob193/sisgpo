@@ -1,24 +1,21 @@
-// Arquivo: frontend/src/hooks/useCrud.ts
+// Arquivo: frontend/src/hooks/useCrud.ts (Corrigido)
 
 import { useState, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
-// Interfaces genéricas que podem ser usadas por qualquer entidade
+// ... (Interfaces não foram alteradas)
 interface Entity {
   id: number;
 }
-
 interface PaginationState {
   currentPage: number;
   totalPages: number;
 }
-
 interface ApiResponse<T> {
   data: T[];
   pagination: PaginationState;
 }
-
 interface UseCrudOptions {
   entityName: string;
   initialFilters?: Record<string, string>;
@@ -30,24 +27,21 @@ export function useCrud<T extends Entity>({
   initialFilters = {},
   itemsPerPage = 10,
 }: UseCrudOptions) {
-  // --- Estados Genéricos ---
+  // --- Estados Genéricos (sem alterações) ---
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState(initialFilters);
-
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<T | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
-  // --- Lógica de Busca ---
+  // --- Lógica de Busca (sem alterações na função em si) ---
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -72,27 +66,23 @@ export function useCrud<T extends Entity>({
     fetchData();
   }, [fetchData]);
 
-  // --- Funções de Manipulação ---
+  // --- Funções de Manipulação (sem alterações) ---
   const handlePageChange = (page: number) => setCurrentPage(page);
-
   const handleFilterChange = (filterName: string, value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
-    setCurrentPage(1); // Reseta para a primeira página ao aplicar filtro
+    setCurrentPage(1);
   };
-
   const handleOpenFormModal = (item: T | null = null) => {
     setItemToEdit(item);
     setValidationErrors([]);
     setIsFormModalOpen(true);
   };
   const handleCloseFormModal = () => { setIsFormModalOpen(false); setItemToEdit(null); };
-
   const handleDeleteClick = (id: number) => {
     setItemToDeleteId(id);
     setIsConfirmModalOpen(true);
   };
   const handleCloseConfirmModal = () => { setIsConfirmModalOpen(false); setItemToDeleteId(null); };
-
   const handleSave = async (itemData: Omit<T, 'id'> & { id?: number }) => {
     setIsSaving(true);
     setValidationErrors([]);
@@ -118,7 +108,6 @@ export function useCrud<T extends Entity>({
       setIsSaving(false);
     }
   };
-
   const handleConfirmDelete = async () => {
     if (!itemToDeleteId) return;
     setIsDeleting(true);
@@ -138,7 +127,7 @@ export function useCrud<T extends Entity>({
     }
   };
 
-  // --- Retorno do Hook ---
+  // --- Retorno do Hook (CORRIGIDO) ---
   return {
     data,
     isLoading,
@@ -152,6 +141,7 @@ export function useCrud<T extends Entity>({
     itemToDeleteId,
     isDeleting,
     validationErrors,
+    fetchData, // <-- CORREÇÃO: Adicionando fetchData ao objeto de retorno
     handlePageChange,
     handleFilterChange,
     handleOpenFormModal,

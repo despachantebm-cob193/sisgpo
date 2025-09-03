@@ -1,4 +1,4 @@
-// Arquivo: src/routes/adminRoutes.js
+// Arquivo: backend/src/routes/adminRoutes.js
 
 const express = require('express');
 const router = express.Router();
@@ -15,13 +15,15 @@ const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
 const contatoController = require('../controllers/contatoController');
 const viaturaFileController = require('../controllers/viaturaFileController');
+const userController = require('../controllers/userController'); // <-- 1. Importar o novo controller de usuário
 
 // --- Importação de Validadores ---
 const validationMiddleware = require('../middlewares/validationMiddleware');
 const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
-const { createObmSchema, updateObmSchema } = require('../validators/obmValidator'); 
+const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
+const { changePasswordSchema } = require('../validators/userValidator'); // <-- 2. Importar o novo validador de senha
 
 // --- ROTAS DE DASHBOARD ---
 router.get('/dashboard/stats', dashboardController.getStats);
@@ -58,5 +60,12 @@ router.delete('/plantoes/:id', plantaoController.delete);
 router.get('/contatos', contatoController.getAll);
 router.post('/contatos/upload', upload.single('file'), contatoController.upload);
 router.get('/contatos/obms-unicas', contatoController.getObrasUnicas);
+
+// --- ROTAS DE USUÁRIO ---
+router.put( // <-- 3. Adicionar a nova rota
+  '/user/change-password',
+  validationMiddleware(changePasswordSchema),
+  userController.changePassword
+);
 
 module.exports = router;

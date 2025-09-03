@@ -9,7 +9,8 @@ import Obms from '../pages/Obms';
 import Viaturas from '../pages/Viaturas';
 import Militares from '../pages/Militares';
 import Plantoes from '../pages/Plantoes';
-import ListaTelefonica from '../pages/ListaTelefonica'; // 1. Importe a nova página
+import ListaTelefonica from '../pages/ListaTelefonica';
+import Profile from '../pages/Profile'; // 1. Importar a nova página
 
 export const router = createBrowserRouter([
   {
@@ -22,7 +23,8 @@ export const router = createBrowserRouter([
       { path: 'viaturas', element: <Viaturas /> },
       { path: 'militares', element: <Militares /> },
       { path: 'plantoes', element: <Plantoes /> },
-      { path: 'lista-telefonica', element: <ListaTelefonica /> }, // 2. Adicione a nova rota
+      { path: 'lista-telefonica', element: <ListaTelefonica /> },
+      { path: 'perfil', element: <Profile /> }, // 2. Adicionar a nova rota
     ],
   },
   {

@@ -1,10 +1,12 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx (Versão Final com CRUD)
+// Arquivo: frontend/src/pages/Viaturas.tsx (Refatorado com useCrud)
 
-import { useEffect, useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2 } from 'lucide-react';
 
+import { useCrud } from '../hooks/useCrud';
 import api from '../services/api';
+
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
 import Input from '../components/ui/Input';
@@ -22,108 +24,39 @@ interface Viatura {
   telefone: string | null;
   ativa: boolean;
 }
-interface PaginationState { currentPage: number; totalPages: number; }
-interface ApiResponse { data: Viatura[]; pagination: PaginationState; }
-interface ValidationError { field: string; message: string; }
 
 export default function Viaturas() {
-  const [viaturas, setViaturas] = useState<Viatura[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [pagination, setPagination] = useState<PaginationState | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filtroPrefixo, setFiltroPrefixo] = useState('');
-  
+  // 1. Hook useCrud gerencia a lógica principal da entidade 'viaturas'
+  const {
+    data: viaturas,
+    isLoading,
+    pagination,
+    filters,
+    isFormModalOpen,
+    itemToEdit,
+    isSaving,
+    isConfirmModalOpen,
+    isDeleting,
+    fetchData, // Importando fetchData para re-executar após upload
+    handleFilterChange,
+    handlePageChange,
+    handleOpenFormModal,
+    handleCloseFormModal,
+    handleSave,
+    handleDeleteClick,
+    handleCloseConfirmModal,
+    handleConfirmDelete,
+    validationErrors,
+  } = useCrud<Viatura>({
+    entityName: 'viaturas',
+    initialFilters: { prefixo: '' },
+    itemsPerPage: 15,
+  });
+
+  // 2. Lógica específica para a funcionalidade de upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [viaturaToEdit, setViaturaToEdit] = useState<Viatura | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [viaturaToDeleteId, setViaturaToDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '15', prefixo: filtroPrefixo });
-      const response = await api.get<ApiResponse>(`/api/admin/viaturas?${params.toString()}`);
-      setViaturas(response.data.data);
-      setPagination(response.data.pagination);
-    } catch (err) {
-      toast.error('Não foi possível carregar os dados das viaturas.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPage, filtroPrefixo]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFiltroPrefixo(e.target.value); setCurrentPage(1); };
-
-  const handleOpenFormModal = (viatura: Viatura | null = null) => {
-    setViaturaToEdit(viatura);
-    setValidationErrors([]);
-    setIsFormModalOpen(true);
-  };
-  const handleCloseFormModal = () => { setIsFormModalOpen(false); setViaturaToEdit(null); };
-
-  const handleDeleteClick = (id: number) => {
-    setViaturaToDeleteId(id);
-    setIsConfirmModalOpen(true);
-  };
-  const handleCloseConfirmModal = () => { setIsConfirmModalOpen(false); setViaturaToDeleteId(null); };
-
-  const handleSaveViatura = async (viaturaData: Omit<Viatura, 'id'> & { id?: number }) => {
-    setIsSaving(true);
-    setValidationErrors([]);
-    const action = viaturaData.id ? 'atualizada' : 'criada';
-    try {
-      if (viaturaData.id) {
-        await api.put(`/api/admin/viaturas/${viaturaData.id}`, viaturaData);
-      } else {
-        await api.post('/api/admin/viaturas', viaturaData);
-      }
-      toast.success(`Viatura ${action} com sucesso!`);
-      handleCloseFormModal();
-      fetchData();
-    } catch (err: any) {
-      if (err.response && err.response.status === 400 && err.response.data.errors) {
-        setValidationErrors(err.response.data.errors);
-        toast.error('Por favor, corrija os erros no formulário.');
-      } else {
-        const errorMessage = err.response?.data?.message || 'Erro ao salvar viatura.';
-        toast.error(errorMessage);
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!viaturaToDeleteId) return;
-    setIsDeleting(true);
-    try {
-      await api.delete(`/api/admin/viaturas/${viaturaToDeleteId}`);
-      toast.success('Viatura excluída com sucesso!');
-      if (viaturas.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      } else {
-        fetchData();
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao excluir viatura.');
-    } finally {
-      setIsDeleting(false);
-      handleCloseConfirmModal();
-    }
-  };
-
-  // Lógica de upload permanece a mesma
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
@@ -155,7 +88,7 @@ export default function Viaturas() {
       setSelectedFile(null);
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-      fetchData(); 
+      fetchData(); // Re-busca os dados após o upload
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
@@ -190,7 +123,13 @@ export default function Viaturas() {
       </div>
 
       <div className="mb-4">
-        <Input type="text" placeholder="Filtrar por prefixo..." value={filtroPrefixo} onChange={handleFiltroChange} className="max-w-xs" />
+        <Input
+          type="text"
+          placeholder="Filtrar por prefixo..."
+          value={filters.prefixo || ''}
+          onChange={(e) => handleFilterChange('prefixo', e.target.value)}
+          className="max-w-xs"
+        />
       </div>
       
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -234,8 +173,8 @@ export default function Viaturas() {
         {pagination && pagination.totalPages > 1 && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
       </div>
 
-      <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={viaturaToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
-        <ViaturaForm viaturaToEdit={viaturaToEdit} onSave={handleSaveViatura} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
+      <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
+        <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta viatura? Esta ação não pode ser desfeita." isLoading={isDeleting} />
     </div>
