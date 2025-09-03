@@ -1,4 +1,4 @@
-// src/database/seeds/01_initial_data.js
+// Arquivo: src/database/seeds/01_initial_data.js (Corrigido)
 const bcrypt = require('bcryptjs');
 
 /**
@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
  * @returns { Promise<void> } 
  */
 exports.seed = async function(knex) {
-  // 1. Limpa os dados existentes em ordem de dependência para evitar erros
+  // 1. Limpa os dados existentes em ordem de dependência
   await knex('plantoes_militares').del();
   await knex('plantoes').del();
   await knex('militares').del();
@@ -22,26 +22,22 @@ exports.seed = async function(knex) {
     { login: 'admin', senha_hash: senhaHash, perfil: 'Admin' }
   ]);
 
-  // 3. Insere OBMs e captura os IDs retornados
+  // 3. Insere OBMs (sem a coluna 'ativo') e captura os IDs
   const [obmPrincipal] = await knex('obms').insert([
-    { nome: '1º Batalhão Bombeiro Militar', abreviatura: '1º BBM', cidade: 'Goiânia', ativo: true },
-    { nome: 'Comando de Apoio Logístico', abreviatura: 'CAL', cidade: 'Goiânia', ativo: true },
-    { nome: 'Academia Bombeiro Militar', abreviatura: 'ABM', cidade: 'Goiânia', ativo: true }
-  ]).returning('id'); // <-- Pede ao Knex para retornar o ID do primeiro item inserido
+    { nome: '1º Batalhão Bombeiro Militar', abreviatura: '1º BBM', cidade: 'Goiânia', telefone: '6232012030' },
+    { nome: 'Comando de Apoio Logístico', abreviatura: 'CAL', cidade: 'Goiânia', telefone: '6232012040' },
+    { nome: 'Academia Bombeiro Militar', abreviatura: 'ABM', cidade: 'Goiânia', telefone: '6232012050' }
+  ]).returning('id');
 
-  // A variável 'obmPrincipal' agora contém um objeto como { id: 1 }
-  // Usamos 'obmPrincipal.id' para garantir a referência correta.
-
-  // 4. Insere uma viatura usando o ID da OBM capturado
+  // 4. Insere uma viatura (com a nova estrutura desnormalizada)
   await knex('viaturas').insert([
     { 
       prefixo: 'UR-150', 
-      placa: 'ABC1D23', 
-      modelo: 'Sprinter', 
-      ano: 2022, 
-      tipo: 'UR', 
       ativa: true, 
-      obm_id: obmPrincipal.id // <-- Uso seguro do ID
+      // Dados desnormalizados preenchidos para exemplo
+      cidade: 'Goiânia',
+      obm: '1º Batalhão Bombeiro Militar',
+      telefone: '6232012030'
     }
   ]);
 
@@ -53,9 +49,9 @@ exports.seed = async function(knex) {
       nome_guerra: 'Fulano', 
       posto_graduacao: 'Soldado', 
       ativo: true, 
-      obm_id: obmPrincipal.id // <-- Uso seguro do ID
+      obm_id: obmPrincipal.id // Mantém o vínculo aqui
     }
   ]);
 
-  console.log('Seed de dados iniciais (versão 2) executado com sucesso!');
+  console.log('Seed de dados iniciais (versão final) executado com sucesso!');
 };
