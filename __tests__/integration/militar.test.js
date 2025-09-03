@@ -1,4 +1,4 @@
-// Arquivo: __tests__/integration/militar.test.js
+// Arquivo: backend/__tests__/integration/militar.test.js (Com CRUD completo)
 
 const request = require("supertest");
 const app = require("../../src/app");
@@ -6,17 +6,12 @@ const db = require("../../src/config/database");
 
 let authToken;
 let obmIdForMilitarTest;
-// A variável militarId será definida dentro dos testes para garantir a ordem de execução
 let militarId; 
 
 beforeAll(async () => {
   const response = await request(app)
     .post("/api/auth/login")
     .send({ login: "admin", senha: "cbmgo@2025" });
-
-  if (response.status !== 200) {
-    throw new Error("Falha no login para obter o token de teste.");
-  }
   authToken = response.body.token;
 
   // Cria uma OBM para os testes de militar
@@ -30,8 +25,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Limpa os dados criados em ordem de dependência
-  await db('militares').del();
-  await db('obms').where({ id: obmIdForMilitarTest }).del();
+  if (militarId) await db('militares').where({ id: militarId }).del();
+  if (obmIdForMilitarTest) await db('obms').where({ id: obmIdForMilitarTest }).del();
 });
 
 describe("Testes de Integração para a Rota /militares", () => {
@@ -47,7 +42,7 @@ describe("Testes de Integração para a Rota /militares", () => {
   };
 
   it("POST /militares - Deve criar um novo militar com sucesso", async () => {
-    novoMilitar.obm_id = obmIdForMilitarTest; // Define o OBM ID antes de enviar
+    novoMilitar.obm_id = obmIdForMilitarTest;
 
     const response = await request(app)
       .post("/api/admin/militares")
@@ -56,13 +51,10 @@ describe("Testes de Integração para a Rota /militares", () => {
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("id");
-    
-    // Salva o ID para os testes seguintes
     militarId = response.body.id; 
   });
 
   it("PUT /militares/:id - Deve atualizar o militar criado anteriormente", async () => {
-    // Garante que o militarId foi definido pelo teste anterior
     expect(militarId).toBeDefined(); 
 
     const dadosAtualizados = {
@@ -84,7 +76,6 @@ describe("Testes de Integração para a Rota /militares", () => {
   });
 
   it("DELETE /militares/:id - Deve excluir o militar criado", async () => {
-    // Garante que o militarId foi definido
     expect(militarId).toBeDefined();
 
     const response = await request(app)
@@ -93,8 +84,8 @@ describe("Testes de Integração para a Rota /militares", () => {
 
     expect(response.status).toBe(204);
 
-    // Verifica se o militar foi realmente removido do banco
     const militarNoDb = await db('militares').where({ id: militarId }).first();
     expect(militarNoDb).toBeUndefined();
+    militarId = null; // Evita limpeza duplicada no afterAll
   });
 });

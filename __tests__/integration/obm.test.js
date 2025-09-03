@@ -1,8 +1,8 @@
-// Arquivo: __tests__/integration/obm.test.js
+// Arquivo: backend/__tests__/integration/obm.test.js (Com CRUD completo)
 
 const request = require('supertest');
 const app = require('../../src/app');
-const db = require('../../src/config/database'); // Usar a instância do Knex
+const db = require('../../src/config/database');
 
 let authToken;
 let obmId;
@@ -65,6 +65,11 @@ describe('Testes de Integração para a Rota /obms', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(response.status).toBe(204);
+
+    // Verifica se a OBM foi realmente removida do banco
+    const obmNoDb = await db('obms').where({ id: obmId }).first();
+    expect(obmNoDb).toBeUndefined();
+    
     obmId = null; // Impede a dupla exclusão no afterAll
   });
 });
