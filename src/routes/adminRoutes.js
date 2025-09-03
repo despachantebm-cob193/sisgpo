@@ -1,3 +1,5 @@
+// Arquivo: src/routes/adminRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -12,7 +14,6 @@ const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
 const contatoController = require('../controllers/contatoController');
-// Controller atualizado para lidar com upload de arquivos de viaturas (CSV, XLS, etc.)
 const viaturaFileController = require('../controllers/viaturaFileController');
 
 // --- Importação de Validadores ---
@@ -22,8 +23,10 @@ const { createObmSchema, updateObmSchema } = require('../validators/obmValidator
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
 
-// --- ROTA DE DASHBOARD ---
+// --- ROTAS DE DASHBOARD ---
 router.get('/dashboard/stats', dashboardController.getStats);
+router.get('/dashboard/viatura-stats', dashboardController.getViaturaStats);
+router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
@@ -42,8 +45,6 @@ router.get('/viaturas', viaturaController.getAll);
 router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
 router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
 router.delete('/viaturas/:id', viaturaController.delete);
-
-// Rota de upload de arquivo para viaturas, usando o controller atualizado
 router.post('/viaturas/upload-csv', upload.single('file'), viaturaFileController.upload);
 
 // --- ROTAS DE PLANTÕES ---

@@ -1,43 +1,31 @@
+// Arquivo: __tests__/integration/viatura.test.js
+
 const request = require('supertest');
 const app = require('../../src/app');
-const pool = require('../../src/config/database');
+const db = require('../../src/config/database');
 
 let authToken;
-let obmIdForTest;
 let viaturaId;
 
 beforeAll(async () => {
-  // Login para obter token
-  const loginResponse = await request(app).post('/api/admin/login').send({ login: 'admin', senha: 'cbmgo@2025' });
+  const loginResponse = await request(app).post('/api/auth/login').send({ login: 'admin', senha: 'cbmgo@2025' });
   authToken = loginResponse.body.token;
-
-  // Criar uma OBM para usar nos testes de viatura
-  const obmResponse = await request(app)
-    .post('/api/admin/obms')
-    .set('Authorization', `Bearer ${authToken}`)
-    .send({ nome: 'OBM para Teste de Viatura', abreviatura: 'OBM-VTR', cidade: 'Teste' });
-  obmIdForTest = obmResponse.body.id;
 });
 
 afterAll(async () => {
-  // Limpar os dados criados
   if (viaturaId) {
-    await pool.query('DELETE FROM viaturas WHERE id = $1', [viaturaId]);
-  }
-  if (obmIdForTest) {
-    await pool.query('DELETE FROM obms WHERE id = $1', [obmIdForTest]);
+    await db('viaturas').where({ id: viaturaId }).del();
   }
 });
 
 describe('Testes de Integração para a Rota /viaturas', () => {
   it('POST /viaturas - Deve criar uma nova viatura com sucesso', async () => {
     const novaViatura = {
-      prefixo: 'UR-150',
-      placa: 'ABC1D23',
-      modelo: 'Mercedes Sprinter',
-      ano: 2022,
-      tipo: 'UR',
-      obm_id: obmIdForTest,
+      prefixo: `UR-TESTE-${Date.now()}`,
+      ativa: true,
+      cidade: 'Goiânia (Teste)',
+      obm: '1º BBM (Teste)',
+      telefone: '62912345678'
     };
 
     const response = await request(app)
@@ -47,15 +35,14 @@ describe('Testes de Integração para a Rota /viaturas', () => {
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
-    viaturaId = response.body.id; // Salva o ID para os próximos testes
+    viaturaId = response.body.id;
   });
 
   it('PUT /viaturas/:id - Deve atualizar uma viatura com sucesso', async () => {
     const dadosAtualizados = {
-      prefixo: 'UR-155', // Prefixo alterado
-      placa: 'ABC1D23',
-      tipo: 'UR',
+      prefixo: `UR-UPD-${Date.now()}`,
       ativa: false, // Alterando o status
+      cidade: 'Anápolis (Teste)',
     };
 
     const response = await request(app)
@@ -64,8 +51,9 @@ describe('Testes de Integração para a Rota /viaturas', () => {
       .send(dadosAtualizados);
 
     expect(response.status).toBe(200);
-    expect(response.body.prefixo).toBe('UR-155');
+    expect(response.body.prefixo).toBe(dadosAtualizados.prefixo);
     expect(response.body.ativa).toBe(false);
+    expect(response.body.cidade).toBe('Anápolis (Teste)');
   });
 
   it('DELETE /viaturas/:id - Deve excluir uma viatura com sucesso', async () => {
@@ -75,9 +63,8 @@ describe('Testes de Integração para a Rota /viaturas', () => {
 
     expect(response.status).toBe(204);
 
-    // Verifica se a viatura foi realmente excluída do banco
-    const { rowCount } = await pool.query('SELECT * FROM viaturas WHERE id = $1', [viaturaId]);
-    expect(rowCount).toBe(0);
-    viaturaId = null; // Limpa o ID para não ser deletado de novo no afterAll
+    const viaturaNoDb = await db('viaturas').where({ id: viaturaId }).first();
+    expect(viaturaNoDb).toBeUndefined();
+    viaturaId = null;
   });
 });

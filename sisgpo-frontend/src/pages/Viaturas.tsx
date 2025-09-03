@@ -1,4 +1,5 @@
-// frontend/src/pages/Viaturas.tsx
+// Arquivo: frontend/src/pages/Viaturas.tsx (Completo e Corrigido)
+
 import { useEffect, useState, useCallback, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Upload } from 'lucide-react';
@@ -6,10 +7,10 @@ import { Upload } from 'lucide-react';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
-import Input from '../components/ui/Input'; // <-- CORREÇÃO: Importar o componente Input
-import Pagination from '../components/ui/Pagination'; // <-- CORREÇÃO: Importar o componente Pagination
+import Input from '../components/ui/Input';
+import Pagination from '../components/ui/Pagination';
 
-// Interfaces atualizadas
+// Interface para os dados da viatura, alinhada com o backend
 interface Viatura {
   id: number;
   prefixo: string;
@@ -19,8 +20,15 @@ interface Viatura {
   ativa: boolean;
 }
 
-interface PaginationState { currentPage: number; totalPages: number; }
-interface ApiResponse { data: Viatura[]; pagination: PaginationState; }
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+}
+
+interface ApiResponse {
+  data: Viatura[];
+  pagination: PaginationState;
+}
 
 export default function Viaturas() {
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
@@ -32,10 +40,15 @@ export default function Viaturas() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Função para buscar os dados da API
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '15', prefixo: filtroPrefixo });
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '15',
+        prefixo: filtroPrefixo,
+      });
       const response = await api.get<ApiResponse>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
       setPagination(response.data.pagination);
@@ -46,18 +59,23 @@ export default function Viaturas() {
     }
   }, [currentPage, filtroPrefixo]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFiltroPrefixo(e.target.value); setCurrentPage(1); };
+  const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFiltroPrefixo(e.target.value);
+    setCurrentPage(1);
+  };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
-      const allowedExtensions = ['.xls', '.xlsx', '.csv'];
+      const allowedExtensions = ['.xls', '.xlsx'];
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
       if (!allowedExtensions.includes(fileExtension)) {
-        toast.error('Formato de arquivo inválido. Use XLS, XLSX ou CSV.');
+        toast.error('Formato de arquivo inválido. Use XLS ou XLSX.');
         event.target.value = '';
         setSelectedFile(null);
         return;
@@ -80,12 +98,11 @@ export default function Viaturas() {
       });
       
       toast.success(response.data.message || 'Arquivo processado!');
-      if (response.data.errors && response.data.errors.length > 0) {
-        toast.error(`${response.data.errors.length} erros durante o processamento. Verifique o console.`);
-        console.error("Erros de importação:", response.data.errors);
-      }
-      
       setSelectedFile(null);
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      
+      // Recarrega os dados para exibir as atualizações
       fetchData(); 
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
@@ -103,6 +120,7 @@ export default function Viaturas() {
         </div>
       </div>
 
+      {/* Seção de Upload */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Importar/Atualizar Viaturas via Planilha</h3>
         <p className="text-sm text-gray-500 mb-3">
@@ -112,14 +130,14 @@ export default function Viaturas() {
           <label htmlFor="file-upload" className="flex-1 w-full">
             <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-100">
               <Upload className="w-5 h-5 text-gray-500 mr-2" />
-              <span className="text-sm text-gray-600">{selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo (XLS, XLSX, CSV)'}</span>
+              <span className="text-sm text-gray-600">{selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo (XLS, XLSX)'}</span>
             </div>
             <input 
               id="file-upload" 
               name="file-upload" 
               type="file" 
               className="sr-only" 
-              accept=".xls, .xlsx, .csv"
+              accept=".xls, .xlsx"
               onChange={handleFileChange} 
             />
           </label>
@@ -129,6 +147,7 @@ export default function Viaturas() {
         </div>
       </div>
 
+      {/* Filtro */}
       <div className="mb-4">
         <Input 
           type="text" 
@@ -139,6 +158,7 @@ export default function Viaturas() {
         />
       </div>
       
+      {/* Tabela de Exibição */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -161,7 +181,9 @@ export default function Viaturas() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.obm || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.telefone || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{viatura.ativa ? 'Ativa' : 'Inativa'}</span>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {viatura.ativa ? 'Ativa' : 'Inativa'}
+                    </span>
                   </td>
                 </tr>
               ))

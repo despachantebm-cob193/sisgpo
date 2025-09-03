@@ -1,7 +1,12 @@
-const pool = require('../src/config/database');
+// Arquivo: __tests__/teardown.js
+
+const db = require('../src/config/database');
 
 module.exports = async () => {
   console.log('[Global Teardown] Encerrando a conexão com o banco de dados...');
-  await pool.end(); // Garante que a conexão com o pool seja encerrada
+  // --- CORREÇÃO APLICADA AQUI ---
+  // Usa db.destroy() para fechar todas as conexões do pool do Knex
+  await db.destroy();
+  // -----------------------------
   console.log('[Global Teardown] Conexão com o banco de dados encerrada.');
 };

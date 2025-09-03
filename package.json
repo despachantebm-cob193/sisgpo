@@ -9,11 +9,9 @@
     "migrate:dev": "knex migrate:latest --env development",
     "migrate:prod": "knex migrate:latest --env production",
     "seed:prod": "knex seed:run --env production",
-    
     "render:build": "npm install",
-
-    "test:setup": "knex migrate:latest --env test",
-    "test": "npm run test:setup && dotenv -e .env -- jest --runInBand --detectOpenHandles"
+    "test:setup": "cross-env NODE_ENV=test knex migrate:latest --env test",
+    "test": "cross-env NODE_ENV=test npm run test:setup && cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.12",
@@ -34,6 +32,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
+    "cross-env": "^7.0.3",
     "dotenv-cli": "^7.4.2",
     "jest": "^30.0.5",
     "nodemon": "^2.0.22",

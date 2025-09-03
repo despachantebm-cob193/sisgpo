@@ -1,8 +1,12 @@
+// Arquivo: frontend/src/pages/Dashboard.tsx
+
 import { useEffect, useState } from 'react';
 import api from '@/services/api';
 import StatCard from '@/components/ui/StatCard';
-import Spinner from '@/components/ui/Spinner';
+import ViaturaDistributionChart from '@/components/charts/ViaturaDistributionChart';
+import MilitarRankChart from '@/components/charts/MilitarRankChart';
 
+// Interfaces
 interface DashboardStats {
   total_militares_ativos: number;
   total_viaturas_disponiveis: number;
@@ -10,28 +14,42 @@ interface DashboardStats {
   total_plantoes_mes: number;
 }
 
+interface ChartStat {
+  name: string;
+  value: number;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [viaturaStats, setViaturaStats] = useState<ChartStat[]>([]);
+  const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAllData = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        // CORREÇÃO: Adicionado '/api' ao caminho da rota
-        const response = await api.get<DashboardStats>('/api/admin/dashboard/stats');
-        setStats(response.data);
+        // Usando Promise.all para buscar todos os dados do dashboard em paralelo
+        const [statsRes, viaturaStatsRes, militarStatsRes] = await Promise.all([
+          api.get<DashboardStats>('/api/admin/dashboard/stats'),
+          api.get<ChartStat[]>('/api/admin/dashboard/viatura-stats'),
+          api.get<ChartStat[]>('/api/admin/dashboard/militar-stats')
+        ]);
+        
+        setStats(statsRes.data);
+        setViaturaStats(viaturaStatsRes.data);
+        setMilitarStats(militarStatsRes.data);
         setError(null);
       } catch (err) {
-        setError('Não foi possível carregar as estatísticas.');
+        setError('Não foi possível carregar os dados do dashboard.');
         console.error(err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchAllData();
   }, []);
 
   if (error) {
@@ -49,31 +67,18 @@ export default function Dashboard() {
         Visão geral do poder operacional em tempo real.
       </p>
 
+      {/* Cards de Estatísticas */}
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Militares Ativos"
-          value={stats?.total_militares_ativos ?? 0}
-          description="Total de militares na ativa."
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="Viaturas Disponíveis"
-          value={stats?.total_viaturas_disponiveis ?? 0}
-          description="Viaturas em condições de uso."
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="OBMs Cadastradas"
-          value={stats?.total_obms ?? 0}
-          description="Total de unidades operacionais."
-          isLoading={isLoading}
-        />
-        <StatCard
-          title="Plantões no Mês"
-          value={stats?.total_plantoes_mes ?? 0}
-          description="Total de plantões no mês corrente."
-          isLoading={isLoading}
-        />
+        <StatCard title="Militares Ativos" value={stats?.total_militares_ativos ?? 0} description="Total de militares na ativa." isLoading={isLoading} />
+        <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
+        <StatCard title="OBMs Cadastradas" value={stats?.total_obms ?? 0} description="Total de unidades operacionais." isLoading={isLoading} />
+        <StatCard title="Plantões no Mês" value={stats?.total_plantoes_mes ?? 0} description="Total de plantões no mês corrente." isLoading={isLoading} />
+      </div>
+
+      {/* Seção de Gráficos */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ViaturaDistributionChart data={viaturaStats} isLoading={isLoading} />
+        <MilitarRankChart data={militarStats} isLoading={isLoading} />
       </div>
     </div>
   );
