@@ -1,19 +1,13 @@
-// ..._desnormalizar_viaturas.js
+// Arquivo: src/database/migrations/20250901210138_desnormalizar_viaturas.js
 
 /**
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
 exports.up = function(knex) {
-  return knex.schema.alterTable('viaturas', function(table) {
-    // 1. Adiciona as novas colunas de texto
-    table.string('cidade', 100);
-    table.string('obm', 150); // Para armazenar o nome completo da OBM
-    table.string('telefone', 20);
-
-    // 2. Remove a coluna de chave estrangeira que fazia o vínculo
-    table.dropColumn('obm_id');
-  });
+  // As colunas já existem no banco de dados.
+  // Retornamos uma promessa resolvida para que o Knex apenas marque esta migração como concluída.
+  return Promise.resolve();
 };
 
 /**
@@ -21,13 +15,13 @@ exports.up = function(knex) {
  * @returns { Promise<void> }
  */
 exports.down = function(knex) {
-  // A função 'down' reverte as alterações
+  // A função 'down' deve ser capaz de reverter as alterações.
   return knex.schema.alterTable('viaturas', function(table) {
     table.dropColumn('cidade');
     table.dropColumn('obm');
     table.dropColumn('telefone');
     
-    // Recria a coluna de chave estrangeira
+    // Recria a coluna de chave estrangeira original
     table.integer('obm_id').unsigned().references('id').inTable('obms').onDelete('SET NULL');
   });
 };

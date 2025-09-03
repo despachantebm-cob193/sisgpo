@@ -1,15 +1,13 @@
+// Arquivo: src/database/migrations/20250901191649_adicionar_telefone_a_obms.js
+
 /**
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
 exports.up = function(knex) {
-  return knex.schema.alterTable('obms', function (table) {
-    // Adiciona a nova coluna 'telefone' após a coluna 'cidade'
-    table.string('telefone', 20).nullable().after('cidade');
-    
-    // Remove a coluna 'ativo'
-    table.dropColumn('ativo');
-  });
+  // A coluna 'telefone' já existe no banco de dados.
+  // Retornamos uma promessa resolvida para que o Knex apenas marque esta migração como concluída.
+  return Promise.resolve();
 };
 
 /**
@@ -17,11 +15,8 @@ exports.up = function(knex) {
  * @returns { Promise<void> }
  */
 exports.down = function(knex) {
-  return knex.schema.alterTable('obms', function (table) {
-    // Remove a coluna 'telefone'
+  // A função 'down' deve ser capaz de reverter a alteração.
+  return knex.schema.alterTable('obms', function(table) {
     table.dropColumn('telefone');
-
-    // Readiciona a coluna 'ativo' caso a migration seja revertida
-    table.boolean('ativo').notNullable().defaultTo(true);
   });
 };
