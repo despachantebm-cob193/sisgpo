@@ -9,32 +9,24 @@ const militarController = {
 
     const query = db('militares')
       .select(
-        'militares.id',
-        'militares.matricula',
-        'militares.nome_completo',
-        'militares.nome_guerra',
-        'militares.posto_graduacao',
-        'militares.ativo',
-        'militares.obm_id',
-        'obms.abreviatura as obm_abreviatura' // Inclui a abreviatura da OBM
+        'militares.id', 'militares.matricula', 'militares.nome_completo',
+        'militares.nome_guerra', 'militares.posto_graduacao', 'militares.ativo',
+        'militares.obm_id', 'militares.tipo', // Inclui o novo campo 'tipo'
+        'obms.abreviatura as obm_abreviatura'
       )
       .leftJoin('obms', 'militares.obm_id', 'obms.id')
       .orderBy('militares.nome_completo', 'asc');
 
-    // Aplica filtros de busca
     if (nome_completo) query.where('militares.nome_completo', 'ilike', `%${nome_completo}%`);
     if (posto_graduacao) query.where('militares.posto_graduacao', 'ilike', `%${posto_graduacao}%`);
     if (matricula) query.where('militares.matricula', 'ilike', `%${matricula}%`);
     if (obm_id) query.where('militares.obm_id', '=', obm_id);
 
-    // Se o parâmetro 'all=true' for passado, retorna todos os resultados sem paginar.
-    // Isso é essencial para a virtualização no frontend.
     if (all === 'true') {
       const militares = await query;
       return res.status(200).json({ data: militares });
     }
 
-    // Lógica de paginação padrão (mantida para outros usos, se houver)
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
@@ -53,15 +45,17 @@ const militarController = {
   },
 
   create: async (req, res) => {
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, tipo } = req.body;
     
-    const matriculaExists = await db('militares').where({ matricula }).first();
-    if (matriculaExists) {
-      throw new AppError('Matrícula já cadastrada no sistema.', 409);
+    if (tipo === 'Militar' && matricula) {
+      const matriculaExists = await db('militares').where({ matricula }).first();
+      if (matriculaExists) {
+        throw new AppError('Matrícula já cadastrada no sistema.', 409);
+      }
     }
 
     const [novoMilitar] = await db('militares')
-      .insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id })
+      .insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, tipo })
       .returning('*');
       
     res.status(201).json(novoMilitar);
@@ -69,14 +63,14 @@ const militarController = {
 
   update: async (req, res) => {
     const { id } = req.params;
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, tipo } = req.body;
 
     const militarAtual = await db('militares').where({ id }).first();
     if (!militarAtual) {
       throw new AppError('Militar não encontrado.', 404);
     }
 
-    if (matricula && matricula !== militarAtual.matricula) {
+    if (tipo === 'Militar' && matricula && matricula !== militarAtual.matricula) {
       const matriculaConflict = await db('militares').where({ matricula }).andWhereNot({ id }).first();
       if (matriculaConflict) {
         throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
@@ -84,12 +78,10 @@ const militarController = {
     }
 
     const dadosAtualizacao = { 
-      matricula, 
-      nome_completo, 
-      nome_guerra, 
-      posto_graduacao, 
-      ativo, 
-      obm_id, 
+      matricula: tipo === 'Militar' ? matricula : null, 
+      nome_completo, nome_guerra, 
+      posto_graduacao: tipo === 'Militar' ? posto_graduacao : null, 
+      ativo, obm_id, tipo, 
       updated_at: db.fn.now() 
     };
 

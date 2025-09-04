@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/ServicoDia.tsx (Novo Arquivo)
+// Arquivo: frontend/src/pages/ServicoDia.tsx (Código Completo e Otimizado para Mobile)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
 import Spinner from '../components/ui/Spinner';
 
-// Interfaces
+// Interfaces (sem alteração)
 interface Militar { id: number; nome_guerra: string; posto_graduacao: string; }
 interface Servico { funcao: string; militar_id: number | null; }
 
@@ -19,12 +19,14 @@ const FUNCOES_ESPECIAIS = [
 ];
 
 export default function ServicoDia() {
+  // Hooks de estado (sem alteração)
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [militares, setMilitares] = useState<Militar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Funções de busca e salvamento (sem alteração)
   const fetchMilitares = useCallback(async () => {
     try {
       const response = await api.get('/api/admin/militares?all=true&ativo=true');
@@ -40,7 +42,6 @@ export default function ServicoDia() {
       const response = await api.get(`/api/admin/servico-dia?data=${dataSelecionada}`);
       const servicosDaApi: Servico[] = response.data || [];
       
-      // Mapeia as funções fixas e preenche com os dados da API ou com null
       const servicosFormatados = FUNCOES_ESPECIAIS.map(funcao => {
         const servicoExistente = servicosDaApi.find(s => s.funcao === funcao);
         return {
@@ -100,7 +101,8 @@ export default function ServicoDia() {
         <div className="flex justify-center items-center h-64"><Spinner className="h-12 w-12" /></div>
       ) : (
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* --- AJUSTE DE RESPONSIVIDADE APLICADO AQUI --- */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
             {servicos.map(({ funcao, militar_id }) => (
               <div key={funcao}>
                 <Label htmlFor={funcao}>{funcao}</Label>
@@ -108,9 +110,9 @@ export default function ServicoDia() {
                   id={funcao}
                   value={militar_id || ''}
                   onChange={(e) => handleSelectChange(funcao, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
                 >
-                  <option value="">Ninguém escalado</option>
+                  <option value="">-- Vago --</option>
                   {militares.map(m => (
                     <option key={m.id} value={m.id}>
                       {m.posto_graduacao} {m.nome_guerra}

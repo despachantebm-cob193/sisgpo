@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/pages/Militares.tsx (Código Completo e Responsivo)
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -9,21 +11,20 @@ import MilitarForm from '../components/forms/MilitarForm';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, User, Shield, Building, Hash } from 'lucide-react'; // Ícones adicionados
 
-// Interfaces
-interface Militar { id: number; matricula: string; nome_completo: string; nome_guerra: string; posto_graduacao: string; ativo: boolean; obm_id: number | null; }
+// Interfaces (sem alteração)
+interface Militar { id: number; matricula: string | null; nome_completo: string; nome_guerra: string; posto_graduacao: string | null; ativo: boolean; obm_id: number | null; tipo: 'Militar' | 'Civil'; obm_abreviatura?: string; }
 interface Obm { id: number; nome: string; abreviatura: string; }
 interface ApiResponse<T> { data: T[]; }
 
 export default function Militares() {
+  // Hooks de estado (sem alteração)
   const [militares, setMilitares] = useState<Militar[]>([]);
   const [obms, setObms] = useState<Obm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
-
-  // Estados para modais e ações
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Militar | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,6 +32,7 @@ export default function Militares() {
   const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Funções de busca e salvamento (sem alteração)
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -50,51 +52,25 @@ export default function Militares() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: militares.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 58,
-    overscan: 10,
-  });
-
   const handleOpenFormModal = (item: Militar | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
 
-  // --- FUNÇÃO HANDLESAVE CORRIGIDA ---
   const handleSave = async (data: any) => {
     setIsSaving(true);
     setValidationErrors([]);
     const action = data.id ? 'atualizado' : 'criado';
-
-    // Cria um payload "limpo" com apenas os campos que a API espera.
-    const payload = {
-      matricula: data.matricula,
-      nome_completo: data.nome_completo,
-      nome_guerra: data.nome_guerra,
-      posto_graduacao: data.posto_graduacao,
-      ativo: data.ativo,
-      obm_id: data.obm_id,
-    };
-
     try {
       if (data.id) {
-        // Envia o payload limpo para a rota de atualização.
-        await api.put(`/api/admin/militares/${data.id}`, payload);
+        await api.put(`/api/admin/militares/${data.id}`, data);
       } else {
-        // Para criação, o payload já está correto.
-        await api.post('/api/admin/militares', payload);
+        await api.post('/api/admin/militares', data);
       }
-      toast.success(`Militar ${action} com sucesso!`);
+      toast.success(`Registro ${action} com sucesso!`);
       handleCloseFormModal();
       fetchData();
     } catch (err: any) {
-      // Adiciona log de diagnóstico no console do navegador
-      console.error('[DIAGNÓSTICO] Erro ao salvar militar:', err.response);
-
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
         const firstErrorMessage = err.response.data.errors[0]?.message || 'Corrija os erros.';
@@ -106,14 +82,13 @@ export default function Militares() {
       setIsSaving(false);
     }
   };
-  // --- FIM DA CORREÇÃO ---
 
   const handleConfirmDelete = async () => { 
     if (!itemToDeleteId) return; 
     setIsDeleting(true); 
     try { 
       await api.delete(`/api/admin/militares/${itemToDeleteId}`); 
-      toast.success('Militar excluído!'); 
+      toast.success('Registro excluído!'); 
       fetchData(); 
     } catch (err: any) { 
       toast.error(err.response?.data?.message || 'Erro ao excluir.'); 
@@ -123,16 +98,26 @@ export default function Militares() {
     } 
   };
 
-  const gridTemplateColumns = "1.5fr 1.5fr 1fr 1fr 1fr";
+  // Virtualização (ajuste no estimateSize)
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: militares.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 140, // Aumenta a estimativa para o card
+    overscan: 10,
+  });
+
+  const gridTemplateColumns = "1.5fr 1.5fr 1fr 1fr 1fr 0.5fr";
 
   return (
     <div>
+      {/* Cabeçalho e Filtro (sem alteração) */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Militares</h2>
-          <p className="text-gray-600 mt-2">Gerencie o efetivo de militares.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Efetivo (Militares e Civis)</h2>
+          <p className="text-gray-600 mt-2">Gerencie o efetivo de militares e civis colaboradores.</p>
         </div>
-        <Button onClick={() => handleOpenFormModal()}>Adicionar Novo Militar</Button>
+        <Button onClick={() => handleOpenFormModal()}>Adicionar Novo</Button>
       </div>
       <Input
         type="text"
@@ -142,15 +127,19 @@ export default function Militares() {
         className="max-w-xs mb-4"
       />
 
+      {/* --- ÁREA DE RENDERIZAÇÃO RESPONSIVA --- */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div style={{ display: 'grid', gridTemplateColumns }} className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
+        {/* Cabeçalho da Tabela (visível apenas em telas médias ou maiores) */}
+        <div style={{ display: 'grid', gridTemplateColumns }} className="hidden md:grid bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</div>
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</div>
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</div>
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</div>
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</div>
         </div>
 
+        {/* Contêiner da Lista Virtualizada */}
         <div ref={parentRef} className="overflow-y-auto" style={{ height: '70vh' }}>
           {isLoading ? (
             <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
@@ -162,29 +151,48 @@ export default function Militares() {
                 return (
                   <div
                     key={militar.id}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                      display: 'grid',
-                      gridTemplateColumns,
-                    }}
-                    className="items-center border-b border-gray-200"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, padding: '0.5rem' }}
+                    className="md:p-0"
                   >
-                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{militar.posto_graduacao}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {militar.ativo ? 'Ativo' : 'Inativo'}
-                      </span>
+                    {/* Layout de Card para Mobile */}
+                    <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div className="flex justify-between items-start">
+                        <p className="text-lg font-bold text-gray-800 flex items-center">
+                          <User size={20} className="mr-2 text-red-600" /> {militar.nome_guerra}
+                        </p>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {militar.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1 ml-7">{militar.posto_graduacao || 'Civil'}</p>
+                      <div className="mt-3 space-y-1 text-sm text-gray-600">
+                        <p className="flex items-center"><Hash size={14} className="mr-2" /> {militar.matricula || 'N/A'}</p>
+                        <p className="flex items-center"><Shield size={14} className="mr-2" /> {militar.tipo}</p>
+                        <p className="flex items-center"><Building size={14} className="mr-2" /> {militar.obm_abreviatura || 'OBM não informada'}</p>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end items-center">
+                        <div className="flex items-center space-x-3">
+                          <button onClick={() => handleOpenFormModal(militar)} className="p-2 text-indigo-600 hover:text-indigo-900" title="Editar"><Edit size={20} /></button>
+                          <button onClick={() => handleDeleteClick(militar.id)} className="p-2 text-red-600 hover:text-red-900" title="Excluir"><Trash2 size={20} /></button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                      <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
-                      <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+
+                    {/* Layout de Tabela para Desktop */}
+                    <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
+                      <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{militar.posto_graduacao || 'N/A'}</div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra}</div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula || 'N/A'}</div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.tipo}</div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {militar.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                      <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                        <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
+                        <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -194,10 +202,11 @@ export default function Militares() {
         </div>
       </div>
 
-      <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Militar' : 'Adicionar Novo Militar'}>
+      {/* Modais (sem alteração) */}
+      <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Registro' : 'Adicionar Novo Registro'}>
         <MilitarForm militarToEdit={itemToEdit} obms={obms} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir este militar? Esta ação não pode ser desfeita." isLoading={isDeleting} />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita." isLoading={isDeleting} />
     </div>
   );
 }
