@@ -1,8 +1,8 @@
-// Arquivo: frontend/src/components/charts/ViaturaDistributionChart.tsx (Corrigido)
+// Arquivo: frontend/src/components/charts/ViaturaDistributionChart.tsx (Atualizado)
 
 import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import ChartCard from '@/components/ui/ChartCard'; // <-- CORREÇÃO: Usando alias de caminho
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ChartCard from '@/components/ui/ChartCard';
 
 interface ChartData {
   name: string;
@@ -14,8 +14,6 @@ interface ViaturaDistributionChartProps {
   isLoading: boolean;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A239EA', '#FF5733', '#33FF57', '#3357FF'];
-
 const ViaturaDistributionChart: React.FC<ViaturaDistributionChartProps> = ({ data, isLoading }) => {
   return (
     <ChartCard
@@ -24,28 +22,21 @@ const ViaturaDistributionChart: React.FC<ViaturaDistributionChartProps> = ({ dat
       hasData={data && data.length > 0}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={110}
-            fill="#8884d8"
-            dataKey="value"
-            nameKey="name"
-            label={({ name, percent }) => {
-              if (percent === undefined) return name;
-              return `${name} (${(percent * 100).toFixed(0)}%)`;
-            }}
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
+        {/* O layout="vertical" transforma o gráfico de barras em horizontal */}
+        <BarChart
+          data={data}
+          layout="vertical" 
+          margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          {/* O eixo X agora representa os valores (números) */}
+          <XAxis type="number" allowDecimals={false} />
+          {/* O eixo Y representa as categorias (nomes das OBMs) */}
+          <YAxis dataKey="name" type="category" width={150} />
           <Tooltip formatter={(value) => [`${value} viaturas`, 'Quantidade']} />
           <Legend />
-        </PieChart>
+          <Bar dataKey="value" name="Total de Viaturas" fill="#3b82f6" />
+        </BarChart>
       </ResponsiveContainer>
     </ChartCard>
   );

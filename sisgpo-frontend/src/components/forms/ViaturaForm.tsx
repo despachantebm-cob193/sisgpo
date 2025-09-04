@@ -12,7 +12,6 @@ interface Viatura {
   prefixo: string;
   cidade: string | null;
   obm: string | null;
-  telefone: string | null;
   ativa: boolean;
 }
 
@@ -34,7 +33,6 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
     prefixo: '',
     cidade: '',
     obm: '',
-    telefone: '',
     ativa: true,
   });
 
@@ -44,7 +42,7 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
     if (viaturaToEdit) {
       setFormData(viaturaToEdit);
     } else {
-      setFormData({ prefixo: '', cidade: '', obm: '', telefone: '', ativa: true });
+      setFormData({ prefixo: '', cidade: '', obm: '', ativa: true });
     }
   }, [viaturaToEdit]);
 
@@ -77,11 +75,6 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
         <Label htmlFor="cidade">Cidade</Label>
         <Input id="cidade" name="cidade" value={formData.cidade || ''} onChange={handleChange} hasError={!!getError('cidade')} />
         <FormError message={getError('cidade')} />
-      </div>
-      <div>
-        <Label htmlFor="telefone">Telefone da OBM</Label>
-        <Input id="telefone" name="telefone" value={formData.telefone || ''} onChange={handleChange} hasError={!!getError('telefone')} />
-        <FormError message={getError('telefone')} />
       </div>
       <div className="flex items-center">
         <input id="ativa" name="ativa" type="checkbox" checked={formData.ativa} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />

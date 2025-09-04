@@ -1,9 +1,9 @@
-// Arquivo: frontend/src/pages/Dashboard.tsx (Com filtro de OBM implementado)
+// Arquivo: frontend/src/pages/Dashboard.tsx (Completo)
 
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/services/api';
 import StatCard from '@/components/ui/StatCard';
-import ViaturaDistributionChart from '@/components/charts/ViaturaDistributionChart';
+import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
 import toast from 'react-hot-toast';
 
@@ -14,13 +14,10 @@ interface DashboardStats {
   total_obms: number;
   total_plantoes_mes: number;
 }
-
 interface ChartStat {
   name: string;
   value: number;
 }
-
-// 1. Adicionar interface para OBM
 interface Obm {
   id: number;
   abreviatura: string;
@@ -28,48 +25,52 @@ interface Obm {
 }
 
 export default function Dashboard() {
-  // --- Estados existentes ---
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [viaturaStats, setViaturaStats] = useState<ChartStat[]>([]);
+  const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // 2. --- Novos estados para o filtro ---
   const [obms, setObms] = useState<Obm[]>([]);
-  const [selectedObm, setSelectedObm] = useState<string>(''); // Armazena o ID da OBM como string
+  const [selectedObm, setSelectedObm] = useState<string>('');
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
 
-  // 3. --- Função para buscar a lista de OBMs ---
+  const fetchLastUpload = useCallback(async () => {
+    try {
+      const response = await api.get('/api/admin/metadata/viaturas_last_upload');
+      const date = new Date(response.data.value);
+      setLastUpload(date.toLocaleString('pt-BR'));
+    } catch (error) {
+      console.error("Não foi possível buscar a data da última atualização.");
+      setLastUpload(null);
+    }
+  }, []);
+
   const fetchObms = useCallback(async () => {
     try {
-      const response = await api.get('/api/admin/obms?limit=500'); // Busca todas as OBMs
+      const response = await api.get('/api/admin/obms?limit=500');
       setObms(response.data.data);
     } catch (err) {
       toast.error('Não foi possível carregar a lista de OBMs para o filtro.');
     }
   }, []);
 
-  // 4. --- Função de busca de dados principal atualizada ---
-  const fetchAllData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Adiciona o obm_id como parâmetro se um filtro estiver selecionado
       const params = new URLSearchParams();
       if (selectedObm) {
         params.append('obm_id', selectedObm);
       }
-
       const queryString = params.toString();
 
-      // Usando Promise.all para buscar todos os dados do dashboard em paralelo
-      const [statsRes, viaturaStatsRes, militarStatsRes] = await Promise.all([
+      const [statsRes, viaturaTipoRes, militarStatsRes] = await Promise.all([
         api.get<DashboardStats>(`/api/admin/dashboard/stats?${queryString}`),
-        api.get<ChartStat[]>(`/api/admin/dashboard/viatura-stats?${queryString}`),
+        api.get<ChartStat[]>(`/api/admin/dashboard/viatura-stats-por-tipo?${queryString}`),
         api.get<ChartStat[]>(`/api/admin/dashboard/militar-stats?${queryString}`)
       ]);
       
       setStats(statsRes.data);
-      setViaturaStats(viaturaStatsRes.data);
+      setViaturaTipoStats(viaturaTipoRes.data);
       setMilitarStats(militarStatsRes.data);
       setError(null);
     } catch (err) {
@@ -78,16 +79,16 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedObm]); // O hook agora depende do filtro selecionado
-
-  // 5. --- useEffect para buscar todos os dados ---
-  useEffect(() => {
-    fetchObms(); // Busca a lista de OBMs uma vez
-  }, [fetchObms]);
+  }, [selectedObm]);
 
   useEffect(() => {
-    fetchAllData(); // Busca os dados do dashboard sempre que o filtro mudar
-  }, [fetchAllData]);
+    fetchObms();
+    fetchLastUpload();
+  }, [fetchObms, fetchLastUpload]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   if (error) {
     return (
@@ -107,7 +108,6 @@ export default function Dashboard() {
           </p>
         </div>
         
-        {/* 6. --- Componente de seletor (dropdown) --- */}
         <div className="w-full md:w-auto">
           <label htmlFor="obm-filter" className="sr-only">Filtrar por OBM</label>
           <select
@@ -126,7 +126,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cards de Estatísticas */}
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Militares Ativos" value={stats?.total_militares_ativos ?? 0} description="Total de militares na ativa." isLoading={isLoading} />
         <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
@@ -134,9 +133,13 @@ export default function Dashboard() {
         <StatCard title="Plantões no Mês" value={stats?.total_plantoes_mes ?? 0} description="Total de plantões no mês corrente." isLoading={isLoading} />
       </div>
 
-      {/* Seção de Gráficos */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ViaturaDistributionChart data={viaturaStats} isLoading={isLoading} />
+        <ViaturaTypeChart 
+          data={viaturaTipoStats} 
+          isLoading={isLoading} 
+          lastUpdated={lastUpload}
+        />
+        
         <MilitarRankChart data={militarStats} isLoading={isLoading} />
       </div>
     </div>

@@ -1,4 +1,4 @@
-// Arquivo: src/controllers/viaturaFileController.js (Completo e Corrigido)
+// Arquivo: backend/src/controllers/viaturaFileController.js (Completo)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -15,7 +15,6 @@ const viaturaFileController = {
     let rows = [];
 
     try {
-      // Lê os dados da planilha
       const workbook = xlsx.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
@@ -26,57 +25,53 @@ const viaturaFileController = {
       const processingErrors = [];
       let ignoredCount = 0;
 
-      // Inicia a transação com o banco de dados
       await db.transaction(async trx => {
-        // Itera sobre as linhas da planilha, pulando o cabeçalho (índice 0)
         for (let i = 1; i < rows.length; i++) {
           const rowData = rows[i];
           const tipoEscala = rowData[2] ? String(rowData[2]).trim().toUpperCase() : '';
 
-          // Pula a linha se a coluna C não contiver "VIATURA"
           if (!tipoEscala.includes('VIATURA')) {
             ignoredCount++;
             continue;
           }
 
-          // Extrai os dados das colunas corretas
           const prefixo = rowData[3] ? String(rowData[3]).trim() : null;
           const cidade = rowData[5] ? String(rowData[5]).trim() : 'Não informada';
           const nomeObm = rowData[6] ? String(rowData[6]).trim() : null;
-          const telefone = rowData[8] ? String(rowData[8]).trim() : null;
 
-          // Pula a linha se dados essenciais (prefixo, nome da OBM) estiverem faltando
           if (!prefixo || !nomeObm) {
             ignoredCount++;
             continue;
           }
 
-          // --- LÓGICA DE UPSERT PARA VIATURAS ---
           const viaturaData = {
             prefixo: prefixo,
             ativa: true,
             cidade: cidade,
             obm: nomeObm,
-            telefone: telefone,
           };
 
-          // Verifica se a viatura já existe pelo prefixo
           const existingViatura = await trx('viaturas').where({ prefixo }).first();
 
           if (existingViatura) {
-            // Se existe, ATUALIZA
             await trx('viaturas').where({ id: existingViatura.id }).update({
               ...viaturaData,
               updated_at: db.fn.now(),
             });
             updatedCount++;
           } else {
-            // Se não existe, INSERE
             await trx('viaturas').insert(viaturaData);
             insertedCount++;
           }
         }
-      }); // Fim da transação
+
+        // 1. Após o loop, atualiza o metadado com a data/hora atual
+        const lastUploadTime = new Date().toISOString();
+        await trx('metadata')
+          .insert({ key: 'viaturas_last_upload', value: lastUploadTime })
+          .onConflict('key')
+          .merge();
+      });
 
       res.status(200).json({
         message: `Arquivo processado! Inseridas: ${insertedCount}, Atualizadas: ${updatedCount}, Ignoradas: ${ignoredCount}.`,
@@ -87,10 +82,8 @@ const viaturaFileController = {
 
     } catch (error) {
       console.error("Erro durante a importação:", error);
-      // Garante que o erro seja encapsulado em um AppError para o middleware de erro
       throw new AppError(error.message || "Ocorreu um erro inesperado durante a importação.", 500);
     } finally {
-      // Garante que o arquivo temporário seja sempre removido
       if (req.file && req.file.path) {
         fs.unlinkSync(filePath);
       }

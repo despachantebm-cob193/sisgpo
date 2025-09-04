@@ -1,6 +1,6 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx (Refatorado com useCrud)
+// Arquivo: frontend/src/pages/Viaturas.tsx (Completo)
 
-import { useState, useCallback, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2 } from 'lucide-react';
 
@@ -21,12 +21,10 @@ interface Viatura {
   prefixo: string;
   cidade: string | null;
   obm: string | null;
-  telefone: string | null;
   ativa: boolean;
 }
 
 export default function Viaturas() {
-  // 1. Hook useCrud gerencia a lógica principal da entidade 'viaturas'
   const {
     data: viaturas,
     isLoading,
@@ -37,7 +35,7 @@ export default function Viaturas() {
     isSaving,
     isConfirmModalOpen,
     isDeleting,
-    fetchData, // Importando fetchData para re-executar após upload
+    fetchData,
     handleFilterChange,
     handlePageChange,
     handleOpenFormModal,
@@ -53,9 +51,24 @@ export default function Viaturas() {
     itemsPerPage: 15,
   });
 
-  // 2. Lógica específica para a funcionalidade de upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
+
+  const fetchLastUpload = useCallback(async () => {
+    try {
+      const response = await api.get('/api/admin/metadata/viaturas_last_upload');
+      const date = new Date(response.data.value);
+      setLastUpload(date.toLocaleString('pt-BR'));
+    } catch (error) {
+      console.error("Não foi possível buscar a data da última atualização.");
+      setLastUpload(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLastUpload();
+  }, [fetchLastUpload]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -88,7 +101,8 @@ export default function Viaturas() {
       setSelectedFile(null);
       const fileInput = document.getElementById('file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-      fetchData(); // Re-busca os dados após o upload
+      fetchData();
+      fetchLastUpload(); // Re-busca a data após o upload
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
@@ -107,7 +121,14 @@ export default function Viaturas() {
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Importar/Atualizar Viaturas via Planilha</h3>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold text-gray-800">Importar/Atualizar Viaturas via Planilha</h3>
+          {lastUpload && (
+            <p className="text-sm text-gray-500">
+              Última atualização: <span className="font-medium">{lastUpload}</span>
+            </p>
+          )}
+        </div>
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <label htmlFor="file-upload" className="flex-1 w-full">
             <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-100">
@@ -132,16 +153,15 @@ export default function Viaturas() {
         />
       </div>
       
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white shadow-md rounded-lg overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 table-fixed">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prefixo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[15%]">Prefixo</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[30%]">OBM</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[20%]">Cidade</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[10%]">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[10%]">Ações</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -150,10 +170,9 @@ export default function Viaturas() {
             ) : viaturas.length > 0 ? (
               viaturas.map((viatura) => (
                 <tr key={viatura.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viatura.prefixo}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.cidade || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.obm || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.telefone || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate">{viatura.prefixo}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 break-words">{viatura.obm || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate">{viatura.cidade || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {viatura.ativa ? 'Ativa' : 'Inativa'}
