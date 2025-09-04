@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/components/layout/AppLayout.tsx (Código Completo e Responsivo)
+// Arquivo: frontend/src/components/layout/AppLayout.tsx (Código Completo com Cabeçalho Fixo)
 
 import { useState } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
@@ -12,16 +12,16 @@ import {
   LogOut, 
   UserCircle,
   Clipboard,
-  Menu, // Ícone para o botão de menu mobile
-  X,    // Ícone para fechar o menu mobile
+  Menu,
+  X,
 } from 'lucide-react';
 
-// Componente de item de navegação (sem alteração)
+// Componente NavItem (sem alteração)
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
   <NavLink
     to={to}
     end
-    onClick={onClick} // Adiciona o onClick para fechar o menu no mobile
+    onClick={onClick}
     className={({ isActive }) =>
       `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
         isActive
@@ -37,7 +37,7 @@ const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.E
 
 export default function AppLayout() {
   const { token, logout, user } = useAuthStore();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para controlar o menu mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -47,7 +47,7 @@ export default function AppLayout() {
 
   return (
     <div className="relative md:flex h-screen bg-gray-100 font-sans">
-      {/* --- Overlay para o menu mobile --- */}
+      {/* Overlay (sem alteração) */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
@@ -55,7 +55,7 @@ export default function AppLayout() {
         ></div>
       )}
 
-      {/* --- Barra Lateral (Sidebar) --- */}
+      {/* Barra Lateral (sem alteração) */}
       <aside 
         className={`
           fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col
@@ -66,7 +66,6 @@ export default function AppLayout() {
       >
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
           <h1 className="text-xl font-bold text-white">SISGPO</h1>
-          {/* Botão para fechar o menu no mobile */}
           <button onClick={closeSidebar} className="md:hidden text-gray-300 hover:text-white">
             <X size={24} />
           </button>
@@ -93,11 +92,15 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* --- Área de Conteúdo Principal --- */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Cabeçalho da Área de Conteúdo */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-          {/* Botão de Menu (visível apenas no mobile) */}
+      {/* --- ÁREA DE CONTEÚDO PRINCIPAL (COM AJUSTES) --- */}
+      <div className="flex-1 flex flex-col relative">
+        {/* Cabeçalho da Área de Conteúdo (AGORA FIXO) */}
+        <header 
+          className="
+            sticky top-0 h-16 bg-white border-b border-gray-200 
+            flex items-center justify-between px-6 z-10
+          "
+        >
           <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-600">
             <Menu size={24} />
           </button>
@@ -109,8 +112,8 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Conteúdo da Página */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6">
+        {/* Conteúdo da Página (AGORA COM ROLAGEM INDEPENDENTE) */}
+        <main className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

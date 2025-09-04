@@ -1,4 +1,5 @@
-// ... (importações e início do componente permanecem os mesmos) ...
+// Arquivo: frontend/src/pages/Viaturas.tsx (Código Completo e Corrigido)
+
 import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2, Car, Building, MapPin } from 'lucide-react';
@@ -12,10 +13,12 @@ import Modal from '../components/ui/Modal';
 import ViaturaForm from '../components/forms/ViaturaForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
+// Interfaces (sem alteração)
 interface Viatura { id: number; prefixo: string; cidade: string | null; obm: string | null; ativa: boolean; }
 interface ApiResponse<T> { data: T[]; }
 
 export default function Viaturas() {
+  // Hooks de estado e funções de dados (sem alteração)
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ prefixo: '' });
@@ -57,14 +60,6 @@ export default function Viaturas() {
     fetchLastUpload();
   }, [fetchData, fetchLastUpload]);
 
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: viaturas.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 110,
-    overscan: 10,
-  });
-
   const handleOpenFormModal = (item: Viatura | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
@@ -74,31 +69,17 @@ export default function Viaturas() {
     setIsSaving(true);
     setValidationErrors([]);
     const action = data.id ? 'atualizada' : 'criada';
-
-    // --- CORREÇÃO PRINCIPAL AQUI ---
-    // Cria um payload limpo, contendo apenas os campos que a API deve receber.
-    const payload = {
-      prefixo: data.prefixo,
-      ativa: data.ativa,
-      cidade: data.cidade,
-      obm: data.obm,
-      // O campo 'telefone' não está no formulário, então não o incluímos.
-    };
-    // --- FIM DA CORREÇÃO ---
-
+    const { id, ...payload } = data;
     try {
-      if (data.id) {
-        // Envia o payload limpo para a rota de atualização.
-        await api.put(`/api/admin/viaturas/${data.id}`, payload);
+      if (id) {
+        await api.put(`/api/admin/viaturas/${id}`, payload);
       } else {
-        // Para criação, o payload já está correto.
         await api.post('/api/admin/viaturas', payload);
       }
       toast.success(`Viatura ${action} com sucesso!`);
       handleCloseFormModal();
       fetchData();
     } catch (err: any) {
-      console.log('Erro ao salvar:', err.response);
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
         const firstErrorMessage = err.response.data.errors[0]?.message || 'Por favor, corrija os erros no formulário.';
@@ -148,16 +129,31 @@ export default function Viaturas() {
     }
   };
 
+  // --- AJUSTE NA VIRTUALIZAÇÃO ---
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: viaturas.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 130, // Estimativa inicial para a altura do card
+    overscan: 10,
+    // Adiciona a medição de elemento para corrigir sobreposição
+    measureElement:
+      typeof window !== 'undefined' &&
+      navigator.userAgent.indexOf('Firefox') === -1
+        ? element => element.getBoundingClientRect().height
+        : undefined,
+  });
+  // --- FIM DO AJUSTE ---
+
   const gridTemplateColumns = "1.5fr 2fr 1.5fr 1fr 1fr";
 
-  // O JSX do return permanece o mesmo
   return (
     <div>
+      {/* Cabeçalho e área de upload (sem alteração) */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Viaturas</h2>
         <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">Adicionar Viatura</Button>
       </div>
-
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
           <h3 className="text-lg font-semibold text-gray-800">Importar/Atualizar Viaturas</h3>
@@ -176,7 +172,6 @@ export default function Viaturas() {
           </Button>
         </div>
       </div>
-
       <Input
         type="text"
         placeholder="Filtrar por prefixo..."
@@ -205,10 +200,14 @@ export default function Viaturas() {
                 return (
                   <div
                     key={viatura.id}
+                    // --- AJUSTE NA VIRTUALIZAÇÃO ---
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    // --- FIM DO AJUSTE ---
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, padding: '0.5rem' }}
                     className="md:p-0"
                   >
-                    {/* Layout de Cartão para Mobile */}
+                    {/* Layout de Card para Mobile */}
                     <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                       <div className="flex justify-between items-start">
                         <p className="text-lg font-bold text-gray-800 flex items-center"><Car size={20} className="mr-2 text-red-600" /> {viatura.prefixo}</p>
@@ -228,7 +227,7 @@ export default function Viaturas() {
                       </div>
                     </div>
 
-                    {/* Layout de Grid para Desktop */}
+                    {/* Layout de Tabela para Desktop */}
                     <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
                       <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viatura.prefixo}</div>
                       <div className="px-6 py-4 text-sm text-gray-500">{viatura.obm || 'N/A'}</div>
@@ -251,7 +250,7 @@ export default function Viaturas() {
         </div>
       </div>
 
-      {/* Modais */}
+      {/* Modais (sem alteração) */}
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>

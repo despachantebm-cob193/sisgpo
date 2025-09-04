@@ -1,8 +1,8 @@
-// Arquivo: frontend/src/components/dashboard/ServicoDiaCard.tsx (Novo Arquivo)
+// Arquivo: frontend/src/components/dashboard/ServicoDiaCard.tsx (Código Completo e Corrigido)
 
 import React from 'react';
 import Spinner from '@/components/ui/Spinner';
-import { Award, Star, Shield } from 'lucide-react'; // Ícones para ilustração
+import { Award, Star, Shield } from 'lucide-react';
 
 interface ServicoInfo {
   funcao: string;
@@ -48,17 +48,24 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Serviço de Dia</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
+      
+      {/* --- AJUSTE DE RESPONSIVIDADE APLICADO AQUI --- */}
+      {/* 
+        - Por padrão (mobile), será uma coluna única (grid-cols-1).
+        - Em telas pequenas (sm), passará para 2 colunas.
+        - Em telas médias (md), passará para 3 colunas.
+        - Em telas grandes (lg), passará para 4 colunas.
+      */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
         {servicosPrincipais.map((servico) => (
           <div key={servico.funcao} className="text-center flex flex-col items-center">
             <div className="flex items-center gap-1 mb-1">
               {getIconForFunction(servico.funcao)}
             </div>
             <p className="text-sm text-gray-500">{servico.funcao}</p>
-            <p className="font-bold text-lg text-gray-800 truncate w-full">
+            <p className="font-bold text-lg text-gray-800 truncate w-full" title={`${servico.posto_graduacao} ${servico.nome_guerra}`}>
               {servico.posto_graduacao} {servico.nome_guerra}
             </p>
-            {/* Adicionar telefone se disponível */}
           </div>
         ))}
       </div>

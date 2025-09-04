@@ -1,8 +1,8 @@
-// Arquivo: frontend/src/pages/Obms.tsx (Código Completo e Responsivo)
+// Arquivo: frontend/src/pages/Obms.tsx (Código Completo com Medição Dinâmica de Altura)
 
 import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, Edit, Trash2, Building, MapPin, Phone } from 'lucide-react'; // Ícones adicionados
+import { Upload, Edit, Trash2, Building, MapPin, Phone } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
@@ -24,7 +24,7 @@ interface Obm {
 interface ApiResponse<T> { data: T[]; }
 
 export default function Obms() {
-  // Hooks de estado (sem alteração)
+  // Hooks de estado e funções de dados (sem alteração)
   const [obms, setObms] = useState<Obm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome: '' });
@@ -38,7 +38,6 @@ export default function Obms() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Funções de busca e salvamento (sem alteração)
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -120,14 +119,21 @@ export default function Obms() {
     }
   };
 
-  // Virtualização (sem alteração)
+  // --- AJUSTE NA VIRTUALIZAÇÃO ---
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: obms.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 120, // Aumenta a estimativa para comportar o card
+    estimateSize: () => 130, // Uma estimativa inicial razoável para os cards
     overscan: 10,
+    // Adiciona a medição de elemento
+    measureElement:
+      typeof window !== 'undefined' &&
+      navigator.userAgent.indexOf('Firefox') === -1
+        ? element => element.getBoundingClientRect().height
+        : undefined,
   });
+  // --- FIM DO AJUSTE ---
 
   const gridTemplateColumns = "2.5fr 1fr 1fr 1fr 0.5fr";
 
@@ -166,9 +172,7 @@ export default function Obms() {
         />
       </div>
 
-      {/* --- ÁREA DE RENDERIZAÇÃO RESPONSIVA --- */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {/* Cabeçalho da Tabela (visível apenas em telas médias ou maiores) */}
         <div style={{ display: 'grid', gridTemplateColumns }} className="hidden md:grid bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</div>
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</div>
@@ -177,7 +181,6 @@ export default function Obms() {
           <div className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</div>
         </div>
 
-        {/* Contêiner da Lista Virtualizada */}
         <div ref={parentRef} className="overflow-y-auto" style={{ height: '60vh' }}>
           {isLoading ? (
             <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
@@ -189,10 +192,22 @@ export default function Obms() {
                 return (
                   <div
                     key={obm.id}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, padding: '0.5rem' }}
-                    className="md:p-0" // Remove o padding em telas maiores
+                    // --- AJUSTE NA VIRTUALIZAÇÃO ---
+                    // Adiciona a ref para medição e o data-index
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    // --- FIM DO AJUSTE ---
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualItem.start}px)`,
+                      padding: '0.5rem'
+                    }}
+                    className="md:p-0"
                   >
-                    {/* Layout de Card para Mobile (visível apenas em telas pequenas) */}
+                    {/* Layout de Card para Mobile */}
                     <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                       <div className="flex justify-between items-start">
                         <p className="text-lg font-bold text-gray-800 flex items-center">
@@ -212,7 +227,7 @@ export default function Obms() {
                       </div>
                     </div>
 
-                    {/* Layout de Tabela para Desktop (oculto em telas pequenas) */}
+                    {/* Layout de Tabela para Desktop */}
                     <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
                       <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={obm.nome}>{obm.nome}</div>
                       <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</div>
