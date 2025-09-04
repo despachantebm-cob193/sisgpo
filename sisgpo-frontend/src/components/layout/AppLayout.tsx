@@ -1,5 +1,6 @@
-// Arquivo: frontend/src/components/layout/AppLayout.tsx (Corrigido)
+// Arquivo: frontend/src/components/layout/AppLayout.tsx (Código Completo e Responsivo)
 
+import { useState } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { 
@@ -10,19 +11,22 @@ import {
   Calendar, 
   LogOut, 
   UserCircle,
-  Clipboard // --- CORREÇÃO AQUI: O nome do ícone foi corrigido de ClipboardUser para Clipboard ---
+  Clipboard,
+  Menu, // Ícone para o botão de menu mobile
+  X,    // Ícone para fechar o menu mobile
 } from 'lucide-react';
 
-// Componente reutilizável para os itens da navegação
-const NavItem = ({ to, icon: Icon, label }: { to: string; icon: React.ElementType; label: string }) => (
+// Componente de item de navegação (sem alteração)
+const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
   <NavLink
     to={to}
-    end // Garante que o link só fica ativo na rota exata
+    end
+    onClick={onClick} // Adiciona o onClick para fechar o menu no mobile
     className={({ isActive }) =>
       `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
         isActive
-          ? 'bg-indigo-700 text-white' // Estilo do link ativo
-          : 'text-gray-300 hover:bg-indigo-600 hover:text-white' // Estilo do link inativo
+          ? 'bg-indigo-700 text-white'
+          : 'text-gray-300 hover:bg-indigo-600 hover:text-white'
       }`
     }
   >
@@ -33,36 +37,54 @@ const NavItem = ({ to, icon: Icon, label }: { to: string; icon: React.ElementTyp
 
 export default function AppLayout() {
   const { token, logout, user } = useAuthStore();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para controlar o menu mobile
 
-  // Se não houver token, redireciona para a página de login
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
+  const closeSidebar = () => setIsSidebarOpen(false);
+
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    <div className="relative md:flex h-screen bg-gray-100 font-sans">
+      {/* --- Overlay para o menu mobile --- */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+          onClick={closeSidebar}
+        ></div>
+      )}
+
       {/* --- Barra Lateral (Sidebar) --- */}
-      <aside className="w-64 flex-shrink-0 bg-gray-800 text-white flex flex-col">
-        <div className="h-16 flex items-center justify-center px-4 border-b border-gray-700">
+      <aside 
+        className={`
+          fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col
+          transform transition-transform duration-300 ease-in-out z-30
+          md:relative md:translate-x-0 
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
           <h1 className="text-xl font-bold text-white">SISGPO</h1>
+          {/* Botão para fechar o menu no mobile */}
+          <button onClick={closeSidebar} className="md:hidden text-gray-300 hover:text-white">
+            <X size={24} />
+          </button>
         </div>
         
-        {/* Navegação Principal */}
         <nav className="flex-1 px-4 py-4 space-y-2">
-          <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
-          <NavItem to="/obms" icon={Building} label="OBMs" />
-          <NavItem to="/viaturas" icon={Car} label="Viaturas" />
-          <NavItem to="/militares" icon={Users} label="Militares" />
-          <NavItem to="/plantoes" icon={Calendar} label="Plantões" />
-          {/* --- CORREÇÃO AQUI: Usando o ícone 'Clipboard' que existe na biblioteca --- */}
-          <NavItem to="/servico-dia" icon={Clipboard} label="Serviço de Dia" />
-          <NavItem to="/perfil" icon={UserCircle} label="Meu Perfil" />
+          <NavItem to="/" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
+          <NavItem to="/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
+          <NavItem to="/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
+          <NavItem to="/militares" icon={Users} label="Militares" onClick={closeSidebar} />
+          <NavItem to="/plantoes" icon={Calendar} label="Plantões" onClick={closeSidebar} />
+          <NavItem to="/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
+          <NavItem to="/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
         </nav>
         
-        {/* Rodapé da Sidebar */}
         <div className="px-4 py-4 border-t border-gray-700">
            <button
-            onClick={logout}
+            onClick={() => { closeSidebar(); logout(); }}
             className="flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3" />
@@ -74,16 +96,21 @@ export default function AppLayout() {
       {/* --- Área de Conteúdo Principal --- */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Cabeçalho da Área de Conteúdo */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6">
-          <div className="flex items-center">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+          {/* Botão de Menu (visível apenas no mobile) */}
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-600">
+            <Menu size={24} />
+          </button>
+
+          <div className="flex items-center ml-auto">
             <span className="text-sm text-gray-600">
               Bem-vindo, <span className="font-semibold">{user?.login}</span>
             </span>
           </div>
         </header>
 
-        {/* Conteúdo da Página (Renderizado pelo React Router) */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        {/* Conteúdo da Página */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
