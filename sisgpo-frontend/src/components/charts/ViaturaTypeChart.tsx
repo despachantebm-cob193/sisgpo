@@ -23,11 +23,8 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
 
   const formatarData = (isoString: string | null) => {
     if (!isoString) return 'Nunca atualizado';
-    const data = new Date(isoString);
-    return data.toLocaleDateString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    });
+    // A data já vem formatada do componente pai, então apenas a exibimos.
+    return isoString;
   };
 
   return (

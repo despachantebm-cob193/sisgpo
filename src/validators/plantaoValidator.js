@@ -1,6 +1,7 @@
+// Arquivo: backend/src/validators/plantaoValidator.js
+
 const Joi = require('joi');
 
-// Schema para validar cada item (militar) dentro do array da guarnição
 const guarnicaoItemSchema = Joi.object({
   militar_id: Joi.number().integer().positive().required().messages({
     'number.base': 'O ID do militar deve ser um número.',
@@ -13,7 +14,6 @@ const guarnicaoItemSchema = Joi.object({
   }),
 });
 
-// Schema principal para a criação e atualização de um plantão
 const plantaoSchema = Joi.object({
   data_plantao: Joi.date().iso().required().messages({
     'date.base': 'A data do plantão deve ser uma data válida no formato ISO (YYYY-MM-DD).',

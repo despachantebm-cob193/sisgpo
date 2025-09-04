@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Plantoes.tsx (Com a importação corrigida)
+// Arquivo: frontend/src/pages/Plantoes.tsx
 
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -8,11 +8,11 @@ import Pagination from '../components/ui/Pagination';
 import Modal from '../components/ui/Modal';
 import PlantaoForm from '../components/forms/PlantaoForm';
 import Input from '../components/ui/Input';
-import Label from '../components/ui/Label'; // <-- CORREÇÃO APLICADA AQUI
+import Label from '../components/ui/Label';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Plantao { id: number; data_plantao: string; viatura_prefixo: string; obm_abreviatura: string; }
 interface Viatura { id: number; prefixo: string; obm_id: number; }
 interface Militar { id: number; nome_guerra: string; posto_graduacao: string; }

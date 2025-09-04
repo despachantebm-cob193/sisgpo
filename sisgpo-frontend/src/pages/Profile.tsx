@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/pages/Profile.tsx (Completo)
+
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';

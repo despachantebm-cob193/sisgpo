@@ -1,3 +1,5 @@
+// Arquivo: backend/src/validators/userValidator.js
+
 const Joi = require('joi');
 
 const changePasswordSchema = Joi.object({

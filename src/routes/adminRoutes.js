@@ -10,6 +10,7 @@ const upload = multer({ dest: 'uploads/' });
 // --- Controllers ---
 const militarController = require('../controllers/militarController');
 const obmController = require('../controllers/obmController');
+const obmFileController = require('../controllers/obmFileController');
 const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
@@ -27,7 +28,7 @@ const { changePasswordSchema } = require('../validators/userValidator');
 
 // --- ROTAS DE DASHBOARD ---
 router.get('/dashboard/stats', dashboardController.getStats);
-router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo); // Rota para o novo gráfico
+router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
 router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
 
 // --- ROTAS DE OBMS ---
@@ -35,6 +36,7 @@ router.get('/obms', obmController.getAll);
 router.post('/obms', validationMiddleware(createObmSchema), obmController.create);
 router.put('/obms/:id', validationMiddleware(updateObmSchema), obmController.update);
 router.delete('/obms/:id', obmController.delete);
+router.post('/obms/upload', upload.single('file'), obmFileController.upload);
 
 // --- ROTAS DE MILITARES ---
 router.get('/militares', militarController.getAll);
@@ -68,7 +70,7 @@ router.put(
   userController.changePassword
 );
 
-// --- NOVA ROTA DE METADADOS ---
+// --- ROTA DE METADADOS ---
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
 module.exports = router;

@@ -1,11 +1,9 @@
-// Arquivo: frontend/src/pages/Militares.tsx (Refatorado com useCrud)
+// Arquivo: frontend/src/pages/Militares.tsx (Refatorado com o hook useCrud)
 
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Edit, Trash2 } from 'lucide-react';
-
-import { useCrud } from '../hooks/useCrud';
 import api from '../services/api';
+import { useCrud } from '../hooks/useCrud'; // 1. Importar o hook
 
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -26,10 +24,10 @@ interface Militar {
   obm_id: number | null;
 }
 interface Obm { id: number; nome: string; abreviatura: string; }
-interface ApiResponseObms { data: Obm[]; pagination: any; }
+interface ApiResponseObm { data: Obm[]; } // Interface específica para a resposta de OBMs
 
 export default function Militares() {
-  // 1. Hook useCrud gerencia a lógica principal da entidade 'militares'
+  // 2. Utilizar o hook para gerenciar o CRUD de Militares
   const {
     data: militares,
     isLoading,
@@ -52,23 +50,17 @@ export default function Militares() {
   } = useCrud<Militar>({
     entityName: 'militares',
     initialFilters: { nome_completo: '' },
-    itemsPerPage: 15, // Podemos customizar a quantidade por página
   });
 
-  // 2. Lógica específica para buscar dados de suporte (OBMs para o formulário)
+  // 3. Manter a busca de OBMs, que é específica desta página
   const [obms, setObms] = useState<Obm[]>([]);
-  const [isLoadingObms, setIsLoadingObms] = useState(true);
-
   const fetchObms = useCallback(async () => {
-    setIsLoadingObms(true);
     try {
-      // Busca todas as OBMs de uma vez para popular o select do formulário
-      const response = await api.get<ApiResponseObms>('/api/admin/obms?limit=1000');
+      // Usamos uma interface específica para a resposta de OBMs
+      const response = await api.get<ApiResponseObm>('/api/admin/obms?limit=500');
       setObms(response.data.data);
-    } catch (error) {
+    } catch (err) {
       toast.error('Não foi possível carregar a lista de OBMs.');
-    } finally {
-      setIsLoadingObms(false);
     }
   }, []);
 
@@ -121,9 +113,9 @@ export default function Militares() {
                       {militar.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                    <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
-                    <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
+                    <button onClick={() => handleDeleteClick(militar.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
                   </td>
                 </tr>
               ))
@@ -144,7 +136,7 @@ export default function Militares() {
           obms={obms}
           onSave={handleSave}
           onCancel={handleCloseFormModal}
-          isLoading={isSaving || isLoadingObms}
+          isLoading={isSaving}
           errors={validationErrors}
         />
       </Modal>

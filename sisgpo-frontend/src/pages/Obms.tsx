@@ -1,7 +1,12 @@
-// Arquivo: frontend/src/pages/Obms.tsx (Refatorado com o hook useCrud)
+// Arquivo: frontend/src/pages/Obms.tsx (Atualizado com funcionalidade de upload)
 
-import React from 'react';
-import { useCrud } from '../hooks/useCrud'; // 1. Importar o hook
+import React, { useState, ChangeEvent } from 'react';
+import toast from 'react-hot-toast';
+import { Upload } from 'lucide-react';
+
+import { useCrud } from '../hooks/useCrud';
+import api from '../services/api';
+
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ObmForm from '../components/forms/ObmForm';
@@ -20,7 +25,7 @@ interface Obm {
 }
 
 export default function Obms() {
-  // 2. Utilizar o hook para gerenciar todo o estado e lógica
+  // O hook useCrud continua gerenciando a maior parte da página
   const {
     data: obms,
     isLoading,
@@ -31,6 +36,7 @@ export default function Obms() {
     isSaving,
     isConfirmModalOpen,
     isDeleting,
+    fetchData, // Precisamos do fetchData para recarregar os dados
     handleFilterChange,
     handlePageChange,
     handleOpenFormModal,
@@ -42,6 +48,49 @@ export default function Obms() {
     validationErrors,
   } = useCrud<Obm>({ entityName: 'obms', initialFilters: { nome: '' } });
 
+  // Estados específicos para o upload
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      const allowedExtensions = ['.xls', '.xlsx'];
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!allowedExtensions.includes(fileExtension)) {
+        toast.error('Formato de arquivo inválido. Use XLS ou XLSX.');
+        event.target.value = '';
+        setSelectedFile(null);
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error('Nenhum arquivo selecionado.');
+      return;
+    }
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    try {
+      const response = await api.post('/api/admin/obms/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success(response.data.message || 'Arquivo processado com sucesso!');
+      setSelectedFile(null);
+      const fileInput = document.getElementById('obm-file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      fetchData(); // Recarrega a lista de OBMs para exibir os dados atualizados
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -51,6 +100,24 @@ export default function Obms() {
         </div>
         <Button onClick={() => handleOpenFormModal()}>Adicionar Nova OBM</Button>
       </div>
+
+      {/* Seção de Upload de Arquivo */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Atualizar Cidades/Telefones via Planilha</h3>
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <label htmlFor="obm-file-upload" className="flex-1 w-full">
+            <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-100">
+              <Upload className="w-5 h-5 text-gray-500 mr-2" />
+              <span className="text-sm text-gray-600">{selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo (XLS, XLSX)'}</span>
+            </div>
+            <input id="obm-file-upload" name="obm-file-upload" type="file" className="sr-only" accept=".xls, .xlsx" onChange={handleFileChange} />
+          </label>
+          <Button onClick={handleUpload} disabled={!selectedFile || isUploading} className="w-full sm:w-auto">
+            {isUploading ? <Spinner className="h-5 w-5" /> : 'Enviar Arquivo'}
+          </Button>
+        </div>
+      </div>
+
       <div className="mb-4">
         <Input
           type="text"

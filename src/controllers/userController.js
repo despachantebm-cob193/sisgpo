@@ -1,3 +1,5 @@
+// Arquivo: backend/src/controllers/userController.js
+
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 const AppError = require('../utils/AppError');

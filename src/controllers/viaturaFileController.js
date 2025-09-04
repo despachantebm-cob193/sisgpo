@@ -65,7 +65,7 @@ const viaturaFileController = {
           }
         }
 
-        // 1. Após o loop, atualiza o metadado com a data/hora atual
+        // Após o loop, atualiza o metadado com a data/hora atual
         const lastUploadTime = new Date().toISOString();
         await trx('metadata')
           .insert({ key: 'viaturas_last_upload', value: lastUploadTime })

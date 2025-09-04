@@ -61,7 +61,6 @@ const plantaoController = {
     });
   },
 
-  // NOVO MÉTODO: getById para buscar detalhes de um plantão
   getById: async (req, res) => {
     const { id } = req.params;
     
@@ -88,7 +87,6 @@ const plantaoController = {
         throw new AppError('Plantão não encontrado.', 404);
       }
 
-      // Verifica conflito de data e viatura, ignorando o próprio plantão
       const conflictExists = await trx('plantoes')
         .where({ data_plantao, viatura_id })
         .andWhere('id', '!=', id)
@@ -99,7 +97,6 @@ const plantaoController = {
 
       await trx('plantoes').where({ id }).update({ data_plantao, viatura_id, obm_id, observacoes, updated_at: db.fn.now() });
       
-      // Limpa a guarnição antiga e insere a nova
       await trx('plantoes_militares').where({ plantao_id: id }).del();
       if (guarnicao && guarnicao.length > 0) {
         const guarnicaoParaInserir = guarnicao.map(militar => ({
@@ -116,7 +113,7 @@ const plantaoController = {
 
   delete: async (req, res) => {
     const { id } = req.params;
-    const result = await db('plantoes').where({ id }).del(); // O onDelete('CASCADE') cuidará da guarnição
+    const result = await db('plantoes').where({ id }).del();
     if (result === 0) {
       throw new AppError('Plantão não encontrado.', 404);
     }

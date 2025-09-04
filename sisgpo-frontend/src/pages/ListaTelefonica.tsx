@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
+// Arquivo: frontend/src/pages/ListaTelefonica.tsx (Simplificado e Robusto)
+
+import { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Search } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Contato {
   id: number;
   orgao: string;
@@ -19,12 +20,9 @@ interface Contato {
 
 interface ApiResponse {
   data: Contato[];
-  pagination: null;
 }
 
 export default function ListaTelefonica() {
-  // Toda a lógica de estados, busca de dados e upload permanece exatamente a mesma.
-  // Nenhuma alteração é necessária aqui.
   const [allContatos, setAllContatos] = useState<Contato[]>([]);
   const [filteredContatos, setFilteredContatos] = useState<Contato[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +59,17 @@ export default function ListaTelefonica() {
     setFilteredContatos(filtered);
   }, [searchTerm, allContatos]);
 
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        toast.error('Por favor, selecione um arquivo no formato CSV.');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) {
       toast.error('Nenhum arquivo selecionado.');
@@ -75,38 +84,16 @@ export default function ListaTelefonica() {
       });
       toast.success(response.data.message || 'Lista atualizada com sucesso!');
       setSelectedFile(null);
-      setSearchTerm('');
-      fetchContatos();
+      fetchContatos(); // Recarrega os dados
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
       setIsUploading(false);
     }
   };
-  
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-        toast.error('Por favor, selecione um arquivo no formato CSV.');
-        return;
-      }
-      setSelectedFile(file);
-    }
-  };
-
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: filteredContatos.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 49,
-    overscan: 10,
-  });
 
   return (
     <div>
-      {/* Cabeçalho e Upload (sem alteração) */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Lista Telefônica CBMGO</h2>
@@ -129,53 +116,39 @@ export default function ListaTelefonica() {
         </div>
       </div>
 
-      {/* Busca (sem alteração) */}
       <div className="mb-4 relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
         <Input type="text" placeholder="Buscar em todos os campos..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
       </div>
 
-      {/* Tabela Virtualizada com a coluna "ÓRGÃO" OCULTA */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              {/* 1. Cabeçalho ajustado e larguras redistribuídas */}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[50%]">OBM/Local</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[34%]">Seção/Departamento</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[14%]">Telefone</th>
-            </tr>
-          </thead>
-        </table>
-        <div ref={parentRef} className="h-[600px] overflow-y-auto">
-          <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-            {isLoading ? (
-              <div className="absolute inset-0 flex justify-center items-center"><Spinner className="h-8 w-8 text-gray-500" /></div>
-            ) : (
-              rowVirtualizer.getVirtualItems().map(virtualItem => {
-                const contato = filteredContatos[virtualItem.index];
-                return (
-                  <div
-                    key={virtualItem.key}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                    className="flex items-center border-b border-gray-200 hover:bg-gray-50"
-                  >
-                    {/* 2. Células de dados ajustadas e larguras redistribuídas */}
-                    <div className="w-[60%] px-6 py-3 text-sm text-gray-500 truncate">{contato.obm_local}</div>
-                    <div className="w-[40%] px-6 py-3 text-sm text-gray-500 truncate">{contato.secao_departamento}</div>
-                    <div className="w-[15%] px-6 py-3 text-sm text-gray-500 truncate">{contato.telefone}</div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Órgão</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM/Local</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Seção/Departamento</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {isLoading ? (
+                <tr><td colSpan={4} className="text-center py-10"><Spinner className="h-8 w-8 text-gray-500 mx-auto" /></td></tr>
+              ) : filteredContatos.length > 0 ? (
+                filteredContatos.map((contato) => (
+                  <tr key={contato.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{contato.orgao}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contato.obm_local}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contato.secao_departamento}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contato.telefone}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={4} className="text-center py-4">Nenhum contato encontrado.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
