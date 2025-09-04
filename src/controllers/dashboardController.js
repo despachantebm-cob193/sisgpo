@@ -1,10 +1,12 @@
+// Arquivo: backend/src/controllers/dashboardController.js (Completo com o novo método)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
-// A função auxiliar getTipoViatura permanece a mesma
 const getTipoViatura = (prefixo) => {
+  if (!prefixo) return 'OUTROS';
   const partes = prefixo.split('-');
-  if (partes.length > 1) {
+  if (partes.length > 1 && isNaN(parseInt(partes[0], 10))) {
     return partes[0].toUpperCase();
   }
   if (prefixo.toUpperCase().startsWith('UR')) return 'UR';
@@ -14,7 +16,6 @@ const getTipoViatura = (prefixo) => {
 };
 
 const dashboardController = {
-  // ... outros métodos (getStats, getMilitarStats, etc.) permanecem os mesmos ...
   getStats: async (req, res) => {
     const { obm_id } = req.query;
     try {
@@ -103,53 +104,53 @@ const dashboardController = {
     }
   },
 
-  // --- MÉTODO ATUALIZADO PARA AGRUPAR OS DADOS ---
   getViaturaStatsDetalhado: async (req, res) => {
     const { obm_id } = req.query;
     try {
-      const query = db('viaturas')
-        .select('prefixo', 'obm')
-        .where('ativa', true)
-        .orderBy('obm', 'asc')
-        .orderBy('prefixo', 'asc');
+      const query = db('viaturas as v')
+        .leftJoin('obms as o', 'v.obm', 'o.nome')
+        .select(
+          'v.prefixo',
+          db.raw('COALESCE(o.abreviatura, v.obm) as local_final')
+        )
+        .where('v.ativa', true)
+        .orderBy('local_final', 'asc')
+        .orderBy('v.prefixo', 'asc');
 
       if (obm_id) {
         const obm = await db('obms').where({ id: obm_id }).first();
         if (obm) {
-          query.andWhere({ obm: obm.nome });
+          query.andWhere('v.obm', obm.nome);
         }
       }
 
       const viaturasAtivas = await query;
 
-      // Agrupa os resultados em um mapa aninhado
       const stats = viaturasAtivas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
-        const nomeObm = vtr.obm || 'OBM Não Informada';
+        const nomeLocal = vtr.local_final || 'OBM Não Informada';
 
         if (!acc[tipo]) {
           acc[tipo] = {
             tipo: tipo,
             quantidade: 0,
-            obms: {} // Objeto para agrupar por OBM
+            obms: {}
           };
         }
         
         acc[tipo].quantidade++;
 
-        if (!acc[tipo].obms[nomeObm]) {
-          acc[tipo].obms[nomeObm] = []; // Array para os prefixos
+        if (!acc[tipo].obms[nomeLocal]) {
+          acc[tipo].obms[nomeLocal] = [];
         }
         
-        acc[tipo].obms[nomeObm].push(vtr.prefixo);
+        acc[tipo].obms[nomeLocal].push(vtr.prefixo);
         
         return acc;
       }, {});
 
-      // Converte o mapa em um array e ordena
       const resultadoFinal = Object.values(stats).map(item => ({
         ...item,
-        // Converte o objeto de OBMs em um array para facilitar a iteração no frontend
         obms: Object.entries(item.obms).map(([nome, prefixos]) => ({
           nome,
           prefixos
@@ -163,7 +164,44 @@ const dashboardController = {
       throw new AppError("Não foi possível carregar as estatísticas detalhadas de viaturas.", 500);
     }
   },
-  // --- FIM DA ATUALIZAÇÃO ---
+
+  // --- NOVO MÉTODO PARA BUSCAR VIATURAS POR OBM ---
+  getViaturaStatsPorObm: async (req, res) => {
+    try {
+      // 1. Busca todas as OBMs e todas as viaturas ativas em paralelo
+      const [obms, viaturas] = await Promise.all([
+        db('obms').select('id', 'nome', 'abreviatura').orderBy('abreviatura', 'asc'),
+        db('viaturas').select('prefixo', 'obm as nome_obm').where('ativa', true)
+      ]);
+  
+      // 2. Cria um mapa para acesso rápido aos prefixos por nome de OBM
+      const viaturasPorNomeObm = viaturas.reduce((acc, vtr) => {
+        const nomeObm = vtr.nome_obm || 'Sem OBM';
+        if (!acc[nomeObm]) {
+          acc[nomeObm] = [];
+        }
+        acc[nomeObm].push(vtr.prefixo);
+        return acc;
+      }, {});
+  
+      // 3. Mapeia sobre a lista de OBMs para garantir que todas apareçam
+      const resultadoFinal = obms.map(obm => {
+        const prefixos = viaturasPorNomeObm[obm.nome] || [];
+        return {
+          id: obm.id,
+          nome: obm.abreviatura,
+          quantidade: prefixos.length,
+          prefixos: prefixos.sort(), // Ordena os prefixos alfabeticamente
+        };
+      });
+  
+      res.status(200).json(resultadoFinal);
+  
+    } catch (error) {
+      console.error("ERRO AO BUSCAR ESTATÍSTICAS DE VIATURAS POR OBM:", error);
+      throw new AppError("Não foi possível carregar as estatísticas de viaturas por OBM.", 500);
+    }
+  },
 
   getMetadataByKey: async (req, res) => {
     const { key } = req.params;

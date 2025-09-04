@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/components/forms/PlantaoForm.tsx
+// Arquivo: frontend/src/components/forms/PlantaoForm.tsx (Corrigido)
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { Trash2 } from 'lucide-react';
 
 // Interfaces
-interface Viatura { id: number; prefixo: string; obm_id: number; }
+interface Viatura { id: number; prefixo: string; obm_id: number | null; } // obm_id agora é esperado
 interface Militar { id: number; nome_guerra: string; posto_graduacao: string; }
 interface GuarnicaoMembro { militar_id: number | ''; funcao: string; }
 interface PlantaoFormData {
@@ -70,15 +70,19 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, mili
     }
   };
 
+  // --- CORREÇÃO PRINCIPAL AQUI ---
   const handleViaturaChange = (viaturaIdStr: string) => {
-    const viaturaId = Number(viaturaIdStr);
+    const viaturaId = viaturaIdStr ? Number(viaturaIdStr) : '';
     const viaturaSelecionada = viaturas.find(v => v.id === viaturaId);
+    
+    // Atualiza o ID da viatura e o ID da OBM associada a ela.
     setFormData(prev => ({
       ...prev,
       viatura_id: viaturaId,
       obm_id: viaturaSelecionada ? viaturaSelecionada.obm_id : null,
     }));
   };
+  // --- FIM DA CORREÇÃO ---
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();

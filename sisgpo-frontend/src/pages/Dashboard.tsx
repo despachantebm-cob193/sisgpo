@@ -1,9 +1,12 @@
+// Arquivo: frontend/src/pages/Dashboard.tsx (Completo com o novo componente)
+
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/services/api';
 import StatCard from '@/components/ui/StatCard';
 import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
 import ViaturaDetailTable from '@/components/dashboard/ViaturaDetailTable';
+import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
 import toast from 'react-hot-toast';
 
 // Interfaces
@@ -22,31 +25,29 @@ interface Obm {
   abreviatura: string;
   nome: string;
 }
-
-// --- CORREÇÃO DAS INTERFACES AQUI ---
-// Remove a interface antiga e define a nova estrutura de dados agrupada.
 interface ObmGrupo {
   nome: string;
   prefixos: string[];
 }
-
 interface ViaturaStatAgrupada {
   tipo: string;
   quantidade: number;
   obms: ObmGrupo[];
 }
-// --- FIM DA CORREÇÃO ---
+interface ViaturaPorObmStat {
+  id: number;
+  nome: string;
+  quantidade: number;
+  prefixos: string[];
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
-  
-  // --- CORREÇÃO DO TIPO DO ESTADO ---
-  // Atualiza o tipo do estado para usar a nova interface.
   const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
-  // --- FIM DA CORREÇÃO ---
-
+  const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [obms, setObms] = useState<Obm[]>([]);
@@ -81,20 +82,25 @@ export default function Dashboard() {
       }
       const queryString = params.toString();
 
-      // --- CORREÇÃO DO TIPO NA CHAMADA DA API ---
-      // Garante que a chamada da API espera o tipo correto.
-      const [statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes] = await Promise.all([
+      const [
+        statsRes, 
+        viaturaTipoRes, 
+        militarStatsRes, 
+        viaturaDetailRes,
+        viaturaPorObmRes
+      ] = await Promise.all([
         api.get<DashboardStats>(`/api/admin/dashboard/stats?${queryString}`),
         api.get<ChartStat[]>(`/api/admin/dashboard/viatura-stats-por-tipo?${queryString}`),
         api.get<ChartStat[]>(`/api/admin/dashboard/militar-stats?${queryString}`),
-        api.get<ViaturaStatAgrupada[]>(`/api/admin/dashboard/viatura-stats-detalhado?${queryString}`)
+        api.get<ViaturaStatAgrupada[]>(`/api/admin/dashboard/viatura-stats-detalhado?${queryString}`),
+        api.get<ViaturaPorObmStat[]>(`/api/admin/dashboard/viatura-stats-por-obm`)
       ]);
-      // --- FIM DA CORREÇÃO ---
       
       setStats(statsRes.data);
       setViaturaTipoStats(viaturaTipoRes.data);
       setMilitarStats(militarStatsRes.data);
       setViaturaDetailStats(viaturaDetailRes.data);
+      setViaturaPorObmStats(viaturaPorObmRes.data);
       setError(null);
     } catch (err) {
       setError('Não foi possível carregar os dados do dashboard.');
@@ -157,10 +163,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* A chamada para o componente agora está correta, pois os tipos são compatíveis */}
+      {/* Tabela de Detalhamento de Viaturas */}
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
 
-      {/* Seção dos Gráficos */}
+      {/* Novo Componente: Viaturas por Unidade */}
+      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
+
+      {/* Seção dos Gráficos Lado a Lado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ViaturaTypeChart 
           data={viaturaTipoStats} 

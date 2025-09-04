@@ -1,24 +1,44 @@
+// Arquivo: backend/src/controllers/viaturaController.js (Corrigido)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const viaturaController = {
-  // ... outros métodos (getAll, create) permanecem iguais ...
   getAll: async (req, res) => {
     const { page = 1, limit = 15, prefixo, all } = req.query;
     const offset = (page - 1) * limit;
-    const query = db('viaturas').select('*');
+
+    // --- CORREÇÃO PRINCIPAL AQUI ---
+    // A query agora faz um LEFT JOIN com a tabela de OBMs para buscar o obm_id
+    const query = db('viaturas as v')
+      .leftJoin('obms as o', 'v.obm', 'o.nome')
+      .select(
+        'v.id',
+        'v.prefixo',
+        'v.ativa',
+        'v.cidade',
+        'v.obm',
+        'v.telefone',
+        'o.id as obm_id' // Seleciona o ID da OBM e o renomeia para obm_id
+      );
+    // --- FIM DA CORREÇÃO ---
+
     if (prefixo) {
-      query.where('prefixo', 'ilike', `%${prefixo}%`);
+      query.where('v.prefixo', 'ilike', `%${prefixo}%`);
     }
+
     if (all === 'true') {
-        const viaturas = await query.orderBy('prefixo', 'asc');
+        const viaturas = await query.orderBy('v.prefixo', 'asc');
         return res.status(200).json({ data: viaturas });
     }
-    const countQuery = query.clone().clearSelect().count({ count: 'id' }).first();
-    query.limit(limit).offset(offset).orderBy('prefixo', 'asc');
+
+    const countQuery = query.clone().clearSelect().count({ count: 'v.id' }).first();
+    query.limit(limit).offset(offset).orderBy('v.prefixo', 'asc');
+    
     const [viaturas, totalResult] = await Promise.all([query, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
+
     res.status(200).json({
       data: viaturas,
       pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
@@ -38,10 +58,6 @@ const viaturaController = {
   update: async (req, res) => {
     const { id } = req.params;
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
-
-    // --- LOG DE DIAGNÓSTICO ---
-    console.log(`[DIAGNÓSTICO] Recebido para atualizar viatura ID ${id}:`, req.body);
-    // -------------------------
     
     const viaturaAtual = await db('viaturas').where({ id }).first();
     if (!viaturaAtual) {

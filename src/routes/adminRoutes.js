@@ -29,8 +29,10 @@ const { changePasswordSchema } = require('../validators/userValidator');
 router.get('/dashboard/stats', dashboardController.getStats);
 router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
 router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
-// --- NOVA ROTA ADICIONADA AQUI ---
 router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
+// --- NOVA ROTA ADICIONADA AQUI ---
+router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
+
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
