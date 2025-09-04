@@ -1,25 +1,28 @@
-// Arquivo: backend/src/bootstrap.js (Novo Arquivo)
+// Arquivo: backend/src/bootstrap.js (Versão Final e Robusta)
 
 const db = require('./config/database');
 const bcrypt = require('bcryptjs');
 
 async function bootstrapDatabase() {
-  console.log('[Bootstrap] Verificando se os dados iniciais são necessários...');
+  console.log('[Bootstrap] Iniciando verificação e população de dados essenciais...');
 
   try {
     // 1. Verifica se o usuário 'admin' já existe.
     const adminUser = await db('usuarios').where({ login: 'admin' }).first();
 
-    // 2. Se o usuário já existe, não faz nada.
+    // Se o usuário já existe, consideramos que o bootstrap já foi feito.
     if (adminUser) {
-      console.log('[Bootstrap] O usuário admin já existe. Nenhuma ação necessária.');
+      console.log('[Bootstrap] O usuário admin já existe. Bootstrap não é necessário.');
       return;
     }
 
-    // 3. Se não existe, executa a lógica de criação.
-    console.log('[Bootstrap] Usuário admin não encontrado. Criando usuário...');
+    // --------------------------------------------------------------------
+    // Se o admin NÃO existe, populamos o banco com dados MÍNIMOS
+    // --------------------------------------------------------------------
+    console.log('[Bootstrap] Usuário admin não encontrado. Populando o banco de dados com dados iniciais...');
 
-    const senhaPlana = 'cbmgo@2025'; // Use a mesma senha padrão
+    // Inserir o usuário 'admin'
+    const senhaPlana = 'cbmgo@2025'; // Mantenha a senha padrão
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senhaPlana, salt);
     
@@ -28,19 +31,50 @@ async function bootstrapDatabase() {
       senha_hash: senhaHash, 
       perfil: 'Admin' 
     });
+    console.log('-> Usuário "admin" criado com sucesso.');
 
-    console.log('✅ [Bootstrap] Usuário admin criado com sucesso!');
+    // Inserir uma OBM de exemplo para evitar que o sistema comece vazio
+    const [obm] = await db('obms').insert([
+      { 
+        nome: 'Comando Geral do Corpo de Bombeiros', 
+        abreviatura: 'CGCBM', 
+        cidade: 'Goiânia',
+        telefone: '6232012000'
+      }
+    ]).returning('id'); // Captura o ID da OBM criada
+    console.log('-> OBM de exemplo "CGCBM" criada com sucesso.');
+
+    // Inserir um militar de exemplo associado à OBM criada
+    await db('militares').insert([
+      { 
+        matricula: '000000', 
+        nome_completo: 'Administrador do Sistema', 
+        nome_guerra: 'Admin', 
+        posto_graduacao: 'Sistema', 
+        ativo: true, 
+        obm_id: obm.id // Associa o militar à OBM
+      }
+    ]);
+    console.log('-> Militar "Admin" de exemplo criado com sucesso.');
+
+    // Inserir uma viatura de exemplo
+    await db('viaturas').insert([
+      { 
+        prefixo: 'VTR-ADM', 
+        ativa: true, 
+        cidade: 'Goiânia',
+        obm: 'Comando Geral do Corpo de Bombeiros'
+      }
+    ]);
+    console.log('-> Viatura "VTR-ADM" de exemplo criada com sucesso.');
+
+    console.log('✅ [Bootstrap] Banco de dados populado com sucesso!');
 
   } catch (error) {
-    // Se o erro for "tabela não existe", podemos ignorá-lo, pois a migração ainda não rodou.
-    // Em qualquer outro caso, é um problema sério.
-    if (error.code === '42P01') { // Código de erro do PostgreSQL para "undefined_table"
-        console.warn('[Bootstrap] Tabela de usuários ainda não existe, aguardando migração. Isso é normal na primeira execução.');
-    } else {
-        console.error('❌ [Bootstrap] Erro ao verificar/criar usuário admin:', error);
-        // Lançar o erro para parar a inicialização do servidor
-        throw error;
-    }
+    console.error('❌ [Bootstrap] Erro crítico durante o processo de bootstrap:', error);
+    // Lançar o erro é importante para que a inicialização do servidor pare
+    // e possamos ver o erro nos logs da Render.
+    throw error;
   }
 }
 
