@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Dashboard.tsx (Completo com o novo componente)
+// Arquivo: frontend/src/pages/Dashboard.tsx (Completo com todas as atualizações)
 
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/services/api';
@@ -7,6 +7,7 @@ import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
 import ViaturaDetailTable from '@/components/dashboard/ViaturaDetailTable';
 import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
+import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard'; // Importação do novo card
 import toast from 'react-hot-toast';
 
 // Interfaces
@@ -40,6 +41,11 @@ interface ViaturaPorObmStat {
   quantidade: number;
   prefixos: string[];
 }
+interface ServicoInfo {
+  funcao: string;
+  nome_guerra: string | null;
+  posto_graduacao: string | null;
+}
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -47,6 +53,7 @@ export default function Dashboard() {
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
   const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
   const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
+  const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,13 +94,15 @@ export default function Dashboard() {
         viaturaTipoRes, 
         militarStatsRes, 
         viaturaDetailRes,
-        viaturaPorObmRes
+        viaturaPorObmRes,
+        servicoDiaRes
       ] = await Promise.all([
         api.get<DashboardStats>(`/api/admin/dashboard/stats?${queryString}`),
         api.get<ChartStat[]>(`/api/admin/dashboard/viatura-stats-por-tipo?${queryString}`),
         api.get<ChartStat[]>(`/api/admin/dashboard/militar-stats?${queryString}`),
         api.get<ViaturaStatAgrupada[]>(`/api/admin/dashboard/viatura-stats-detalhado?${queryString}`),
-        api.get<ViaturaPorObmStat[]>(`/api/admin/dashboard/viatura-stats-por-obm`)
+        api.get<ViaturaPorObmStat[]>(`/api/admin/dashboard/viatura-stats-por-obm`),
+        api.get<ServicoInfo[]>(`/api/admin/servico-dia`)
       ]);
       
       setStats(statsRes.data);
@@ -101,6 +110,7 @@ export default function Dashboard() {
       setMilitarStats(militarStatsRes.data);
       setViaturaDetailStats(viaturaDetailRes.data);
       setViaturaPorObmStats(viaturaPorObmRes.data);
+      setServicoDia(servicoDiaRes.data);
       setError(null);
     } catch (err) {
       setError('Não foi possível carregar os dados do dashboard.');
@@ -163,10 +173,13 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Novo Componente: Serviço de Dia */}
+      <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
+
       {/* Tabela de Detalhamento de Viaturas */}
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
 
-      {/* Novo Componente: Viaturas por Unidade */}
+      {/* Componente: Viaturas por Unidade */}
       <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
 
       {/* Seção dos Gráficos Lado a Lado */}

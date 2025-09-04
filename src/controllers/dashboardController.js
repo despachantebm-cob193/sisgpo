@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/dashboardController.js (Completo com o novo método)
+// Arquivo: backend/src/controllers/dashboardController.js (Versão Final Segura)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -165,16 +165,13 @@ const dashboardController = {
     }
   },
 
-  // --- NOVO MÉTODO PARA BUSCAR VIATURAS POR OBM ---
   getViaturaStatsPorObm: async (req, res) => {
     try {
-      // 1. Busca todas as OBMs e todas as viaturas ativas em paralelo
       const [obms, viaturas] = await Promise.all([
         db('obms').select('id', 'nome', 'abreviatura').orderBy('abreviatura', 'asc'),
         db('viaturas').select('prefixo', 'obm as nome_obm').where('ativa', true)
       ]);
   
-      // 2. Cria um mapa para acesso rápido aos prefixos por nome de OBM
       const viaturasPorNomeObm = viaturas.reduce((acc, vtr) => {
         const nomeObm = vtr.nome_obm || 'Sem OBM';
         if (!acc[nomeObm]) {
@@ -184,14 +181,13 @@ const dashboardController = {
         return acc;
       }, {});
   
-      // 3. Mapeia sobre a lista de OBMs para garantir que todas apareçam
       const resultadoFinal = obms.map(obm => {
         const prefixos = viaturasPorNomeObm[obm.nome] || [];
         return {
           id: obm.id,
           nome: obm.abreviatura,
           quantidade: prefixos.length,
-          prefixos: prefixos.sort(), // Ordena os prefixos alfabeticamente
+          prefixos: prefixos.sort(),
         };
       });
   

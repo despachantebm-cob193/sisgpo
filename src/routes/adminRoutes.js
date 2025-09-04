@@ -1,4 +1,4 @@
-// Arquivo: backend/src/routes/adminRoutes.js (Completo com a nova rota)
+// Arquivo: backend/src/routes/adminRoutes.js (Completo)
 
 const express = require('express');
 const router = express.Router();
@@ -16,6 +16,7 @@ const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
 const viaturaFileController = require('../controllers/viaturaFileController');
 const userController = require('../controllers/userController');
+const servicoDiaController = require('../controllers/servicoDiaController'); // Importação adicionada
 
 // --- Validadores ---
 const validationMiddleware = require('../middlewares/validationMiddleware');
@@ -30,9 +31,7 @@ router.get('/dashboard/stats', dashboardController.getStats);
 router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
 router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
 router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
-// --- NOVA ROTA ADICIONADA AQUI ---
 router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
-
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
@@ -60,6 +59,10 @@ router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
 router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
+
+// --- ROTAS DE SERVIÇO DO DIA ---
+router.get('/servico-dia', servicoDiaController.getByDate);
+router.post('/servico-dia', servicoDiaController.save);
 
 // --- ROTAS DE USUÁRIO ---
 router.put(

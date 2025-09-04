@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/router/index.tsx (Atualizado)
+// Arquivo: frontend/src/router/index.tsx (Completo)
 
 import { createBrowserRouter } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ import Viaturas from '../pages/Viaturas';
 import Militares from '../pages/Militares';
 import Plantoes from '../pages/Plantoes';
 import Profile from '../pages/Profile';
+import ServicoDia from '../pages/ServicoDia'; // Importação da nova página
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
       { path: 'viaturas', element: <Viaturas /> },
       { path: 'militares', element: <Militares /> },
       { path: 'plantoes', element: <Plantoes /> },
+      { path: 'servico-dia', element: <ServicoDia /> }, // Nova rota adicionada
       { path: 'perfil', element: <Profile /> },
     ],
   },
