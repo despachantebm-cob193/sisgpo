@@ -1,5 +1,3 @@
-// Arquivo: frontend/src/components/forms/ViaturaForm.tsx
-
 import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
@@ -46,13 +44,20 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
     }
   }, [viaturaToEdit]);
 
+  // --- CORREÇÃO PRINCIPAL AQUI ---
+  // Adiciona a função para lidar com as mudanças nos inputs e no checkbox.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    // Para checkboxes, usamos a propriedade 'checked', para os outros, 'value'.
+    const isCheckbox = type === 'checkbox';
+    const finalValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: finalValue,
     }));
   };
+  // --- FIM DA CORREÇÃO ---
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();

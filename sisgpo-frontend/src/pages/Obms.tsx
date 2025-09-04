@@ -1,21 +1,17 @@
-// Arquivo: frontend/src/pages/Obms.tsx (Refatorado)
-
-import { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2 } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
-import { useCrud } from '../hooks/useCrud';
 import api from '../services/api';
-
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ObmForm from '../components/forms/ObmForm';
-import Pagination from '../components/ui/Pagination';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interface
+// Interfaces
 interface Obm {
   id: number;
   nome: string;
@@ -23,72 +19,115 @@ interface Obm {
   cidade: string | null;
   telefone: string | null;
 }
+interface ApiResponse<T> { data: T[]; }
 
 export default function Obms() {
-  const {
-    data: obms,
-    isLoading,
-    pagination,
-    filters,
-    isFormModalOpen,
-    itemToEdit,
-    isSaving,
-    isConfirmModalOpen,
-    isDeleting,
-    fetchData,
-    handleFilterChange,
-    handlePageChange,
-    handleOpenFormModal,
-    handleCloseFormModal,
-    handleSave,
-    handleDeleteClick,
-    handleCloseConfirmModal,
-    handleConfirmDelete,
-    validationErrors,
-  } = useCrud<Obm>({ entityName: 'obms', initialFilters: { nome: '' } });
+  const [obms, setObms] = useState<Obm[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({ nome: '' });
+  const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
-  // Estados específicos para o upload
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Obm | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      const allowedExtensions = ['.xls', '.xlsx'];
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (!allowedExtensions.includes(fileExtension)) {
-        toast.error('Formato de arquivo inválido. Use XLS ou XLSX.');
-        event.target.value = '';
-        setSelectedFile(null);
-        return;
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({ ...filters, all: 'true' });
+      const response = await api.get<ApiResponse<Obm>>(`/api/admin/obms?${params.toString()}`);
+      setObms(response.data.data);
+    } catch (err) {
+      toast.error('Não foi possível carregar as OBMs.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: obms.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 58,
+    overscan: 10,
+  });
+
+  const handleOpenFormModal = (item: Obm | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
+  const handleCloseFormModal = () => setIsFormModalOpen(false);
+  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+  const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
+
+  const handleSave = async (data: Omit<Obm, 'id'> & { id?: number }) => {
+    setIsSaving(true);
+    setValidationErrors([]);
+    const action = data.id ? 'atualizada' : 'criada';
+    const { id, ...payload } = data;
+    try {
+      if (id) {
+        await api.put(`/api/admin/obms/${id}`, payload);
+      } else {
+        await api.post('/api/admin/obms', payload);
       }
-      setSelectedFile(file);
+      toast.success(`OBM ${action} com sucesso!`);
+      handleCloseFormModal();
+      fetchData();
+    } catch (err: any) {
+      if (err.response?.status === 400 && err.response.data.errors) {
+        setValidationErrors(err.response.data.errors);
+        toast.error('Por favor, corrija os erros no formulário.');
+      } else {
+        toast.error(err.response?.data?.message || 'Erro ao salvar OBM.');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      toast.error('Nenhum arquivo selecionado.');
-      return;
+  const handleConfirmDelete = async () => {
+    if (!itemToDeleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/admin/obms/${itemToDeleteId}`);
+      toast.success('OBM excluída com sucesso!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao excluir OBM.');
+    } finally {
+      setIsDeleting(false);
+      handleCloseConfirmModal();
     }
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) setSelectedFile(event.target.files[0]); };
+  const handleUpload = async () => {
+    if (!selectedFile) return;
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
     try {
-      const response = await api.post('/api/admin/obms/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/api/admin/obms/upload', formData);
       toast.success(response.data.message || 'Arquivo processado com sucesso!');
-      setSelectedFile(null);
-      const fileInput = document.getElementById('obm-file-upload') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-      fetchData(); // Recarrega a lista de OBMs
+      fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
       setIsUploading(false);
+      setSelectedFile(null);
+      const fileInput = document.getElementById('obm-file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
     }
   };
+
+  // --- CORREÇÃO PRINCIPAL AQUI ---
+  // 1. Define a estrutura das colunas do grid em uma variável para reutilização.
+  const gridTemplateColumns = "minmax(0, 2.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.5fr)";
 
   return (
     <div>
@@ -121,64 +160,65 @@ export default function Obms() {
           type="text"
           placeholder="Filtrar por nome..."
           value={filters.nome || ''}
-          onChange={(e) => handleFilterChange('nome', e.target.value)}
+          onChange={(e) => setFilters({ nome: e.target.value })}
           className="max-w-xs"
         />
       </div>
+
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
-                <th className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-8 w-8 text-gray-500 mx-auto" /></td></tr>
-              ) : obms.length > 0 ? (
-                obms.map((obm) => (
-                  <tr key={obm.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{obm.nome}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                      <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
-                      <button onClick={() => handleDeleteClick(obm.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr><td colSpan={5} className="text-center py-4">Nenhuma OBM encontrada.</td></tr>
-              )}
-            </tbody>
-          </table>
+        {/* 2. Aplica o layout de grid ao cabeçalho */}
+        <div style={{ display: 'grid', gridTemplateColumns }} className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</div>
+          <div className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</div>
         </div>
-        {pagination && pagination.totalPages > 1 && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
+
+        <div ref={parentRef} className="overflow-y-auto" style={{ height: '60vh' }}>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
+          ) : (
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                const obm = obms[virtualItem.index];
+                if (!obm) return null;
+                return (
+                  // 3. Aplica o MESMO layout de grid a cada linha virtualizada
+                  <div
+                    key={obm.id}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                      display: 'grid',
+                      gridTemplateColumns,
+                    }}
+                    className="items-center border-b border-gray-200 last:border-b-0"
+                  >
+                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={obm.nome}>{obm.nome}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
+                      <button onClick={() => handleDeleteClick(obm.id)} className="ml-4 text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-      
+
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}>
-        <ObmForm 
-          obmToEdit={itemToEdit} 
-          onSave={handleSave} 
-          onCancel={handleCloseFormModal} 
-          isLoading={isSaving}
-          errors={validationErrors}
-        />
+        <ObmForm obmToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal 
-        isOpen={isConfirmModalOpen} 
-        onClose={handleCloseConfirmModal} 
-        onConfirm={handleConfirmDelete} 
-        title="Confirmar Exclusão" 
-        message="Tem certeza que deseja excluir esta OBM? Esta ação não pode ser desfeita." 
-        isLoading={isDeleting}
-      />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta OBM?" isLoading={isDeleting} />
     </div>
   );
 }

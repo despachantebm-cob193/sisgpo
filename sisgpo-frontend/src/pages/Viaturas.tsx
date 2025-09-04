@@ -1,8 +1,7 @@
-// frontend/src/pages/Viaturas.tsx (Otimizado com Cartões Responsivos)
-
+// ... (importações e início do componente permanecem os mesmos) ...
 import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, Edit, Trash2, Car, Building, MapPin } from 'lucide-react'; // Ícones adicionais
+import { Upload, Edit, Trash2, Car, Building, MapPin } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
@@ -13,12 +12,10 @@ import Modal from '../components/ui/Modal';
 import ViaturaForm from '../components/forms/ViaturaForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces
 interface Viatura { id: number; prefixo: string; cidade: string | null; obm: string | null; ativa: boolean; }
 interface ApiResponse<T> { data: T[]; }
 
 export default function Viaturas() {
-  // ... (Todos os seus hooks useState, useCallback, useEffect permanecem os mesmos) ...
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ prefixo: '' });
@@ -64,7 +61,7 @@ export default function Viaturas() {
   const rowVirtualizer = useVirtualizer({
     count: viaturas.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 110, // Ajustado para o tamanho do cartão
+    estimateSize: () => 110,
     overscan: 10,
   });
 
@@ -72,13 +69,88 @@ export default function Viaturas() {
   const handleCloseFormModal = () => setIsFormModalOpen(false);
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
-  const handleSave = async (data: any) => { setIsSaving(true); try { if (data.id) { await api.put(`/api/admin/viaturas/${data.id}`, data); } else { await api.post('/api/admin/viaturas', data); } toast.success(`Viatura salva com sucesso!`); handleCloseFormModal(); fetchData(); } catch (err: any) { if (err.response?.status === 400) { setValidationErrors(err.response.data.errors); toast.error('Corrija os erros.'); } else { toast.error(err.response?.data?.message || 'Erro ao salvar.'); } } finally { setIsSaving(false); } };
-  const handleConfirmDelete = async () => { if (!itemToDeleteId) return; setIsDeleting(true); try { await api.delete(`/api/admin/viaturas/${itemToDeleteId}`); toast.success('Viatura excluída!'); fetchData(); } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir.'); } finally { setIsDeleting(false); handleCloseConfirmModal(); } };
+
+  const handleSave = async (data: Omit<Viatura, 'id'> & { id?: number }) => {
+    setIsSaving(true);
+    setValidationErrors([]);
+    const action = data.id ? 'atualizada' : 'criada';
+
+    // --- CORREÇÃO PRINCIPAL AQUI ---
+    // Cria um payload limpo, contendo apenas os campos que a API deve receber.
+    const payload = {
+      prefixo: data.prefixo,
+      ativa: data.ativa,
+      cidade: data.cidade,
+      obm: data.obm,
+      // O campo 'telefone' não está no formulário, então não o incluímos.
+    };
+    // --- FIM DA CORREÇÃO ---
+
+    try {
+      if (data.id) {
+        // Envia o payload limpo para a rota de atualização.
+        await api.put(`/api/admin/viaturas/${data.id}`, payload);
+      } else {
+        // Para criação, o payload já está correto.
+        await api.post('/api/admin/viaturas', payload);
+      }
+      toast.success(`Viatura ${action} com sucesso!`);
+      handleCloseFormModal();
+      fetchData();
+    } catch (err: any) {
+      console.log('Erro ao salvar:', err.response);
+      if (err.response?.status === 400 && err.response.data.errors) {
+        setValidationErrors(err.response.data.errors);
+        const firstErrorMessage = err.response.data.errors[0]?.message || 'Por favor, corrija os erros no formulário.';
+        toast.error(firstErrorMessage);
+      } else {
+        const errorMessage = err.response?.data?.message || 'Erro ao salvar a viatura.';
+        toast.error(errorMessage);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDeleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/admin/viaturas/${itemToDeleteId}`);
+      toast.success('Viatura excluída com sucesso!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao excluir a viatura.');
+    } finally {
+      setIsDeleting(false);
+      handleCloseConfirmModal();
+    }
+  };
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) setSelectedFile(event.target.files[0]); };
-  const handleUpload = async () => { if (!selectedFile) return; setIsUploading(true); const formData = new FormData(); formData.append('file', selectedFile); try { await api.post('/api/admin/viaturas/upload-csv', formData); toast.success('Arquivo enviado com sucesso!'); fetchData(); fetchLastUpload(); } catch (err) { toast.error('Erro ao enviar arquivo.'); } finally { setIsUploading(false); setSelectedFile(null); } };
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    try {
+      const response = await api.post('/api/admin/viaturas/upload-csv', formData);
+      toast.success(response.data.message || 'Arquivo enviado com sucesso!');
+      fetchData();
+      fetchLastUpload();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao enviar arquivo.');
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      const fileInput = document.getElementById('viatura-file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    }
+  };
 
   const gridTemplateColumns = "1.5fr 2fr 1.5fr 1fr 1fr";
 
+  // O JSX do return permanece o mesmo
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -136,7 +208,7 @@ export default function Viaturas() {
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, padding: '0.5rem' }}
                     className="md:p-0"
                   >
-                    {/* --- Layout de Cartão para Mobile --- */}
+                    {/* Layout de Cartão para Mobile */}
                     <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                       <div className="flex justify-between items-start">
                         <p className="text-lg font-bold text-gray-800 flex items-center"><Car size={20} className="mr-2 text-red-600" /> {viatura.prefixo}</p>
@@ -156,7 +228,7 @@ export default function Viaturas() {
                       </div>
                     </div>
 
-                    {/* --- Layout de Grid para Desktop --- */}
+                    {/* Layout de Grid para Desktop */}
                     <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
                       <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viatura.prefixo}</div>
                       <div className="px-6 py-4 text-sm text-gray-500">{viatura.obm || 'N/A'}</div>

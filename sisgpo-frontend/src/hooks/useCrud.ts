@@ -1,10 +1,8 @@
-// Arquivo: frontend/src/hooks/useCrud.ts (Novo)
-
 import { useState, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
-// Interfaces genéricas que servem para qualquer entidade
+// Interfaces genéricas
 interface Entity {
   id: number;
 }
@@ -22,25 +20,22 @@ interface ApiResponse<T> {
 }
 
 interface UseCrudOptions {
-  entityName: string; // Ex: 'militares', 'viaturas'
+  entityName: string;
   initialFilters?: Record<string, string>;
   itemsPerPage?: number;
 }
 
-// O hook customizado
 export function useCrud<T extends Entity>({
   entityName,
   initialFilters = {},
   itemsPerPage = 15,
 }: UseCrudOptions) {
-  // Estados para dados e controle de UI
+  // Estados (sem alteração)
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState(initialFilters);
-
-  // Estados para modais e ações
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<T | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,7 +44,7 @@ export function useCrud<T extends Entity>({
   const [isDeleting, setIsDeleting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
-  // Função para buscar os dados da API
+  // Funções de busca e controle de UI (sem alteração)
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -70,58 +65,58 @@ export function useCrud<T extends Entity>({
     }
   }, [currentPage, itemsPerPage, entityName, filters]);
 
-  // Efeito que busca os dados sempre que a página ou os filtros mudam
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Funções para controlar a UI (modais, paginação, filtros)
   const handlePageChange = (page: number) => setCurrentPage(page);
-
   const handleFilterChange = (filterName: string, value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
-    setCurrentPage(1); // Reseta para a primeira página ao aplicar um filtro
+    setCurrentPage(1);
   };
-
   const handleOpenFormModal = (item: T | null = null) => {
     setItemToEdit(item);
     setValidationErrors([]);
     setIsFormModalOpen(true);
   };
-
   const handleCloseFormModal = () => {
     setIsFormModalOpen(false);
     setItemToEdit(null);
   };
-
   const handleDeleteClick = (id: number) => {
     setItemToDeleteId(id);
     setIsConfirmModalOpen(true);
   };
-
   const handleCloseConfirmModal = () => {
     setIsConfirmModalOpen(false);
     setItemToDeleteId(null);
   };
 
-  // Funções para executar as operações de CRUD
+  // --- FUNÇÃO HANDLESAVE CORRIGIDA ---
   const handleSave = async (itemData: Omit<T, 'id'> & { id?: number }) => {
     setIsSaving(true);
     setValidationErrors([]);
     const action = itemData.id ? 'atualizado' : 'criado';
     const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
 
+    // Cria uma cópia "limpa" do objeto de dados para enviar à API.
+    // Isso remove campos como 'id', 'created_at', 'updated_at' que não devem ser enviados no corpo da requisição PUT.
+    const { id, ...payload } = itemData;
+
     try {
-      if (itemData.id) {
-        await api.put(`/api/admin/${entityName}/${itemData.id}`, itemData);
+      if (id) {
+        // Envia o payload limpo para a rota de atualização.
+        await api.put(`/api/admin/${entityName}/${id}`, payload);
       } else {
-        await api.post(`/api/admin/${entityName}`, itemData);
+        // Para criação, o payload já está correto.
+        await api.post(`/api/admin/${entityName}`, payload);
       }
       toast.success(`${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} ${action} com sucesso!`);
       handleCloseFormModal();
       fetchData();
     } catch (err: any) {
-      if (err.response && err.response.status === 400 && err.response.data.errors) {
+      // O tratamento de erro já está correto para exibir as mensagens de validação.
+      if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
         toast.error('Por favor, corrija os erros no formulário.');
       } else {
@@ -132,16 +127,15 @@ export function useCrud<T extends Entity>({
       setIsSaving(false);
     }
   };
+  // --- FIM DA CORREÇÃO ---
 
   const handleConfirmDelete = async () => {
     if (!itemToDeleteId) return;
     setIsDeleting(true);
     const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
-
     try {
       await api.delete(`/api/admin/${entityName}/${itemToDeleteId}`);
       toast.success(`${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} excluído com sucesso!`);
-      
       if (data.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
@@ -155,7 +149,6 @@ export function useCrud<T extends Entity>({
     }
   };
 
-  // Retorna todos os estados e funções para serem usados nos componentes
   return {
     data,
     isLoading,

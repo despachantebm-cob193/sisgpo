@@ -1,5 +1,3 @@
-// Arquivo: backend/src/validators/viaturaValidator.js (Atualizado)
-
 const Joi = require('joi');
 
 const createViaturaSchema = Joi.object({
@@ -19,7 +17,7 @@ const updateViaturaSchema = Joi.object({
   cidade: Joi.string().max(100).optional().allow(null, ''),
   obm: Joi.string().max(150).optional().allow(null, ''),
   telefone: Joi.string().max(20).optional().allow(null, ''),
-});
+}).unknown(false); // <-- MUDANÇA IMPORTANTE: ignora campos não definidos no schema
 
 module.exports = {
   createViaturaSchema,

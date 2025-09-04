@@ -1,15 +1,12 @@
-// Arquivo: backend/src/controllers/dashboardController.js (Completo)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
-// Função auxiliar para deduzir o tipo da viatura pelo prefixo
+// A função auxiliar getTipoViatura permanece a mesma
 const getTipoViatura = (prefixo) => {
   const partes = prefixo.split('-');
   if (partes.length > 1) {
     return partes[0].toUpperCase();
   }
-  // Tenta encontrar tipos comuns sem hífen
   if (prefixo.toUpperCase().startsWith('UR')) return 'UR';
   if (prefixo.toUpperCase().startsWith('ABT')) return 'ABT';
   if (prefixo.toUpperCase().startsWith('ASA')) return 'ASA';
@@ -17,6 +14,7 @@ const getTipoViatura = (prefixo) => {
 };
 
 const dashboardController = {
+  // ... outros métodos (getStats, getMilitarStats, etc.) permanecem os mesmos ...
   getStats: async (req, res) => {
     const { obm_id } = req.query;
     try {
@@ -104,6 +102,68 @@ const dashboardController = {
       throw new AppError("Não foi possível carregar as estatísticas de viaturas por tipo.", 500);
     }
   },
+
+  // --- MÉTODO ATUALIZADO PARA AGRUPAR OS DADOS ---
+  getViaturaStatsDetalhado: async (req, res) => {
+    const { obm_id } = req.query;
+    try {
+      const query = db('viaturas')
+        .select('prefixo', 'obm')
+        .where('ativa', true)
+        .orderBy('obm', 'asc')
+        .orderBy('prefixo', 'asc');
+
+      if (obm_id) {
+        const obm = await db('obms').where({ id: obm_id }).first();
+        if (obm) {
+          query.andWhere({ obm: obm.nome });
+        }
+      }
+
+      const viaturasAtivas = await query;
+
+      // Agrupa os resultados em um mapa aninhado
+      const stats = viaturasAtivas.reduce((acc, vtr) => {
+        const tipo = getTipoViatura(vtr.prefixo);
+        const nomeObm = vtr.obm || 'OBM Não Informada';
+
+        if (!acc[tipo]) {
+          acc[tipo] = {
+            tipo: tipo,
+            quantidade: 0,
+            obms: {} // Objeto para agrupar por OBM
+          };
+        }
+        
+        acc[tipo].quantidade++;
+
+        if (!acc[tipo].obms[nomeObm]) {
+          acc[tipo].obms[nomeObm] = []; // Array para os prefixos
+        }
+        
+        acc[tipo].obms[nomeObm].push(vtr.prefixo);
+        
+        return acc;
+      }, {});
+
+      // Converte o mapa em um array e ordena
+      const resultadoFinal = Object.values(stats).map(item => ({
+        ...item,
+        // Converte o objeto de OBMs em um array para facilitar a iteração no frontend
+        obms: Object.entries(item.obms).map(([nome, prefixos]) => ({
+          nome,
+          prefixos
+        }))
+      })).sort((a, b) => a.tipo.localeCompare(b.tipo));
+
+      res.status(200).json(resultadoFinal);
+
+    } catch (error) {
+      console.error("ERRO AO BUSCAR ESTATÍSTICAS DETALHADAS DE VIATURAS:", error);
+      throw new AppError("Não foi possível carregar as estatísticas detalhadas de viaturas.", 500);
+    }
+  },
+  // --- FIM DA ATUALIZAÇÃO ---
 
   getMetadataByKey: async (req, res) => {
     const { key } = req.params;

@@ -1,4 +1,4 @@
-// Arquivo: backend/src/routes/adminRoutes.js (Atualizado)
+// Arquivo: backend/src/routes/adminRoutes.js (Completo com a nova rota)
 
 const express = require('express');
 const router = express.Router();
@@ -29,6 +29,8 @@ const { changePasswordSchema } = require('../validators/userValidator');
 router.get('/dashboard/stats', dashboardController.getStats);
 router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
 router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
+// --- NOVA ROTA ADICIONADA AQUI ---
+router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
@@ -64,7 +66,7 @@ router.put(
   userController.changePassword
 );
 
-// --- ROTA DE METADADOS ---
+// --- ROTA DE METADADOs ---
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
 module.exports = router;

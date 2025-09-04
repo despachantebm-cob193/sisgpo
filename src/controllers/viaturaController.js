@@ -1,43 +1,30 @@
-// Arquivo: backend/src/controllers/viaturaController.js (Atualizado)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const viaturaController = {
+  // ... outros métodos (getAll, create) permanecem iguais ...
   getAll: async (req, res) => {
-    const { prefixo, all } = req.query;
-
-    const query = db('viaturas').select('*').orderBy('prefixo', 'asc');
-
+    const { page = 1, limit = 15, prefixo, all } = req.query;
+    const offset = (page - 1) * limit;
+    const query = db('viaturas').select('*');
     if (prefixo) {
       query.where('prefixo', 'ilike', `%${prefixo}%`);
     }
-
-    // Se 'all=true' for passado, retorna todos os resultados para a virtualização.
     if (all === 'true') {
-      const viaturas = await query;
-      return res.status(200).json({ data: viaturas });
+        const viaturas = await query.orderBy('prefixo', 'asc');
+        return res.status(200).json({ data: viaturas });
     }
-
-    // Lógica de paginação padrão
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 15;
-    const offset = (page - 1) * limit;
-
     const countQuery = query.clone().clearSelect().count({ count: 'id' }).first();
-    const dataQuery = query.limit(limit).offset(offset);
-
-    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+    query.limit(limit).offset(offset).orderBy('prefixo', 'asc');
+    const [viaturas, totalResult] = await Promise.all([query, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
-
     res.status(200).json({
-      data,
-      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
+      data: viaturas,
+      pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
     });
   },
 
-  // Os métodos create, update e delete permanecem os mesmos.
   create: async (req, res) => {
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
     const viaturaExists = await db('viaturas').where({ prefixo }).first();
@@ -51,6 +38,10 @@ const viaturaController = {
   update: async (req, res) => {
     const { id } = req.params;
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
+
+    // --- LOG DE DIAGNÓSTICO ---
+    console.log(`[DIAGNÓSTICO] Recebido para atualizar viatura ID ${id}:`, req.body);
+    // -------------------------
     
     const viaturaAtual = await db('viaturas').where({ id }).first();
     if (!viaturaAtual) {
