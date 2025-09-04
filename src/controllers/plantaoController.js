@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/plantaoController.js (Revisado e com getById)
+// Arquivo: backend/src/controllers/plantaoController.js (Atualizado)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -29,7 +29,7 @@ const plantaoController = {
   },
 
   getAll: async (req, res) => {
-    const { data_inicio, data_fim, obm_id, page = 1, limit = 15 } = req.query;
+    const { data_inicio, data_fim, obm_id, all } = req.query;
     
     const query = db('plantoes as p')
       .join('viaturas as v', 'p.viatura_id', 'v.id')
@@ -39,25 +39,35 @@ const plantaoController = {
     if (data_fim) query.where('p.data_plantao', '<=', data_fim);
     if (obm_id) query.where('p.obm_id', '=', obm_id);
 
-    const countQuery = query.clone().count({ count: 'p.id' }).first();
-    
-    const offset = (page - 1) * limit;
-    query
+    const baseQuery = query
       .select(
         'p.id', 'p.data_plantao', 'p.observacoes',
         'v.prefixo as viatura_prefixo',
         'o.abreviatura as obm_abreviatura'
       )
-      .limit(limit).offset(offset)
       .orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
 
-    const [plantoes, totalResult] = await Promise.all([query, countQuery]);
+    // Se 'all=true', retorna todos os resultados para virtualização
+    if (all === 'true') {
+        const plantoes = await baseQuery;
+        return res.status(200).json({ data: plantoes });
+    }
+
+    // Lógica de paginação padrão
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 15;
+    const offset = (page - 1) * limit;
+
+    const countQuery = query.clone().count({ count: 'p.id' }).first();
+    const dataQuery = baseQuery.clone().limit(limit).offset(offset);
+
+    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
     res.status(200).json({
-      data: plantoes,
-      pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
+      data,
+      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
     });
   },
 

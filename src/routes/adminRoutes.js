@@ -1,4 +1,4 @@
-// Arquivo: backend/src/routes/adminRoutes.js (Completo)
+// Arquivo: backend/src/routes/adminRoutes.js (Atualizado)
 
 const express = require('express');
 const router = express.Router();
@@ -14,7 +14,6 @@ const obmFileController = require('../controllers/obmFileController');
 const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
-const contatoController = require('../controllers/contatoController');
 const viaturaFileController = require('../controllers/viaturaFileController');
 const userController = require('../controllers/userController');
 
@@ -57,11 +56,6 @@ router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
 router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
-
-// --- ROTAS DA LISTA TELEFÔNICA ---
-router.get('/contatos', contatoController.getAll);
-router.post('/contatos/upload', upload.single('file'), contatoController.upload);
-router.get('/contatos/obms-unicas', contatoController.getObrasUnicas);
 
 // --- ROTAS DE USUÁRIO ---
 router.put(

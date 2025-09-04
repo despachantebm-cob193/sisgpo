@@ -1,72 +1,76 @@
-// Arquivo: frontend/src/pages/Militares.tsx (Refatorado com o hook useCrud)
+// Arquivo: frontend/src/pages/Militares.tsx (Corrigido com CSS Grid)
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import { useCrud } from '../hooks/useCrud'; // 1. Importar o hook
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import MilitarForm from '../components/forms/MilitarForm';
-import Pagination from '../components/ui/Pagination';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import { Edit, Trash2 } from 'lucide-react';
 
-// Interfaces
-interface Militar {
-  id: number;
-  matricula: string;
-  nome_completo: string;
-  nome_guerra: string;
-  posto_graduacao: string;
-  ativo: boolean;
-  obm_id: number | null;
-}
+// Interfaces (permanecem as mesmas)
+interface Militar { id: number; matricula: string; nome_completo: string; nome_guerra: string; posto_graduacao: string; ativo: boolean; obm_id: number | null; }
 interface Obm { id: number; nome: string; abreviatura: string; }
-interface ApiResponseObm { data: Obm[]; } // Interface específica para a resposta de OBMs
+interface ApiResponse<T> { data: T[]; }
 
 export default function Militares() {
-  // 2. Utilizar o hook para gerenciar o CRUD de Militares
-  const {
-    data: militares,
-    isLoading,
-    pagination,
-    filters,
-    isFormModalOpen,
-    itemToEdit,
-    isSaving,
-    isConfirmModalOpen,
-    isDeleting,
-    handleFilterChange,
-    handlePageChange,
-    handleOpenFormModal,
-    handleCloseFormModal,
-    handleSave,
-    handleDeleteClick,
-    handleCloseConfirmModal,
-    handleConfirmDelete,
-    validationErrors,
-  } = useCrud<Militar>({
-    entityName: 'militares',
-    initialFilters: { nome_completo: '' },
+  const [militares, setMilitares] = useState<Militar[]>([]);
+  const [obms, setObms] = useState<Obm[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({ nome_completo: '' });
+  const [validationErrors, setValidationErrors] = useState<any[]>([]);
+
+  // Estados para modais e ações
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<Militar | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({ ...filters, all: 'true' });
+      const [militaresRes, obmsRes] = await Promise.all([
+        api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`),
+        api.get<ApiResponse<Obm>>('/api/admin/obms?limit=500')
+      ]);
+      setMilitares(militaresRes.data.data);
+      setObms(obmsRes.data.data);
+    } catch (err) {
+      toast.error('Não foi possível carregar os dados.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: militares.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 58,
+    overscan: 10,
   });
 
-  // 3. Manter a busca de OBMs, que é específica desta página
-  const [obms, setObms] = useState<Obm[]>([]);
-  const fetchObms = useCallback(async () => {
-    try {
-      // Usamos uma interface específica para a resposta de OBMs
-      const response = await api.get<ApiResponseObm>('/api/admin/obms?limit=500');
-      setObms(response.data.data);
-    } catch (err) {
-      toast.error('Não foi possível carregar a lista de OBMs.');
-    }
-  }, []);
+  // Funções de CRUD (sem alterações)
+  const handleOpenFormModal = (item: Militar | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
+  const handleCloseFormModal = () => setIsFormModalOpen(false);
+  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+  const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
+  const handleSave = async (data: any) => { /* ...lógica de salvar... */ setIsLoading(true); try { if (data.id) { await api.put(`/api/admin/militares/${data.id}`, data); } else { await api.post('/api/admin/militares', data); } toast.success(`Militar salvo com sucesso!`); handleCloseFormModal(); fetchData(); } catch (err: any) { if (err.response?.status === 400) { setValidationErrors(err.response.data.errors); toast.error('Corrija os erros.'); } else { toast.error(err.response?.data?.message || 'Erro ao salvar.'); } } finally { setIsLoading(false); } };
+  const handleConfirmDelete = async () => { if (!itemToDeleteId) return; setIsDeleting(true); try { await api.delete(`/api/admin/militares/${itemToDeleteId}`); toast.success('Militar excluído!'); fetchData(); } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir.'); } finally { setIsDeleting(false); handleCloseConfirmModal(); } };
 
-  useEffect(() => {
-    fetchObms();
-  }, [fetchObms]);
+  // --- CORREÇÃO DA ESTRUTURA DA TABELA ---
+  const gridTemplateColumns = "1.5fr 1.5fr 1fr 1fr 1fr"; // Define a proporção das colunas
 
   return (
     <div>
@@ -77,77 +81,75 @@ export default function Militares() {
         </div>
         <Button onClick={() => handleOpenFormModal()}>Adicionar Novo Militar</Button>
       </div>
-
-      <div className="mb-4">
-        <Input
-          type="text"
-          placeholder="Filtrar por nome..."
-          value={filters.nome_completo || ''}
-          onChange={(e) => handleFilterChange('nome_completo', e.target.value)}
-          className="max-w-xs"
-        />
-      </div>
+      <Input
+        type="text"
+        placeholder="Filtrar por nome..."
+        value={filters.nome_completo}
+        onChange={(e) => setFilters({ nome_completo: e.target.value })}
+        className="max-w-xs mb-4"
+      />
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-8 w-8 text-gray-500 mx-auto" /></td></tr>
-            ) : militares.length > 0 ? (
-              militares.map((militar) => (
-                <tr key={militar.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{militar.posto_graduacao}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {militar.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
-                    <button onClick={() => handleDeleteClick(militar.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={5} className="text-center py-4">Nenhum militar encontrado.</td></tr>
-            )}
-          </tbody>
-        </table>
-        
-        {pagination && pagination.totalPages > 1 && (
-          <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
-        )}
+        {/* Cabeçalho da Tabela (Grid) */}
+        <div style={{ display: 'grid', gridTemplateColumns }} className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</div>
+          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</div>
+        </div>
+
+        {/* Contêiner de Rolagem */}
+        <div ref={parentRef} className="overflow-y-auto" style={{ height: '70vh' }}>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
+          ) : (
+            // Contêiner com a altura total virtual
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                const militar = militares[virtualItem.index];
+                if (!militar) return null;
+                return (
+                  // Linha Virtual (Grid)
+                  <div
+                    key={militar.id}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                      display: 'grid',
+                      gridTemplateColumns,
+                    }}
+                    className="items-center border-b border-gray-200"
+                  >
+                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{militar.posto_graduacao}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {militar.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
+                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                      <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Modais (sem alterações) */}
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Militar' : 'Adicionar Novo Militar'}>
-        <MilitarForm
-          militarToEdit={itemToEdit}
-          obms={obms}
-          onSave={handleSave}
-          onCancel={handleCloseFormModal}
-          isLoading={isSaving}
-          errors={validationErrors}
-        />
+        <MilitarForm militarToEdit={itemToEdit} obms={obms} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal 
-        isOpen={isConfirmModalOpen} 
-        onClose={handleCloseConfirmModal} 
-        onConfirm={handleConfirmDelete} 
-        title="Confirmar Exclusão" 
-        message="Tem certeza que deseja excluir este militar? Esta ação não pode ser desfeita." 
-        isLoading={isDeleting}
-      />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir este militar? Esta ação não pode ser desfeita." isLoading={isDeleting} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/viaturaFileController.js (Completo)
+// Arquivo: backend/src/controllers/viaturaFileController.js (Otimizado)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -25,11 +25,17 @@ const viaturaFileController = {
       const processingErrors = [];
       let ignoredCount = 0;
 
+      // 1. Busca todas as viaturas existentes de uma só vez
+      const allViaturas = await db('viaturas').select('id', 'prefixo');
+      const viaturaMap = new Map(allViaturas.map(v => [v.prefixo.toUpperCase().trim(), v.id]));
+
+      // 2. Inicia a transação
       await db.transaction(async trx => {
-        for (let i = 1; i < rows.length; i++) {
+        for (let i = 1; i < rows.length; i++) { // Começa da segunda linha para ignorar o cabeçalho
           const rowData = rows[i];
           const tipoEscala = rowData[2] ? String(rowData[2]).trim().toUpperCase() : '';
 
+          // Ignora linhas que não são de viaturas
           if (!tipoEscala.includes('VIATURA')) {
             ignoredCount++;
             continue;
@@ -40,6 +46,7 @@ const viaturaFileController = {
           const nomeObm = rowData[6] ? String(rowData[6]).trim() : null;
 
           if (!prefixo || !nomeObm) {
+            processingErrors.push(`Linha ${i + 1}: Prefixo ou nome da OBM não preenchidos.`);
             ignoredCount++;
             continue;
           }
@@ -51,10 +58,11 @@ const viaturaFileController = {
             obm: nomeObm,
           };
 
-          const existingViatura = await trx('viaturas').where({ prefixo }).first();
+          // 3. Verifica a existência usando o mapa em memória
+          const existingViaturaId = viaturaMap.get(prefixo.toUpperCase().trim());
 
-          if (existingViatura) {
-            await trx('viaturas').where({ id: existingViatura.id }).update({
+          if (existingViaturaId) {
+            await trx('viaturas').where({ id: existingViaturaId }).update({
               ...viaturaData,
               updated_at: db.fn.now(),
             });
@@ -65,7 +73,7 @@ const viaturaFileController = {
           }
         }
 
-        // Após o loop, atualiza o metadado com a data/hora atual
+        // 4. Atualiza o metadado com a data/hora do último upload
         const lastUploadTime = new Date().toISOString();
         await trx('metadata')
           .insert({ key: 'viaturas_last_upload', value: lastUploadTime })
@@ -81,7 +89,7 @@ const viaturaFileController = {
       });
 
     } catch (error) {
-      console.error("Erro durante a importação:", error);
+      console.error("Erro durante a importação de viaturas:", error);
       throw new AppError(error.message || "Ocorreu um erro inesperado durante a importação.", 500);
     } finally {
       if (req.file && req.file.path) {

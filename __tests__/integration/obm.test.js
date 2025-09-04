@@ -1,4 +1,4 @@
-// Arquivo: backend/__tests__/integration/obm.test.js (Com CRUD completo)
+// Arquivo: backend/__tests__/integration/obm.test.js (Atualizado)
 
 const request = require('supertest');
 const app = require('../../src/app');

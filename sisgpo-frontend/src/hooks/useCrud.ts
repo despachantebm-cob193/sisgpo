@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/hooks/useCrud.ts
+// Arquivo: frontend/src/hooks/useCrud.ts (Novo)
 
 import { useState, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -12,6 +12,8 @@ interface Entity {
 interface PaginationState {
   currentPage: number;
   totalPages: number;
+  totalRecords: number;
+  perPage: number;
 }
 
 interface ApiResponse<T> {
@@ -20,7 +22,7 @@ interface ApiResponse<T> {
 }
 
 interface UseCrudOptions {
-  entityName: string;
+  entityName: string; // Ex: 'militares', 'viaturas'
   initialFilters?: Record<string, string>;
   itemsPerPage?: number;
 }
@@ -29,9 +31,9 @@ interface UseCrudOptions {
 export function useCrud<T extends Entity>({
   entityName,
   initialFilters = {},
-  itemsPerPage = 10,
+  itemsPerPage = 15,
 }: UseCrudOptions) {
-  // Estados genéricos
+  // Estados para dados e controle de UI
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationState | null>(null);
@@ -47,7 +49,7 @@ export function useCrud<T extends Entity>({
   const [isDeleting, setIsDeleting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
-  // Função de busca de dados
+  // Função para buscar os dados da API
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -68,11 +70,12 @@ export function useCrud<T extends Entity>({
     }
   }, [currentPage, itemsPerPage, entityName, filters]);
 
+  // Efeito que busca os dados sempre que a página ou os filtros mudam
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Funções de manipulação de estado
+  // Funções para controlar a UI (modais, paginação, filtros)
   const handlePageChange = (page: number) => setCurrentPage(page);
 
   const handleFilterChange = (filterName: string, value: string) => {
@@ -101,26 +104,28 @@ export function useCrud<T extends Entity>({
     setItemToDeleteId(null);
   };
 
-  // Funções de CRUD
+  // Funções para executar as operações de CRUD
   const handleSave = async (itemData: Omit<T, 'id'> & { id?: number }) => {
     setIsSaving(true);
     setValidationErrors([]);
     const action = itemData.id ? 'atualizado' : 'criado';
+    const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
+
     try {
       if (itemData.id) {
         await api.put(`/api/admin/${entityName}/${itemData.id}`, itemData);
       } else {
         await api.post(`/api/admin/${entityName}`, itemData);
       }
-      toast.success(`${entityName.slice(0, -1)} ${action} com sucesso!`);
+      toast.success(`${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} ${action} com sucesso!`);
       handleCloseFormModal();
-      fetchData(); // Recarrega os dados após salvar
+      fetchData();
     } catch (err: any) {
       if (err.response && err.response.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
         toast.error('Por favor, corrija os erros no formulário.');
       } else {
-        const errorMessage = err.response?.data?.message || `Erro ao salvar.`;
+        const errorMessage = err.response?.data?.message || `Erro ao salvar ${entityLabel}.`;
         toast.error(errorMessage);
       }
     } finally {
@@ -131,35 +136,35 @@ export function useCrud<T extends Entity>({
   const handleConfirmDelete = async () => {
     if (!itemToDeleteId) return;
     setIsDeleting(true);
+    const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
+
     try {
       await api.delete(`/api/admin/${entityName}/${itemToDeleteId}`);
-      toast.success(`${entityName.slice(0, -1)} excluído com sucesso!`);
-      // Se for o último item de uma página, volta para a página anterior
+      toast.success(`${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} excluído com sucesso!`);
+      
       if (data.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
         fetchData();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || `Erro ao excluir.`);
+      toast.error(err.response?.data?.message || `Erro ao excluir ${entityLabel}.`);
     } finally {
       setIsDeleting(false);
       handleCloseConfirmModal();
     }
   };
 
-  // Retorna todos os estados e funções para serem usados no componente
+  // Retorna todos os estados e funções para serem usados nos componentes
   return {
     data,
     isLoading,
     pagination,
-    currentPage,
     filters,
     isFormModalOpen,
     itemToEdit,
     isSaving,
     isConfirmModalOpen,
-    itemToDeleteId,
     isDeleting,
     validationErrors,
     fetchData,

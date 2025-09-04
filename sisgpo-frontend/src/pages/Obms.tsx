@@ -1,8 +1,8 @@
-// Arquivo: frontend/src/pages/Obms.tsx (Atualizado com funcionalidade de upload)
+// Arquivo: frontend/src/pages/Obms.tsx (Refatorado)
 
-import React, { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
-import { Upload } from 'lucide-react';
+import { Upload, Edit, Trash2 } from 'lucide-react';
 
 import { useCrud } from '../hooks/useCrud';
 import api from '../services/api';
@@ -15,7 +15,7 @@ import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces
+// Interface
 interface Obm {
   id: number;
   nome: string;
@@ -25,7 +25,6 @@ interface Obm {
 }
 
 export default function Obms() {
-  // O hook useCrud continua gerenciando a maior parte da página
   const {
     data: obms,
     isLoading,
@@ -36,7 +35,7 @@ export default function Obms() {
     isSaving,
     isConfirmModalOpen,
     isDeleting,
-    fetchData, // Precisamos do fetchData para recarregar os dados
+    fetchData,
     handleFilterChange,
     handlePageChange,
     handleOpenFormModal,
@@ -83,7 +82,7 @@ export default function Obms() {
       setSelectedFile(null);
       const fileInput = document.getElementById('obm-file-upload') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-      fetchData(); // Recarrega a lista de OBMs para exibir os dados atualizados
+      fetchData(); // Recarrega a lista de OBMs
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
@@ -101,7 +100,6 @@ export default function Obms() {
         <Button onClick={() => handleOpenFormModal()}>Adicionar Nova OBM</Button>
       </div>
 
-      {/* Seção de Upload de Arquivo */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Atualizar Cidades/Telefones via Planilha</h3>
         <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -128,37 +126,39 @@ export default function Obms() {
         />
       </div>
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
-              <th className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-8 w-8 text-gray-500 mx-auto" /></td></tr>
-            ) : obms.length > 0 ? (
-              obms.map((obm) => (
-                <tr key={obm.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{obm.nome}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
-                    <button onClick={() => handleDeleteClick(obm.id)} className="ml-4 text-red-600 hover:text-red-900">Excluir</button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={5} className="text-center py-4">Nenhuma OBM encontrada.</td></tr>
-            )}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                <th className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {isLoading ? (
+                <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-8 w-8 text-gray-500 mx-auto" /></td></tr>
+              ) : obms.length > 0 ? (
+                obms.map((obm) => (
+                  <tr key={obm.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{obm.nome}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                      <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteClick(obm.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={5} className="text-center py-4">Nenhuma OBM encontrada.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
         {pagination && pagination.totalPages > 1 && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
       </div>
       

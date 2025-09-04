@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/components/layout/AppLayout.tsx
+// Arquivo: frontend/src/components/layout/AppLayout.tsx (Atualizado)
 
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -9,15 +9,14 @@ import {
   Users, 
   Calendar, 
   LogOut, 
-  Contact, 
-  UserCircle // Ícone para a página de perfil
+  UserCircle
 } from 'lucide-react';
 
 // Componente reutilizável para os itens da navegação
 const NavItem = ({ to, icon: Icon, label }: { to: string; icon: React.ElementType; label: string }) => (
   <NavLink
     to={to}
-    end // Garante que o link só fica ativo na rota exata (ex: / não fica ativo em /obms)
+    end // Garante que o link só fica ativo na rota exata
     className={({ isActive }) =>
       `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
         isActive
@@ -54,7 +53,6 @@ export default function AppLayout() {
           <NavItem to="/viaturas" icon={Car} label="Viaturas" />
           <NavItem to="/militares" icon={Users} label="Militares" />
           <NavItem to="/plantoes" icon={Calendar} label="Plantões" />
-          <NavItem to="/lista-telefonica" icon={Contact} label="Lista Telefônica" />
           <NavItem to="/perfil" icon={UserCircle} label="Meu Perfil" />
         </nav>
         

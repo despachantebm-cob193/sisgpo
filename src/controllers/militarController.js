@@ -1,26 +1,53 @@
-// Arquivo: src/controllers/militarController.js
+// Arquivo: backend/src/controllers/militarController.js (Atualizado)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
-const QueryBuilder = require('../utils/QueryBuilder');
 
 const militarController = {
   getAll: async (req, res) => {
-    const filterConfig = {
-      nome_completo: { column: 'nome_completo', operator: 'ilike' },
-      posto_graduacao: { column: 'posto_graduacao', operator: 'ilike' },
-      matricula: { column: 'matricula', operator: 'ilike' },
-      obm_id: { column: 'obm_id', operator: '=' }
-    };
+    const { nome_completo, posto_graduacao, matricula, obm_id, all } = req.query;
 
-    const { query, countQuery, page, limit } = QueryBuilder(db, req.query, 'militares', filterConfig, 'nome_completo ASC');
-    
-    const [militares, totalResult] = await Promise.all([query, countQuery]);
+    const query = db('militares')
+      .select(
+        'militares.id',
+        'militares.matricula',
+        'militares.nome_completo',
+        'militares.nome_guerra',
+        'militares.posto_graduacao',
+        'militares.ativo',
+        'militares.obm_id',
+        'obms.abreviatura as obm_abreviatura' // Inclui a abreviatura da OBM
+      )
+      .leftJoin('obms', 'militares.obm_id', 'obms.id')
+      .orderBy('militares.nome_completo', 'asc');
+
+    // Aplica filtros de busca
+    if (nome_completo) query.where('militares.nome_completo', 'ilike', `%${nome_completo}%`);
+    if (posto_graduacao) query.where('militares.posto_graduacao', 'ilike', `%${posto_graduacao}%`);
+    if (matricula) query.where('militares.matricula', 'ilike', `%${matricula}%`);
+    if (obm_id) query.where('militares.obm_id', '=', obm_id);
+
+    // Se o parâmetro 'all=true' for passado, retorna todos os resultados sem paginar.
+    // Isso é essencial para a virtualização no frontend.
+    if (all === 'true') {
+      const militares = await query;
+      return res.status(200).json({ data: militares });
+    }
+
+    // Lógica de paginação padrão (mantida para outros usos, se houver)
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 15;
+    const offset = (page - 1) * limit;
+
+    const countQuery = query.clone().clearSelect().count({ count: 'militares.id' }).first();
+    const dataQuery = query.limit(limit).offset(offset);
+
+    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
     res.status(200).json({
-      data: militares,
+      data,
       pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
     });
   },

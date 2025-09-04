@@ -1,31 +1,43 @@
-// backend/src/controllers/viaturaController.js
+// Arquivo: backend/src/controllers/viaturaController.js (Atualizado)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const viaturaController = {
   getAll: async (req, res) => {
-    const { page = 1, limit = 10, prefixo } = req.query;
-    const offset = (page - 1) * limit;
+    const { prefixo, all } = req.query;
 
-    const query = db('viaturas').select('*');
+    const query = db('viaturas').select('*').orderBy('prefixo', 'asc');
 
     if (prefixo) {
       query.where('prefixo', 'ilike', `%${prefixo}%`);
     }
 
-    const countQuery = query.clone().clearSelect().count({ count: 'id' }).first();
-    query.limit(limit).offset(offset).orderBy('prefixo', 'asc');
+    // Se 'all=true' for passado, retorna todos os resultados para a virtualização.
+    if (all === 'true') {
+      const viaturas = await query;
+      return res.status(200).json({ data: viaturas });
+    }
 
-    const [viaturas, totalResult] = await Promise.all([query, countQuery]);
+    // Lógica de paginação padrão
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 15;
+    const offset = (page - 1) * limit;
+
+    const countQuery = query.clone().clearSelect().count({ count: 'id' }).first();
+    const dataQuery = query.limit(limit).offset(offset);
+
+    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
     res.status(200).json({
-      data: viaturas,
-      pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
+      data,
+      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
     });
   },
 
+  // Os métodos create, update e delete permanecem os mesmos.
   create: async (req, res) => {
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
     const viaturaExists = await db('viaturas').where({ prefixo }).first();
