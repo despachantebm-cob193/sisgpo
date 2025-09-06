@@ -1,3 +1,5 @@
+// Arquivo: backend/src/controllers/viaturaController.js (Versão Final com Paginação)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -9,13 +11,8 @@ const viaturaController = {
     const query = db('viaturas as v')
       .leftJoin('obms as o', 'v.obm', 'o.nome')
       .select(
-        'v.id',
-        'v.prefixo',
-        'v.ativa',
-        'v.cidade',
-        'v.obm',
-        'v.telefone',
-        'o.id as obm_id'
+        'v.id', 'v.prefixo', 'v.ativa', 'v.cidade',
+        'v.obm', 'v.telefone', 'o.id as obm_id'
       );
 
     if (prefixo) {
@@ -24,22 +21,23 @@ const viaturaController = {
 
     if (all === 'true') {
         const viaturas = await query.orderBy('v.prefixo', 'asc');
-        return res.status(200).json({ data: viaturas });
+        return res.status(200).json({ data: viaturas, pagination: null });
     }
 
     const countQuery = query.clone().clearSelect().count({ count: 'v.id' }).first();
-    query.limit(limit).offset(offset).orderBy('v.prefixo', 'asc');
+    const dataQuery = query.clone().limit(limit).offset(offset).orderBy('v.prefixo', 'asc');
     
-    const [viaturas, totalResult] = await Promise.all([query, countQuery]);
+    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
     res.status(200).json({
-      data: viaturas,
+      data,
       pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
     });
   },
 
+  // ... (outros métodos create, update, delete, getDistinctObms permanecem os mesmos)
   create: async (req, res) => {
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
     const viaturaExists = await db('viaturas').where({ prefixo }).first();
@@ -77,21 +75,18 @@ const viaturaController = {
     }
     res.status(204).send();
   },
-
-  // --- NOVO MÉTODO ADICIONADO ---
+  
   getDistinctObms: async (req, res) => {
     try {
-      // Busca valores distintos e não nulos para obm e cidade
       const distinctData = await db('viaturas')
         .distinct('obm', 'cidade')
         .whereNotNull('obm')
         .orderBy('obm', 'asc');
 
-      // Formata os dados para o formato que o react-select espera: { label, value, cidade }
       const options = distinctData.map(item => ({
-        value: item.obm, // O valor a ser salvo
-        label: item.obm, // O texto a ser exibido
-        cidade: item.cidade // Um dado extra para autopreenchimento
+        value: item.obm,
+        label: item.obm,
+        cidade: item.cidade
       }));
 
       res.status(200).json(options);

@@ -1,7 +1,8 @@
-import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
+// Arquivo: frontend/src/pages/Obms.tsx (Versão Final com Paginação)
+
+import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2, Building, MapPin, Phone } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -10,32 +11,23 @@ import ObmForm from '../components/forms/ObmForm';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import Pagination from '../components/ui/Pagination';
 
 // Interfaces
-interface Obm {
-  id: number;
-  nome: string;
-  abreviatura: string;
-  cidade: string | null;
-  telefone: string | null;
-}
-
-// --- NOVA INTERFACE PARA AS OPÇÕES DO DROPDOWN ---
-export interface ObmOption {
-  value: string;
-  label: string;
-  cidade: string;
-}
-
-interface ApiResponse<T> { data: T[]; }
+interface Obm { id: number; nome: string; abreviatura: string; cidade: string | null; telefone: string | null; }
+export interface ObmOption { value: string; label: string; cidade: string; }
+interface PaginationState { currentPage: number; totalPages: number; }
+interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Obms() {
   const [obms, setObms] = useState<Obm[]>([]);
-  // --- NOVO ESTADO PARA AS OPÇÕES DO FORMULÁRIO ---
   const [obmOptions, setObmOptions] = useState<ObmOption[]>([]);
-  
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome: '' });
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Estados de modais e ações
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Obm | null>(null);
@@ -49,24 +41,34 @@ export default function Obms() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ ...filters, all: 'true' });
-      // --- BUSCA OS DADOS EM PARALELO ---
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '20',
+        ...filters
+      });
       const [obmsRes, optionsRes] = await Promise.all([
         api.get<ApiResponse<Obm>>(`/api/admin/obms?${params.toString()}`),
-        api.get<ObmOption[]>('/api/admin/viaturas/distinct-obms') // Novo endpoint
+        api.get<ObmOption[]>('/api/admin/viaturas/distinct-obms')
       ]);
       
       setObms(obmsRes.data.data);
-      setObmOptions(optionsRes.data); // Armazena as opções
+      setPagination(obmsRes.data.pagination);
+      setObmOptions(optionsRes.data);
 
     } catch (err) {
       toast.error('Não foi possível carregar os dados das OBMs.');
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters, currentPage]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handlePageChange = (page: number) => setCurrentPage(page);
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({ nome: e.target.value });
+    setCurrentPage(1);
+  };
 
   const handleOpenFormModal = (item: Obm | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
@@ -134,21 +136,6 @@ export default function Obms() {
     }
   };
 
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: obms.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 130,
-    overscan: 10,
-    measureElement:
-      typeof window !== 'undefined' &&
-      navigator.userAgent.indexOf('Firefox') === -1
-        ? element => element.getBoundingClientRect().height
-        : undefined,
-  });
-
-  const gridTemplateColumns = "2.5fr 1fr 1fr 1fr 0.5fr";
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -178,82 +165,56 @@ export default function Obms() {
           type="text"
           placeholder="Filtrar por nome..."
           value={filters.nome || ''}
-          onChange={(e) => setFilters({ nome: e.target.value })}
+          onChange={handleFilterChange}
           className="max-w-xs"
         />
       </div>
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div style={{ display: 'grid', gridTemplateColumns }} className="hidden md:grid bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</div>
-          <div className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Abreviatura</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {isLoading ? (
+                <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              ) : obms.length > 0 ? (
+                obms.map((obm) => (
+                  <tr key={obm.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{obm.nome}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
+                      <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
+                      <button onClick={() => handleDeleteClick(obm.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={5} className="text-center py-10 text-gray-500">Nenhuma OBM encontrada.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
-
-        <div ref={parentRef} className="overflow-y-auto" style={{ height: '60vh' }}>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                const obm = obms[virtualItem.index];
-                if (!obm) return null;
-                return (
-                  <div
-                    key={obm.id}
-                    ref={rowVirtualizer.measureElement}
-                    data-index={virtualItem.index}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      transform: `translateY(${virtualItem.start}px)`,
-                      padding: '0.5rem'
-                    }}
-                    className="md:p-0"
-                  >
-                    <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                      <div className="flex justify-between items-start">
-                        <p className="text-lg font-bold text-gray-800 flex items-center">
-                          <Building size={20} className="mr-2 text-red-600" /> {obm.abreviatura}
-                        </p>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1 ml-7">{obm.nome}</p>
-                      <div className="mt-3 space-y-1 text-sm text-gray-600">
-                        <p className="flex items-center"><MapPin size={14} className="mr-2" /> {obm.cidade || 'Não informado'}</p>
-                        <p className="flex items-center"><Phone size={14} className="mr-2" /> {obm.telefone || 'Não informado'}</p>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end items-center">
-                        <div className="flex items-center space-x-3">
-                          <button onClick={() => handleOpenFormModal(obm)} className="p-2 text-indigo-600 hover:text-indigo-900" title="Editar"><Edit size={20} /></button>
-                          <button onClick={() => handleDeleteClick(obm.id)} className="p-2 text-red-600 hover:text-red-900" title="Excluir"><Trash2 size={20} /></button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
-                      <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={obm.nome}>{obm.nome}</div>
-                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</div>
-                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</div>
-                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</div>
-                      <div className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
-                        <button onClick={() => handleDeleteClick(obm.id)} className="ml-4 text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}>
-        {/* --- PASSANDO AS NOVAS OPÇÕES PARA O FORMULÁRIO --- */}
         <ObmForm 
           obmToEdit={itemToEdit} 
           obmOptions={obmOptions}

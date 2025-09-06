@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/components/dashboard/ServicoDiaCard.tsx (Código Completo e Corrigido)
+// Arquivo: frontend/src/components/dashboard/ServicoDiaCard.tsx (Novo Arquivo)
 
 import React from 'react';
 import Spinner from '@/components/ui/Spinner';
@@ -48,14 +48,6 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Serviço de Dia</h3>
-      
-      {/* --- AJUSTE DE RESPONSIVIDADE APLICADO AQUI --- */}
-      {/* 
-        - Por padrão (mobile), será uma coluna única (grid-cols-1).
-        - Em telas pequenas (sm), passará para 2 colunas.
-        - Em telas médias (md), passará para 3 colunas.
-        - Em telas grandes (lg), passará para 4 colunas.
-      */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
         {servicosPrincipais.map((servico) => (
           <div key={servico.funcao} className="text-center flex flex-col items-center">

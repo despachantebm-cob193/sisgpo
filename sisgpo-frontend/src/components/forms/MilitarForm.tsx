@@ -1,14 +1,19 @@
+// Arquivo: frontend/src/components/forms/MilitarForm.tsx (Versão Corrigida)
+
 import React, { useState, useEffect, FormEvent } from 'react';
+import AsyncSelect from 'react-select/async';
+import toast from 'react-hot-toast';
+import api from '../../services/api';
+
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
 import FormError from '../ui/FormError';
 
 // Interfaces
-interface Obm {
-  id: number;
-  nome: string;
-  abreviatura: string;
+interface ObmOption {
+  value: number;
+  label: string;
 }
 interface Militar {
   id?: number;
@@ -25,16 +30,18 @@ interface ValidationError {
 }
 type MilitarFormData = Omit<Militar, 'id'> & { id?: number };
 
+// --- CORREÇÃO APLICADA AQUI ---
+// A propriedade 'obms' foi removida desta interface, pois não é mais necessária.
 interface MilitarFormProps {
   militarToEdit?: Militar | null;
-  obms: Obm[];
   onSave: (militar: MilitarFormData) => void;
   onCancel: () => void;
   isLoading: boolean;
   errors?: ValidationError[];
 }
+// --- FIM DA CORREÇÃO ---
 
-const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, onCancel, isLoading, errors = [] }) => {
+const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCancel, isLoading, errors = [] }) => {
   const getInitialState = (): Militar => ({
     matricula: '',
     nome_completo: '',
@@ -45,25 +52,48 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, 
   });
 
   const [formData, setFormData] = useState<Militar>(getInitialState());
+  const [defaultObmOption, setDefaultObmOption] = useState<ObmOption | null>(null);
+
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
+
+  const loadObmOptions = (inputValue: string, callback: (options: ObmOption[]) => void) => {
+    if (!inputValue || inputValue.length < 2) {
+      return callback([]);
+    }
+    api.get(`/api/admin/obms/search?term=${inputValue}`)
+      .then(response => callback(response.data))
+      .catch(() => callback([]));
+  };
 
   useEffect(() => {
     if (militarToEdit) {
       setFormData(militarToEdit);
+      if (militarToEdit.obm_id) {
+        // Esta lógica agora busca apenas a OBM específica, em vez de depender de uma lista pré-carregada.
+        api.get(`/api/admin/obms?id=${militarToEdit.obm_id}&all=true`).then(res => {
+          const obm = res.data.data[0];
+          if (obm) {
+            setDefaultObmOption({ value: obm.id, label: `${obm.abreviatura} - ${obm.nome}` });
+          }
+        }).catch(() => toast.error("Não foi possível carregar a OBM do militar."));
+      }
     } else {
       setFormData(getInitialState());
+      setDefaultObmOption(null);
     }
   }, [militarToEdit]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const isCheckbox = type === 'checkbox';
-    const checked = (e.target as HTMLInputElement).checked;
-
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: isCheckbox ? checked : (name === 'obm_id' ? (value ? Number(value) : null) : value),
+      [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleObmChange = (selectedOption: ObmOption | null) => {
+    setFormData(prev => ({ ...prev, obm_id: selectedOption ? selectedOption.value : null }));
+    setDefaultObmOption(selectedOption);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -73,7 +103,6 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Campos agora são sempre visíveis */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
@@ -95,17 +124,22 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, 
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            {/* Nome de Guerra agora é opcional */}
             <Label htmlFor="nome_guerra">Nome de Guerra (Opcional)</Label>
             <Input id="nome_guerra" name="nome_guerra" value={formData.nome_guerra || ''} onChange={handleChange} hasError={!!getError('nome_guerra')} />
             <FormError message={getError('nome_guerra')} />
           </div>
           <div>
             <Label htmlFor="obm_id">OBM de Lotação</Label>
-            <select id="obm_id" name="obm_id" value={formData.obm_id || ''} onChange={handleChange} required className={`w-full px-3 py-2 border rounded-md shadow-sm ${getError('obm_id') ? 'border-red-500' : 'border-gray-300'}`}>
-              <option value="">Selecione uma OBM</option>
-              {obms.map(obm => (<option key={obm.id} value={obm.id}>{obm.abreviatura}</option>))}
-            </select>
+            <AsyncSelect
+              id="obm_id"
+              cacheOptions
+              defaultOptions
+              loadOptions={loadObmOptions}
+              value={defaultObmOption}
+              onChange={handleObmChange}
+              placeholder="Digite para buscar uma OBM..."
+              noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma OBM encontrada"}
+            />
             <FormError message={getError('obm_id')} />
           </div>
         </div>

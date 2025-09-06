@@ -1,14 +1,16 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+// Arquivo: frontend/src/pages/EscalaMedicos.tsx (Versão Otimizada com Paginação)
+
+import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import EscalaForm from '../components/forms/EscalaForm'; // Renomeado para consistência
+import EscalaForm from '../components/forms/EscalaForm';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import Pagination from '../components/ui/Pagination'; // Importa o componente de paginação
 import { Edit, Trash2 } from 'lucide-react';
 
 // Interfaces
@@ -22,15 +24,23 @@ interface EscalaServico {
   observacoes: string;
   ativo: boolean;
 }
-
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+}
 interface ApiResponse<T> {
   data: T[];
+  pagination: PaginationState | null;
 }
 
 export default function EscalaMedicos() {
   const [registros, setRegistros] = useState<EscalaServico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Estados para modais e ações
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<EscalaServico | null>(null);
@@ -42,27 +52,34 @@ export default function EscalaMedicos() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ ...filters, all: 'true' });
-      // A rota da API ainda é /civis, conforme a refatoração
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '20', // Carrega 20 por vez
+        ...filters,
+      });
+      // A rota da API ainda é /civis
       const response = await api.get<ApiResponse<EscalaServico>>(`/api/admin/civis?${params.toString()}`);
       setRegistros(response.data.data || []);
+      setPagination(response.data.pagination);
     } catch (err) {
       toast.error('Não foi possível carregar os registros da escala.');
-      setRegistros([]); // Garante que registros seja um array vazio em caso de erro
+      setRegistros([]);
+      setPagination(null);
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters, currentPage]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: registros.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 58,
-    overscan: 10,
-  });
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({ nome_completo: e.target.value });
+    setCurrentPage(1); // Reseta para a primeira página ao filtrar
+  };
 
   const handleOpenFormModal = (item: EscalaServico | null = null) => {
     setItemToEdit(item);
@@ -139,66 +156,60 @@ export default function EscalaMedicos() {
         type="text"
         placeholder="Filtrar por nome..."
         value={filters.nome_completo}
-        onChange={(e) => setFilters({ nome_completo: e.target.value })}
+        onChange={handleFilterChange}
         className="max-w-xs mb-4"
       />
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {/* --- CORREÇÃO ESTRUTURAL --- */}
-        {/* O cabeçalho da tabela agora fica fora do contêiner de virtualização */}
-        <div style={{ display: 'grid', gridTemplateColumns }} className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entrada</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saída</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Observações</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</div>
-        </div>
-
-        <div ref={parentRef} className="overflow-y-auto" style={{ height: '70vh' }}>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : registros.length > 0 ? (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                const registro = registros[virtualItem.index];
-                if (!registro) return null;
-                return (
-                  <div
-                    key={registro.id}
-                    data-index={virtualItem.index}
-                    style={{
-                      position: 'absolute', top: 0, left: 0, width: '100%',
-                      height: `${virtualItem.size}px`, transform: `translateY(${virtualItem.start}px)`,
-                      display: 'grid', gridTemplateColumns,
-                    }}
-                    className="items-center border-b border-gray-200"
-                  >
-                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{registro.nome_completo}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{registro.funcao}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(registro.entrada_servico)}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(registro.saida_servico)}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entrada</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saída</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Observações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              ) : registros.length > 0 ? (
+                registros.map((registro) => (
+                  <tr key={registro.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{registro.nome_completo}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{registro.funcao}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(registro.entrada_servico)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(registro.saida_servico)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${registro.status_servico === 'Presente' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                         {registro.status_servico}
                       </span>
-                    </div>
-                    <div className="px-6 py-4 text-sm text-gray-500 truncate" title={registro.observacoes}>{registro.observacoes || '-'}</div>
-                    <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs" title={registro.observacoes}>{registro.observacoes || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                       <button onClick={() => handleOpenFormModal(registro)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
                       <button onClick={() => handleDeleteClick(registro.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex justify-center items-center h-full">
-              <p className="text-gray-500">Nenhum registro encontrado.</p>
-            </div>
-          )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={7} className="text-center py-10 text-gray-500">Nenhum registro encontrado.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
+        
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Registro de Escala' : 'Adicionar Registro na Escala'}>

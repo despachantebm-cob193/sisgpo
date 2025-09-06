@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/components/ui/Pagination.tsx (Novo Arquivo)
+
 import React from 'react';
 
 interface PaginationProps {
@@ -24,7 +26,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
   };
 
   return (
-    <div className="flex items-center justify-between bg-white px-4 py-3 sm:px-6 mt-4 border-t border-gray-200">
+    <div className="flex items-center justify-between bg-white px-4 py-3 sm:px-6 mt-4 border-t border-gray-200 rounded-b-lg">
       <div className="flex flex-1 justify-between sm:justify-end">
         <button
           onClick={handlePrevious}

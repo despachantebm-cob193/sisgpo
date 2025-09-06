@@ -1,9 +1,8 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx (Código Completo e Corrigido)
+// Arquivo: frontend/src/pages/Viaturas.tsx (Versão Final com Paginação)
 
-import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
+import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2, Car, Building, MapPin } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -12,16 +11,21 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import ViaturaForm from '../components/forms/ViaturaForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import Pagination from '../components/ui/Pagination';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Viatura { id: number; prefixo: string; cidade: string | null; obm: string | null; ativa: boolean; }
-interface ApiResponse<T> { data: T[]; }
+interface PaginationState { currentPage: number; totalPages: number; }
+interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Viaturas() {
-  // Hooks de estado e funções de dados (sem alteração)
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ prefixo: '' });
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Estados de modais e ações
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Viatura | null>(null);
@@ -36,15 +40,20 @@ export default function Viaturas() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ ...filters, all: 'true' });
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '20',
+        ...filters,
+      });
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
+      setPagination(response.data.pagination);
     } catch (err) {
       toast.error('Não foi possível carregar as viaturas.');
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, [filters, currentPage]);
 
   const fetchLastUpload = useCallback(async () => {
     try {
@@ -59,6 +68,12 @@ export default function Viaturas() {
     fetchData();
     fetchLastUpload();
   }, [fetchData, fetchLastUpload]);
+
+  const handlePageChange = (page: number) => setCurrentPage(page);
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({ prefixo: e.target.value });
+    setCurrentPage(1);
+  };
 
   const handleOpenFormModal = (item: Viatura | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
@@ -82,11 +97,9 @@ export default function Viaturas() {
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
-        const firstErrorMessage = err.response.data.errors[0]?.message || 'Por favor, corrija os erros no formulário.';
-        toast.error(firstErrorMessage);
+        toast.error(err.response.data.errors[0]?.message || 'Por favor, corrija os erros.');
       } else {
-        const errorMessage = err.response?.data?.message || 'Erro ao salvar a viatura.';
-        toast.error(errorMessage);
+        toast.error(err.response?.data?.message || 'Erro ao salvar a viatura.');
       }
     } finally {
       setIsSaving(false);
@@ -129,27 +142,8 @@ export default function Viaturas() {
     }
   };
 
-  // --- AJUSTE NA VIRTUALIZAÇÃO ---
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: viaturas.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 130, // Estimativa inicial para a altura do card
-    overscan: 10,
-    // Adiciona a medição de elemento para corrigir sobreposição
-    measureElement:
-      typeof window !== 'undefined' &&
-      navigator.userAgent.indexOf('Firefox') === -1
-        ? element => element.getBoundingClientRect().height
-        : undefined,
-  });
-  // --- FIM DO AJUSTE ---
-
-  const gridTemplateColumns = "1.5fr 2fr 1.5fr 1fr 1fr";
-
   return (
     <div>
-      {/* Cabeçalho e área de upload (sem alteração) */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Viaturas</h2>
         <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">Adicionar Viatura</Button>
@@ -176,81 +170,58 @@ export default function Viaturas() {
         type="text"
         placeholder="Filtrar por prefixo..."
         value={filters.prefixo}
-        onChange={(e) => setFilters({ prefixo: e.target.value })}
+        onChange={handleFilterChange}
         className="w-full md:max-w-xs mb-4"
       />
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div style={{ display: 'grid', gridTemplateColumns }} className="hidden md:grid bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prefixo</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prefixo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {isLoading ? (
+                <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              ) : viaturas.length > 0 ? (
+                viaturas.map((viatura) => (
+                  <tr key={viatura.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viatura.prefixo}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{viatura.obm || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.cidade || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {viatura.ativa ? 'Ativa' : 'Inativa'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                      <button onClick={() => handleOpenFormModal(viatura)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteClick(viatura.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={5} className="text-center py-10 text-gray-500">Nenhuma viatura encontrada.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
-
-        <div ref={parentRef} className="overflow-y-auto" style={{ height: '65vh' }}>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-              {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                const viatura = viaturas[virtualItem.index];
-                if (!viatura) return null;
-                return (
-                  <div
-                    key={viatura.id}
-                    // --- AJUSTE NA VIRTUALIZAÇÃO ---
-                    ref={rowVirtualizer.measureElement}
-                    data-index={virtualItem.index}
-                    // --- FIM DO AJUSTE ---
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualItem.start}px)`, padding: '0.5rem' }}
-                    className="md:p-0"
-                  >
-                    {/* Layout de Card para Mobile */}
-                    <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                      <div className="flex justify-between items-start">
-                        <p className="text-lg font-bold text-gray-800 flex items-center"><Car size={20} className="mr-2 text-red-600" /> {viatura.prefixo}</p>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {viatura.ativa ? 'Ativa' : 'Inativa'}
-                        </span>
-                      </div>
-                      <div className="mt-3 space-y-1 text-sm text-gray-600">
-                        <p className="flex items-center"><Building size={14} className="mr-2" /> {viatura.obm || 'OBM não informada'}</p>
-                        <p className="flex items-center"><MapPin size={14} className="mr-2" /> {viatura.cidade || 'Cidade não informada'}</p>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end items-center">
-                        <div className="flex items-center space-x-3">
-                          <button onClick={() => handleOpenFormModal(viatura)} className="p-2 text-indigo-600 hover:text-indigo-900" title="Editar"><Edit size={20} /></button>
-                          <button onClick={() => handleDeleteClick(viatura.id)} className="p-2 text-red-600 hover:text-red-900" title="Excluir"><Trash2 size={20} /></button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Layout de Tabela para Desktop */}
-                    <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
-                      <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{viatura.prefixo}</div>
-                      <div className="px-6 py-4 text-sm text-gray-500">{viatura.obm || 'N/A'}</div>
-                      <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{viatura.cidade || 'N/A'}</div>
-                      <div className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {viatura.ativa ? 'Ativa' : 'Inativa'}
-                        </span>
-                      </div>
-                      <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                        <button onClick={() => handleOpenFormModal(viatura)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
-                        <button onClick={() => handleDeleteClick(viatura.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
 
-      {/* Modais (sem alteração) */}
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>

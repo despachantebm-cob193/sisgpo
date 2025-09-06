@@ -1,3 +1,5 @@
+// Arquivo: backend/src/routes/adminRoutes.js (Versão Completa e Atualizada)
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -35,6 +37,7 @@ router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaSta
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
+router.get('/obms/search', obmController.search); // Rota para busca assíncrona
 router.post('/obms', validationMiddleware(createObmSchema), obmController.create);
 router.put('/obms/:id', validationMiddleware(updateObmSchema), obmController.update);
 router.delete('/obms/:id', obmController.delete);
@@ -47,7 +50,6 @@ router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarC
 router.delete('/militares/:id', militarController.delete);
 
 // --- ROTAS DE ESCALA (ANTIGA CIVIS) ---
-// O endpoint continua '/civis' para não quebrar o frontend, mas a lógica agora é da escala.
 router.get('/civis', escalaController.getAll);
 router.post('/civis', validationMiddleware(createEscalaSchema), escalaController.create);
 router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);

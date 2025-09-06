@@ -1,9 +1,13 @@
-// Arquivo: backend/src/controllers/obmController.js (COM A CORREÇÃO FINAL)
+// Arquivo: backend/src/controllers/obmController.js (Versão Completa e Otimizada)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const obmController = {
+  /**
+   * Lista todas as OBMs com suporte a filtros e paginação.
+   * Se o parâmetro 'all=true' for passado, retorna todos os registros sem paginar.
+   */
   getAll: async (req, res) => {
     const { nome, abreviatura, cidade, all } = req.query;
 
@@ -15,21 +19,17 @@ const obmController = {
 
     if (all === 'true') {
       const obms = await query;
-      // --- CORREÇÃO APLICADA AQUI ---
-      // A resposta agora corresponde à estrutura esperada pelo frontend,
-      // mesmo sem paginação.
       return res.status(200).json({
         data: obms,
-        pagination: null // Informa que não há paginação
+        pagination: null
       });
-      // --- FIM DA CORREÇÃO ---
     }
 
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
 
-    const countQuery = query.clone().clearSelect().clearOrder().count({ count: '*' }).first();
+    const countQuery = query.clone().count({ count: '*' }).first();
     const dataQuery = query.clone().limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
@@ -42,7 +42,39 @@ const obmController = {
     });
   },
 
-  // ... (create, update, delete permanecem os mesmos)
+  /**
+   * Busca OBMs por termo para componentes de select assíncrono.
+   */
+  search: async (req, res) => {
+    const { term } = req.query;
+
+    if (!term || term.length < 2) {
+      return res.status(200).json([]);
+    }
+
+    try {
+      const obms = await db('obms')
+        .where('nome', 'ilike', `%${term}%`)
+        .orWhere('abreviatura', 'ilike', `%${term}%`)
+        .select('id', 'nome', 'abreviatura')
+        .limit(20);
+
+      const options = obms.map(obm => ({
+        value: obm.id,
+        label: `${obm.abreviatura} - ${obm.nome}`,
+      }));
+
+      res.status(200).json(options);
+
+    } catch (error) {
+      console.error("Erro ao buscar OBMs:", error);
+      throw new AppError("Não foi possível realizar a busca por OBMs.", 500);
+    }
+  },
+
+  /**
+   * Cria uma nova OBM.
+   */
   create: async (req, res) => {
     const { nome, abreviatura, cidade, telefone } = req.body;
     const abreviaturaExists = await db('obms').where({ abreviatura }).first();
@@ -53,6 +85,9 @@ const obmController = {
     res.status(201).json(novaObm);
   },
 
+  /**
+   * Atualiza uma OBM existente.
+   */
   update: async (req, res) => {
     const { id } = req.params;
     const { nome, abreviatura, cidade, telefone } = req.body;
@@ -79,6 +114,9 @@ const obmController = {
     res.status(200).json(obmAtualizada);
   },
 
+  /**
+   * Deleta uma OBM.
+   */
   delete: async (req, res) => {
     const { id } = req.params;
     const result = await db('obms').where({ id }).del();

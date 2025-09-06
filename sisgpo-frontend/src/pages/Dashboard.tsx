@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Dashboard.tsx (Completo com todas as atualizações)
+// Arquivo: frontend/src/pages/Dashboard.tsx (Versão Otimizada para UI/UX)
 
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/services/api';
@@ -7,7 +7,7 @@ import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
 import ViaturaDetailTable from '@/components/dashboard/ViaturaDetailTable';
 import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
-import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard'; // Importação do novo card
+import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import toast from 'react-hot-toast';
 
 // Interfaces

@@ -1,9 +1,10 @@
-// Arquivo: backend/src/controllers/plantaoController.js (Atualizado)
+// Arquivo: backend/src/controllers/plantaoController.js (Versão Otimizada com Paginação)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const plantaoController = {
+  // ... (método create permanece o mesmo)
   create: async (req, res) => {
     const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
     
@@ -39,7 +40,7 @@ const plantaoController = {
     if (data_fim) query.where('p.data_plantao', '<=', data_fim);
     if (obm_id) query.where('p.obm_id', '=', obm_id);
 
-    const baseQuery = query
+    const baseSelectQuery = query
       .select(
         'p.id', 'p.data_plantao', 'p.observacoes',
         'v.prefixo as viatura_prefixo',
@@ -47,19 +48,17 @@ const plantaoController = {
       )
       .orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
 
-    // Se 'all=true', retorna todos os resultados para virtualização
     if (all === 'true') {
-        const plantoes = await baseQuery;
-        return res.status(200).json({ data: plantoes });
+        const plantoes = await baseSelectQuery;
+        return res.status(200).json({ data: plantoes, pagination: null });
     }
 
-    // Lógica de paginação padrão
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 15;
+    const limit = parseInt(req.query.limit, 10) || 20; // Padrão de 20 itens por página
     const offset = (page - 1) * limit;
 
     const countQuery = query.clone().count({ count: 'p.id' }).first();
-    const dataQuery = baseQuery.clone().limit(limit).offset(offset);
+    const dataQuery = baseSelectQuery.clone().limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
@@ -71,6 +70,7 @@ const plantaoController = {
     });
   },
 
+  // ... (getById, update, e delete permanecem os mesmos)
   getById: async (req, res) => {
     const { id } = req.params;
     
