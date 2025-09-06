@@ -1,5 +1,3 @@
-// Arquivo: backend/src/controllers/escalaController.js (Versão Otimizada com Paginação)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -8,19 +6,20 @@ const escalaController = {
   getAll: async (req, res) => {
     const { nome_completo, funcao, all } = req.query;
 
+    // Query base sem ordenação
     const query = db('civis')
       .select(
         'id', 'nome_completo', 'funcao', 'entrada_servico',
         'saida_servico', 'status_servico', 'observacoes', 'ativo'
-      )
-      .orderBy('entrada_servico', 'desc');
+      );
 
+    // Aplica filtros
     if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
     if (funcao) query.where('funcao', 'ilike', `%${funcao}%`);
 
-    // Se 'all=true' for solicitado, retorna todos os resultados sem paginar.
+    // Se 'all=true' for solicitado, retorna todos os resultados sem paginar
     if (all === 'true') {
-      const registros = await query;
+      const registros = await query.orderBy('entrada_servico', 'desc'); // Ordenação aplicada apenas aqui
       return res.status(200).json({ data: registros, pagination: null });
     }
 
@@ -29,10 +28,16 @@ const escalaController = {
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
 
-    const countQuery = query.clone().clearSelect().count({ count: 'id' }).first();
-    const dataQuery = query.clone().limit(limit).offset(offset);
+    // --- CORREÇÃO APLICADA AQUI ---
+    // Clona a query com os filtros, mas limpa a ordenação antes de contar.
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'id' }).first();
+    
+    // A ordenação é aplicada apenas na query que busca os dados paginados.
+    const dataQuery = query.clone().orderBy('entrada_servico', 'desc').limit(limit).offset(offset);
 
+    // Executa as duas queries em paralelo
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+    
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
@@ -42,7 +47,7 @@ const escalaController = {
     });
   },
 
-  // ... (Os métodos create, update e delete permanecem os mesmos)
+  // Métodos create, update e delete permanecem os mesmos
   create: async (req, res) => {
     const { nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo } = req.body;
     const [novoRegistro] = await db('civis')

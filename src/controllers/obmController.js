@@ -1,38 +1,42 @@
-// Arquivo: backend/src/controllers/obmController.js (Versão Completa e Otimizada)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const obmController = {
   /**
    * Lista todas as OBMs com suporte a filtros e paginação.
-   * Se o parâmetro 'all=true' for passado, retorna todos os registros sem paginar.
    */
   getAll: async (req, res) => {
     const { nome, abreviatura, cidade, all } = req.query;
 
-    const query = db('obms').select('*').orderBy('nome', 'asc');
+    // Query base sem ordenação inicial para permitir a contagem correta
+    const query = db('obms').select('*');
 
+    // Aplica filtros
     if (nome) query.where('nome', 'ilike', `%${nome}%`);
     if (abreviatura) query.where('abreviatura', 'ilike', `%${abreviatura}%`);
     if (cidade) query.where('cidade', 'ilike', `%${cidade}%`);
 
+    // Se 'all=true' for solicitado, retorna todos os registros sem paginar
     if (all === 'true') {
-      const obms = await query;
-      return res.status(200).json({
-        data: obms,
-        pagination: null
-      });
+      const obms = await query.orderBy('nome', 'asc'); // Ordenação aplicada apenas aqui
+      return res.status(200).json({ data: obms, pagination: null });
     }
 
+    // Lógica de paginação padrão
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
 
-    const countQuery = query.clone().count({ count: '*' }).first();
-    const dataQuery = query.clone().limit(limit).offset(offset);
+    // --- CORREÇÃO APLICADA ---
+    // Clona a query com os filtros, mas limpa a ordenação antes de contar.
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: '*' }).first();
+    
+    // A ordenação é aplicada apenas na query que busca os dados paginados.
+    const dataQuery = query.clone().orderBy('nome', 'asc').limit(limit).offset(offset);
 
+    // Executa as duas queries em paralelo
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+    
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
@@ -101,15 +105,7 @@ const obmController = {
         throw new AppError('A nova abreviatura já está em uso por outra OBM.', 409);
       }
     }
-    const dadosAtualizacao = {};
-    if (nome !== undefined) dadosAtualizacao.nome = nome;
-    if (abreviatura !== undefined) dadosAtualizacao.abreviatura = abreviatura;
-    if (cidade !== undefined) dadosAtualizacao.cidade = cidade || null;
-    if (telefone !== undefined) dadosAtualizacao.telefone = telefone || null;
-    if (Object.keys(dadosAtualizacao).length === 0) {
-        throw new AppError('Nenhum campo fornecido para atualização.', 400);
-    }
-    dadosAtualizacao.updated_at = db.fn.now();
+    const dadosAtualizacao = { nome, abreviatura, cidade, telefone, updated_at: db.fn.now() };
     const [obmAtualizada] = await db('obms').where({ id }).update(dadosAtualizacao).returning('*');
     res.status(200).json(obmAtualizada);
   },

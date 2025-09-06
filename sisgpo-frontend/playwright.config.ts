@@ -1,5 +1,3 @@
-// Arquivo: frontend/playwright.config.ts (Versão Final Corrigida)
-
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -10,7 +8,8 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   
-  // Aumenta o timeout global para cada teste, dando mais margem em ambientes lentos.
+  // Aumenta o timeout global para cada teste individualmente.
+  // Isso dá mais margem para a execução de cada passo.
   timeout: 60 * 1000, // 60 segundos
 
   use: {
@@ -24,6 +23,7 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
 
+  // --- CORREÇÃO APLICADA AQUI ---
   // Garante que o servidor de desenvolvimento do frontend esteja 100% pronto
   // antes de qualquer teste ser executado.
   webServer: {
@@ -31,7 +31,6 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     // Aumenta o tempo de espera para o servidor iniciar, crucial para CIs ou máquinas mais lentas.
-    timeout: 120 * 1000, 
-    // A propriedade 'killSignal' foi removida pois não é uma opção válida.
+    timeout: 120 * 1000, // 120 segundos (2 minutos )
   },
-} );
+});

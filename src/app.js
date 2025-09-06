@@ -1,9 +1,7 @@
-// Arquivo: backend/src/app.js (Corrigido com configuração de CORS explícita)
-
 require('dotenv').config();
 const express = require('express');
 require('express-async-errors');
-const cors = require('cors');
+const cors = require('cors'); // Importa o pacote cors
 const knex = require('./config/database');
 
 // Importa os arquivos de rota
@@ -17,9 +15,9 @@ const errorMiddleware = require('./middlewares/errorMiddleware');
 const app = express();
 
 // --- CORREÇÃO DE CORS APLICADA AQUI ---
-// Configuração explícita do CORS para permitir todos os métodos e origens
-// durante o desenvolvimento. Isso garante que as requisições preflight (OPTIONS)
-// sejam tratadas corretamente.
+// Configuração explícita do CORS para permitir todas as origens, métodos e
+// cabeçalhos durante o desenvolvimento. Isso é crucial para que o Playwright (rodando em uma origem)
+// consiga fazer requisições para a API (rodando em outra).
 app.use(cors({
   origin: '*', // Em produção, restrinja para o domínio do seu frontend
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',

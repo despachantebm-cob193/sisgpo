@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 
+// Função de login reutilizável para manter o código limpo
 async function login(page: Page) {
   await page.goto('/login');
   await page.locator('input[id="login"]').fill('admin');
@@ -17,7 +18,7 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
   test('deve criar, ler, atualizar e deletar um registro na escala', async ({ page }) => {
     // 1. Login e Navegação
     await login(page);
-    await page.locator('a[href="/civis"]').click(); // A rota ainda é /civis
+    await page.locator('a[href="/civis"]').click(); // A rota da API/frontend ainda é /civis
     await expect(page.locator('h2:has-text("Escala de Serviço (Médicos)")')).toBeVisible();
 
     // --- ETAPA DE CRIAÇÃO (CREATE) ---
@@ -33,12 +34,17 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
     await page.locator('textarea[name="observacoes"]').fill('Observação de teste inicial.');
 
     await page.locator('button:has-text("Salvar")').click();
-    
-    // A mensagem de sucesso no toast é "Registro de escala criado com sucesso!"
     await expect(page.getByText('Registro de escala criado com sucesso!')).toBeVisible();
     
-    // --- ETAPA DE LEITURA (READ) ---
-    const registroItem = page.locator('div[data-index]').filter({ hasText: nomeMedico });
+    // --- ETAPA DE LEITURA (READ) - CORREÇÃO APLICADA ---
+    // 1. Preenche o campo de filtro com o nome único do registro criado.
+    await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeMedico);
+    
+    // 2. Localiza o item na lista. O Playwright aguardará automaticamente que o elemento apareça.
+    //    Isso substitui a busca em uma lista paginada.
+    const registroItem = page.locator('tr').filter({ hasText: nomeMedico });
+    
+    // 3. Verifica se o item está visível e contém os dados corretos.
     await expect(registroItem).toBeVisible({ timeout: 10000 });
     await expect(registroItem).toContainText(funcao);
     await expect(registroItem).toContainText('Presente');
@@ -54,7 +60,9 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
     await page.locator('button:has-text("Salvar")').click();
     await expect(page.getByText('Registro de escala atualizado com sucesso!')).toBeVisible();
 
-    const registroAtualizado = page.locator('div[data-index]').filter({ hasText: nomeMedicoAtualizado });
+    // Filtra novamente pelo nome atualizado para garantir que a busca funcione
+    await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeMedicoAtualizado);
+    const registroAtualizado = page.locator('tr').filter({ hasText: nomeMedicoAtualizado });
     await expect(registroAtualizado).toBeVisible();
     await expect(registroAtualizado).toContainText('Ausente');
 
@@ -64,6 +72,7 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
     await page.locator('button:has-text("Confirmar Exclusão")').click();
     await expect(page.getByText('Registro excluído!')).toBeVisible();
     
+    // Garante que o item não está mais na lista após a exclusão
     await expect(registroAtualizado).not.toBeVisible();
   });
 });

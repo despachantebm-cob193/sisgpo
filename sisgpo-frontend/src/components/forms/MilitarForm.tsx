@@ -1,5 +1,3 @@
-// Arquivo: frontend/src/components/forms/MilitarForm.tsx (Versão Corrigida)
-
 import React, { useState, useEffect, FormEvent } from 'react';
 import AsyncSelect from 'react-select/async';
 import toast from 'react-hot-toast';
@@ -10,7 +8,7 @@ import Label from '../ui/Label';
 import Button from '../ui/Button';
 import FormError from '../ui/FormError';
 
-// Interfaces
+// Interfaces (sem alteração)
 interface ObmOption {
   value: number;
   label: string;
@@ -30,8 +28,6 @@ interface ValidationError {
 }
 type MilitarFormData = Omit<Militar, 'id'> & { id?: number };
 
-// --- CORREÇÃO APLICADA AQUI ---
-// A propriedade 'obms' foi removida desta interface, pois não é mais necessária.
 interface MilitarFormProps {
   militarToEdit?: Militar | null;
   onSave: (militar: MilitarFormData) => void;
@@ -39,7 +35,6 @@ interface MilitarFormProps {
   isLoading: boolean;
   errors?: ValidationError[];
 }
-// --- FIM DA CORREÇÃO ---
 
 const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCancel, isLoading, errors = [] }) => {
   const getInitialState = (): Militar => ({
@@ -56,20 +51,34 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCanc
 
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
 
+  // --- CORREÇÃO APLICADA AQUI ---
+  // Simplifica e torna a função de busca mais robusta.
   const loadObmOptions = (inputValue: string, callback: (options: ObmOption[]) => void) => {
+    // Não faz a busca se o termo for muito curto, para evitar sobrecarga.
     if (!inputValue || inputValue.length < 2) {
       return callback([]);
     }
+    
+    // Faz a chamada para a rota de busca específica.
     api.get(`/api/admin/obms/search?term=${inputValue}`)
-      .then(response => callback(response.data))
-      .catch(() => callback([]));
+      .then(response => {
+        // A API já retorna os dados no formato { value, label }, então passamos diretamente.
+        callback(response.data);
+      })
+      .catch(() => {
+        // Em caso de erro, retorna um array vazio.
+        toast.error("Erro ao buscar OBMs.");
+        callback([]);
+      });
   };
 
   useEffect(() => {
+    // Lógica para preencher o formulário ao editar (sem alterações, mas revisada para garantir consistência)
     if (militarToEdit) {
       setFormData(militarToEdit);
       if (militarToEdit.obm_id) {
-        // Esta lógica agora busca apenas a OBM específica, em vez de depender de uma lista pré-carregada.
+        // Busca a OBM específica para preencher o valor padrão do select.
+        // Usamos a rota /obms com `all=true` e um filtro de ID.
         api.get(`/api/admin/obms?id=${militarToEdit.obm_id}&all=true`).then(res => {
           const obm = res.data.data[0];
           if (obm) {
@@ -103,6 +112,7 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCanc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Campos de texto (sem alteração) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
@@ -115,41 +125,37 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCanc
           <FormError message={getError('posto_graduacao')} />
         </div>
       </div>
-
-      <div className="space-y-4">
+      <div>
+        <Label htmlFor="nome_completo">Nome Completo</Label>
+        <Input id="nome_completo" name="nome_completo" value={formData.nome_completo} onChange={handleChange} required hasError={!!getError('nome_completo')} />
+        <FormError message={getError('nome_completo')} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="nome_completo">Nome Completo</Label>
-          <Input id="nome_completo" name="nome_completo" value={formData.nome_completo} onChange={handleChange} required hasError={!!getError('nome_completo')} />
-          <FormError message={getError('nome_completo')} />
+          <Label htmlFor="nome_guerra">Nome de Guerra (Opcional)</Label>
+          <Input id="nome_guerra" name="nome_guerra" value={formData.nome_guerra || ''} onChange={handleChange} hasError={!!getError('nome_guerra')} />
+          <FormError message={getError('nome_guerra')} />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="nome_guerra">Nome de Guerra (Opcional)</Label>
-            <Input id="nome_guerra" name="nome_guerra" value={formData.nome_guerra || ''} onChange={handleChange} hasError={!!getError('nome_guerra')} />
-            <FormError message={getError('nome_guerra')} />
-          </div>
-          <div>
-            <Label htmlFor="obm_id">OBM de Lotação</Label>
-            <AsyncSelect
-              id="obm_id"
-              cacheOptions
-              defaultOptions
-              loadOptions={loadObmOptions}
-              value={defaultObmOption}
-              onChange={handleObmChange}
-              placeholder="Digite para buscar uma OBM..."
-              noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma OBM encontrada"}
-            />
-            <FormError message={getError('obm_id')} />
-          </div>
+        <div>
+          <Label htmlFor="obm_id">OBM de Lotação</Label>
+          <AsyncSelect
+            id="obm_id"
+            name="obm_id" // Adiciona o name para consistência
+            cacheOptions
+            defaultOptions
+            value={defaultObmOption}
+            loadOptions={loadObmOptions}
+            onChange={handleObmChange}
+            placeholder="Digite para buscar uma OBM..."
+            noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma OBM encontrada"}
+          />
+          <FormError message={getError('obm_id')} />
         </div>
       </div>
-
       <div className="flex items-center">
         <input id="ativo" name="ativo" type="checkbox" checked={formData.ativo} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
         <Label htmlFor="ativo" className="ml-2 mb-0">Ativo</Label>
       </div>
-
       <div className="flex justify-end gap-4 pt-4">
         <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>

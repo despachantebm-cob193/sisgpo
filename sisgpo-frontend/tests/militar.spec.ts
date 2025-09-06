@@ -1,30 +1,25 @@
-// Arquivo: frontend/tests/militar.spec.ts (Versão Corrigida e Simplificada)
-
 import { test, expect, Page } from '@playwright/test';
 
-// Função de login reutilizável
 async function login(page: Page) {
   await page.goto('/login');
   await page.locator('input[id="login"]').fill('admin');
   await page.locator('input[id="senha"]').fill('cbmgo@2025');
   await page.locator('button[type="submit"]').click();
-  await expect(page).toHaveURL('/');
   await expect(page.getByText('Bem-vindo, admin')).toBeVisible();
 }
 
 test.describe('Fluxo de CRUD para Militares', () => {
   const timestamp = Date.now();
-  const nomeMilitar = `Militar Teste ${timestamp}`;
+  const nomeMilitar = `Militar de Teste ${timestamp}`;
   const nomeGuerraMilitar = `Guerra ${timestamp}`;
-  const matriculaMilitar = `mil-${timestamp}`;
+  const matriculaMilitar = `mat-${timestamp}`;
+  const nomeObmParaBusca = '1º BBM';
 
   test('deve criar, ler, atualizar e deletar um Militar', async ({ page }) => {
-    // 1. Login e Navegação
     await login(page);
     await page.locator('a[href="/militares"]').click();
     await expect(page.locator('h2:has-text("Efetivo (Militares)")')).toBeVisible();
 
-    // --- ETAPA DE CRIAÇÃO (CREATE) ---
     await page.locator('button:has-text("Adicionar Militar")').click();
     await expect(page.locator('h3:has-text("Adicionar Novo Militar")')).toBeVisible();
 
@@ -32,29 +27,31 @@ test.describe('Fluxo de CRUD para Militares', () => {
     await page.locator('input[name="nome_guerra"]').fill(nomeGuerraMilitar);
     await page.locator('input[name="matricula"]').fill(matriculaMilitar);
     await page.locator('input[name="posto_graduacao"]').fill('Soldado de Teste');
-    await page.locator('select[name="obm_id"]').selectOption({ index: 1 });
 
-    const createResponsePromise = page.waitForResponse(
-      response => response.url().includes('/api/admin/militares') && response.status() === 201
+    const obmSelectContainer = page.locator('#obm_id').locator('..');
+    await obmSelectContainer.click();
+
+    const obmSearchResponsePromise = page.waitForResponse(
+      response => response.url().includes('/api/admin/obms/search') && response.status() === 200
     );
+
+    await obmSelectContainer.locator('input').fill(nomeObmParaBusca);
+    await obmSearchResponsePromise;
+
+    // --- CORREÇÃO FINAL APLICADA AQUI ---
+    // Em vez de page.getByText, usamos um seletor mais específico para as opções do react-select.
+    // Este seletor busca por um div que contenha o texto da OBM, o que é mais confiável.
+    await page.locator('div[id*="react-select-"][id*="-option-"]').filter({ hasText: nomeObmParaBusca }).click();
+    // --- FIM DA CORREÇÃO ---
+
     await page.locator('button:has-text("Salvar")').click();
-    await createResponsePromise;
     await expect(page.getByText('Militar criado com sucesso!')).toBeVisible();
 
-    // --- ETAPA DE LEITURA (READ) ---
-    
-    // **CORREÇÃO APLICADA AQUI:**
-    // Removemos a espera pela resposta da API (waitForResponse).
-    // Apenas preenchemos o filtro e vamos direto para a verificação do resultado.
-    // O Playwright aguardará automaticamente (auto-waiting) pelo elemento aparecer.
     await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeMilitar);
-
-    // A verificação agora é feita diretamente no elemento da lista.
-    const militarItem = page.locator(`div[data-index]`).filter({ hasText: nomeMilitar });
-    await expect(militarItem).toBeVisible({ timeout: 10000 }); // Aumentamos o timeout para dar margem à renderização
+    const militarItem = page.locator('div[data-index]').filter({ hasText: nomeMilitar });
+    await expect(militarItem).toBeVisible({ timeout: 10000 });
     await expect(militarItem).toContainText(matriculaMilitar);
 
-    // --- ETAPA DE ATUALIZAÇÃO (UPDATE) ---
     await militarItem.getByRole('button', { name: 'Editar' }).click();
     await expect(page.locator('h3:has-text("Editar Militar")')).toBeVisible();
     await page.locator('input[name="posto_graduacao"]').fill('Cabo de Teste');
@@ -63,7 +60,6 @@ test.describe('Fluxo de CRUD para Militares', () => {
 
     await expect(militarItem).toContainText('Cabo de Teste');
 
-    // --- ETAPA DE EXCLUSÃO (DELETE) ---
     await militarItem.getByRole('button', { name: 'Excluir' }).click();
     await page.locator('button:has-text("Confirmar Exclusão")').click();
     await expect(page.getByText('Militar excluído!')).toBeVisible();

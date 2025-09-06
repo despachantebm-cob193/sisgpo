@@ -1,5 +1,3 @@
-// Arquivo: backend/src/controllers/viaturaController.js (Versão Final com Paginação)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -24,8 +22,8 @@ const viaturaController = {
         return res.status(200).json({ data: viaturas, pagination: null });
     }
 
-    const countQuery = query.clone().clearSelect().count({ count: 'v.id' }).first();
-    const dataQuery = query.clone().limit(limit).offset(offset).orderBy('v.prefixo', 'asc');
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'v.id' }).first();
+    const dataQuery = query.clone().orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
     
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
@@ -37,7 +35,6 @@ const viaturaController = {
     });
   },
 
-  // ... (outros métodos create, update, delete, getDistinctObms permanecem os mesmos)
   create: async (req, res) => {
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
     const viaturaExists = await db('viaturas').where({ prefixo }).first();

@@ -1,5 +1,3 @@
-// Arquivo: backend/src/controllers/militarController.js (Versão Otimizada com Paginação)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -20,24 +18,18 @@ const militarController = {
     if (posto_graduacao) query.where('m.posto_graduacao', 'ilike', `%${posto_graduacao}%`);
     if (ativo) query.where('m.ativo', '=', ativo);
 
-    // Se 'all=true' for solicitado (para selects, por exemplo), retorna todos os resultados sem paginar.
     if (all === 'true') {
       const militares = await query.orderBy('m.nome_completo', 'asc');
       return res.status(200).json({ data: militares, pagination: null });
     }
 
-    // Lógica de paginação padrão
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 15; // Padrão de 15 itens por página
+    const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
 
-    // Clona a query para fazer a contagem total de registros antes de aplicar limit/offset
-    const countQuery = query.clone().clearSelect().count({ count: 'm.id' }).first();
-    
-    // Aplica paginação e ordenação na query principal
-    const dataQuery = query.clone().limit(limit).offset(offset).orderBy('m.nome_completo', 'asc');
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'm.id' }).first();
+    const dataQuery = query.clone().orderBy('m.nome_completo', 'asc').limit(limit).offset(offset);
 
-    // Executa as duas queries em paralelo para otimização
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     
     const totalRecords = parseInt(totalResult.count, 10);
@@ -49,7 +41,6 @@ const militarController = {
     });
   },
 
-  // ... (Os métodos create, update e delete permanecem os mesmos)
   create: async (req, res) => {
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
     const matriculaExists = await db('militares').where({ matricula }).first();

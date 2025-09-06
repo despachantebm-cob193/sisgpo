@@ -1,10 +1,7 @@
-// Arquivo: backend/src/controllers/plantaoController.js (Versão Otimizada com Paginação)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const plantaoController = {
-  // ... (método create permanece o mesmo)
   create: async (req, res) => {
     const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
     
@@ -32,33 +29,39 @@ const plantaoController = {
   getAll: async (req, res) => {
     const { data_inicio, data_fim, obm_id, all } = req.query;
     
+    // Query base com os joins necessários
     const query = db('plantoes as p')
       .join('viaturas as v', 'p.viatura_id', 'v.id')
       .join('obms as o', 'p.obm_id', 'o.id');
 
+    // Aplica filtros
     if (data_inicio) query.where('p.data_plantao', '>=', data_inicio);
     if (data_fim) query.where('p.data_plantao', '<=', data_fim);
     if (obm_id) query.where('p.obm_id', '=', obm_id);
 
+    // Query para buscar os dados a serem exibidos
     const baseSelectQuery = query
       .select(
         'p.id', 'p.data_plantao', 'p.observacoes',
         'v.prefixo as viatura_prefixo',
         'o.abreviatura as obm_abreviatura'
-      )
-      .orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
+      );
 
     if (all === 'true') {
-        const plantoes = await baseSelectQuery;
+        const plantoes = await baseSelectQuery.orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
         return res.status(200).json({ data: plantoes, pagination: null });
     }
 
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20; // Padrão de 20 itens por página
+    const limit = parseInt(req.query.limit, 10) || 20;
     const offset = (page - 1) * limit;
 
-    const countQuery = query.clone().count({ count: 'p.id' }).first();
-    const dataQuery = baseSelectQuery.clone().limit(limit).offset(offset);
+    // --- CORREÇÃO APLICADA AQUI ---
+    // Clona a query com os joins e filtros, mas limpa select e order para fazer a contagem.
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'p.id' }).first();
+    
+    // Aplica a ordenação e paginação na query que busca os dados.
+    const dataQuery = baseSelectQuery.clone().orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     const totalRecords = parseInt(totalResult.count, 10);
@@ -70,7 +73,6 @@ const plantaoController = {
     });
   },
 
-  // ... (getById, update, e delete permanecem os mesmos)
   getById: async (req, res) => {
     const { id } = req.params;
     
@@ -81,7 +83,7 @@ const plantaoController = {
     
     const guarnicao = await db('plantoes_militares as pm')
       .join('militares as m', 'pm.militar_id', 'm.id')
-      .select('pm.militar_id', 'pm.funcao')
+      .select('pm.militar_id', 'pm.funcao', 'm.nome_guerra', 'm.posto_graduacao')
       .where('pm.plantao_id', id);
       
     res.status(200).json({ ...plantao, guarnicao });
