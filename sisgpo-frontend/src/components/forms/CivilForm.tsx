@@ -10,50 +10,48 @@ interface Obm {
   nome: string;
   abreviatura: string;
 }
-interface Militar {
+
+interface Civil {
   id?: number;
-  matricula: string;
   nome_completo: string;
-  nome_guerra: string | null;
-  posto_graduacao: string;
+  apelido: string;
   ativo: boolean;
   obm_id: number | null;
 }
+
 interface ValidationError {
   field: string;
   message: string;
 }
-type MilitarFormData = Omit<Militar, 'id'> & { id?: number };
 
-interface MilitarFormProps {
-  militarToEdit?: Militar | null;
+interface CivilFormProps {
+  civilToEdit?: Civil | null;
   obms: Obm[];
-  onSave: (militar: MilitarFormData) => void;
+  onSave: (civil: Omit<Civil, 'id'> & { id?: number }) => void;
   onCancel: () => void;
   isLoading: boolean;
   errors?: ValidationError[];
 }
 
-const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, onCancel, isLoading, errors = [] }) => {
-  const getInitialState = (): Militar => ({
-    matricula: '',
+const CivilForm: React.FC<CivilFormProps> = ({ civilToEdit, obms, onSave, onCancel, isLoading, errors = [] }) => {
+  const getInitialState = (): Civil => ({
     nome_completo: '',
-    nome_guerra: '',
-    posto_graduacao: '',
+    apelido: '',
     ativo: true,
     obm_id: null,
   });
 
-  const [formData, setFormData] = useState<Militar>(getInitialState());
+  const [formData, setFormData] = useState<Civil>(getInitialState());
+
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
 
   useEffect(() => {
-    if (militarToEdit) {
-      setFormData(militarToEdit);
+    if (civilToEdit) {
+      setFormData(civilToEdit);
     } else {
       setFormData(getInitialState());
     }
-  }, [militarToEdit]);
+  }, [civilToEdit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -73,20 +71,6 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Campos agora são sempre visíveis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="matricula">Matrícula</Label>
-          <Input id="matricula" name="matricula" value={formData.matricula} onChange={handleChange} required hasError={!!getError('matricula')} />
-          <FormError message={getError('matricula')} />
-        </div>
-        <div>
-          <Label htmlFor="posto_graduacao">Posto/Graduação</Label>
-          <Input id="posto_graduacao" name="posto_graduacao" value={formData.posto_graduacao} onChange={handleChange} required hasError={!!getError('posto_graduacao')} />
-          <FormError message={getError('posto_graduacao')} />
-        </div>
-      </div>
-
       <div className="space-y-4">
         <div>
           <Label htmlFor="nome_completo">Nome Completo</Label>
@@ -95,10 +79,9 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, 
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            {/* Nome de Guerra agora é opcional */}
-            <Label htmlFor="nome_guerra">Nome de Guerra (Opcional)</Label>
-            <Input id="nome_guerra" name="nome_guerra" value={formData.nome_guerra || ''} onChange={handleChange} hasError={!!getError('nome_guerra')} />
-            <FormError message={getError('nome_guerra')} />
+            <Label htmlFor="apelido">Apelido</Label>
+            <Input id="apelido" name="apelido" value={formData.apelido} onChange={handleChange} required hasError={!!getError('apelido')} />
+            <FormError message={getError('apelido')} />
           </div>
           <div>
             <Label htmlFor="obm_id">OBM de Lotação</Label>
@@ -124,4 +107,4 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, obms, onSave, 
   );
 };
 
-export default MilitarForm;
+export default CivilForm;

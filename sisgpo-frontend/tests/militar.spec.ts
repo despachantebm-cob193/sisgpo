@@ -1,98 +1,73 @@
-// Arquivo: frontend/tests/militar.spec.ts
+// Arquivo: frontend/tests/militar.spec.ts (Versão Corrigida e Simplificada)
 
 import { test, expect, Page } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:5173';
-
-// --- Função Auxiliar para Login ---
-async function login(page: Page ) {
-  await page.goto(`${BASE_URL}/login`);
+// Função de login reutilizável
+async function login(page: Page) {
+  await page.goto('/login');
   await page.locator('input[id="login"]').fill('admin');
   await page.locator('input[id="senha"]').fill('cbmgo@2025');
   await page.locator('button[type="submit"]').click();
-  await expect(page).toHaveURL(BASE_URL + '/');
+  await expect(page).toHaveURL('/');
+  await expect(page.getByText('Bem-vindo, admin')).toBeVisible();
 }
 
-test.describe('Fluxo de CRUD para Militares e Civis', () => {
-  
+test.describe('Fluxo de CRUD para Militares', () => {
   const timestamp = Date.now();
-  // Dados para o Militar
   const nomeMilitar = `Militar Teste ${timestamp}`;
   const nomeGuerraMilitar = `Guerra ${timestamp}`;
   const matriculaMilitar = `mil-${timestamp}`;
-  
-  // Dados para o Civil
-  const nomeCivil = `Civil Teste ${timestamp}`;
-  const apelidoCivil = `Civil ${timestamp}`;
 
-  test('deve criar, ler, atualizar e deletar um Militar e um Civil', async ({ page }) => {
+  test('deve criar, ler, atualizar e deletar um Militar', async ({ page }) => {
     // 1. Login e Navegação
     await login(page);
     await page.locator('a[href="/militares"]').click();
-    await expect(page.locator('h2:has-text("Efetivo (Militares e Civis)")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Efetivo (Militares)")')).toBeVisible();
 
-    // --- ETAPA DE CRIAÇÃO (MILITAR) ---
-    await page.locator('button:has-text("Adicionar Novo")').click();
-    
-    // Preenche o formulário para Militar
-    await expect(page.locator('h3:has-text("Adicionar Novo Registro")')).toBeVisible();
-    await page.locator('select[name="tipo"]').selectOption('Militar');
-    
-    // Verifica se os campos condicionais estão visíveis
-    await expect(page.locator('input[name="matricula"]')).toBeVisible();
-    await expect(page.locator('input[name="posto_graduacao"]')).toBeVisible();
+    // --- ETAPA DE CRIAÇÃO (CREATE) ---
+    await page.locator('button:has-text("Adicionar Militar")').click();
+    await expect(page.locator('h3:has-text("Adicionar Novo Militar")')).toBeVisible();
 
     await page.locator('input[name="nome_completo"]').fill(nomeMilitar);
     await page.locator('input[name="nome_guerra"]').fill(nomeGuerraMilitar);
     await page.locator('input[name="matricula"]').fill(matriculaMilitar);
-    await page.locator('input[name="posto_graduacao"]').fill('Soldado Teste');
-    await page.locator('select[name="obm_id"]').selectOption({ label: '1º BBM' }); // Assumindo que '1º BBM' existe
+    await page.locator('input[name="posto_graduacao"]').fill('Soldado de Teste');
+    await page.locator('select[name="obm_id"]').selectOption({ index: 1 });
 
+    const createResponsePromise = page.waitForResponse(
+      response => response.url().includes('/api/admin/militares') && response.status() === 201
+    );
     await page.locator('button:has-text("Salvar")').click();
-    await expect(page.getByText('Registro criado com sucesso!')).toBeVisible();
-
-    // --- ETAPA DE CRIAÇÃO (CIVIL) ---
-    await page.locator('button:has-text("Adicionar Novo")').click();
-
-    await expect(page.locator('h3:has-text("Adicionar Novo Registro")')).toBeVisible();
-    await page.locator('select[name="tipo"]').selectOption('Civil');
-
-    // Verifica se os campos condicionais NÃO estão visíveis
-    await expect(page.locator('input[name="matricula"]')).not.toBeVisible();
-    await expect(page.locator('input[name="posto_graduacao"]')).not.toBeVisible();
-
-    await page.locator('input[name="nome_completo"]').fill(nomeCivil);
-    await page.locator('input[name="nome_guerra"]').fill(apelidoCivil);
-    await page.locator('select[name="obm_id"]').selectOption({ label: '1º BBM' });
-
-    await page.locator('button:has-text("Salvar")').click();
-    await expect(page.getByText('Registro criado com sucesso!')).toBeVisible();
+    await createResponsePromise;
+    await expect(page.getByText('Militar criado com sucesso!')).toBeVisible();
 
     // --- ETAPA DE LEITURA (READ) ---
-    // Filtra e verifica o Militar
+    
+    // **CORREÇÃO APLICADA AQUI:**
+    // Removemos a espera pela resposta da API (waitForResponse).
+    // Apenas preenchemos o filtro e vamos direto para a verificação do resultado.
+    // O Playwright aguardará automaticamente (auto-waiting) pelo elemento aparecer.
     await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeMilitar);
-    const militarItem = page.locator('div[data-index]').filter({ hasText: nomeGuerraMilitar });
-    await expect(militarItem).toBeVisible();
+
+    // A verificação agora é feita diretamente no elemento da lista.
+    const militarItem = page.locator(`div[data-index]`).filter({ hasText: nomeMilitar });
+    await expect(militarItem).toBeVisible({ timeout: 10000 }); // Aumentamos o timeout para dar margem à renderização
     await expect(militarItem).toContainText(matriculaMilitar);
 
-    // Filtra e verifica o Civil
-    await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeCivil);
-    const civilItem = page.locator('div[data-index]').filter({ hasText: apelidoCivil });
-    await expect(civilItem).toBeVisible();
-    // Verifica se a matrícula está como "N/A"
-    await expect(civilItem).toContainText('N/A');
+    // --- ETAPA DE ATUALIZAÇÃO (UPDATE) ---
+    await militarItem.getByRole('button', { name: 'Editar' }).click();
+    await expect(page.locator('h3:has-text("Editar Militar")')).toBeVisible();
+    await page.locator('input[name="posto_graduacao"]').fill('Cabo de Teste');
+    await page.locator('button:has-text("Salvar")').click();
+    await expect(page.getByText('Militar atualizado com sucesso!')).toBeVisible();
 
-    // --- ETAPA DE EXCLUSÃO ---
-    // Exclui o Militar
+    await expect(militarItem).toContainText('Cabo de Teste');
+
+    // --- ETAPA DE EXCLUSÃO (DELETE) ---
     await militarItem.getByRole('button', { name: 'Excluir' }).click();
     await page.locator('button:has-text("Confirmar Exclusão")').click();
-    await expect(page.getByText('Registro excluído!')).toBeVisible();
+    await expect(page.getByText('Militar excluído!')).toBeVisible();
+    
     await expect(militarItem).not.toBeVisible();
-
-    // Exclui o Civil
-    await civilItem.getByRole('button', { name: 'Excluir' }).click();
-    await page.locator('button:has-text("Confirmar Exclusão")').click();
-    await expect(page.getByText('Registro excluído!')).toBeVisible();
-    await expect(civilItem).not.toBeVisible();
   });
 });

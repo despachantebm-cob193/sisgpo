@@ -1,15 +1,14 @@
-// Arquivo: frontend/src/components/layout/AppLayout.tsx (Código Completo com Cabeçalho Fixo)
-
 import { useState } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { 
-  LayoutDashboard, 
-  Building, 
-  Car, 
-  Users, 
-  Calendar, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Building,
+  Car,
+  Users,
+  UserSquare, // <-- ÍCONE PARA CIVIS
+  Calendar,
+  LogOut,
   UserCircle,
   Clipboard,
   Menu,
@@ -49,18 +48,18 @@ export default function AppLayout() {
     <div className="relative md:flex h-screen bg-gray-100 font-sans">
       {/* Overlay (sem alteração) */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
           onClick={closeSidebar}
         ></div>
       )}
 
-      {/* Barra Lateral (sem alteração) */}
-      <aside 
+      {/* Barra Lateral */}
+      <aside
         className={`
           fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col
           transform transition-transform duration-300 ease-in-out z-30
-          md:relative md:translate-x-0 
+          md:relative md:translate-x-0
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
@@ -70,17 +69,19 @@ export default function AppLayout() {
             <X size={24} />
           </button>
         </div>
-        
+
         <nav className="flex-1 px-4 py-4 space-y-2">
           <NavItem to="/" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
           <NavItem to="/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
           <NavItem to="/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
           <NavItem to="/militares" icon={Users} label="Militares" onClick={closeSidebar} />
+          {/* NOVO LINK PARA CIVIS */}
+          <NavItem to="/civis" icon={UserSquare} label="Civis" onClick={closeSidebar} />
           <NavItem to="/plantoes" icon={Calendar} label="Plantões" onClick={closeSidebar} />
           <NavItem to="/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
           <NavItem to="/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
         </nav>
-        
+
         <div className="px-4 py-4 border-t border-gray-700">
            <button
             onClick={() => { closeSidebar(); logout(); }}
@@ -92,12 +93,11 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* --- ÁREA DE CONTEÚDO PRINCIPAL (COM AJUSTES) --- */}
+      {/* Área de Conteúdo Principal (sem alteração) */}
       <div className="flex-1 flex flex-col relative">
-        {/* Cabeçalho da Área de Conteúdo (AGORA FIXO) */}
-        <header 
+        <header
           className="
-            sticky top-0 h-16 bg-white border-b border-gray-200 
+            sticky top-0 h-16 bg-white border-b border-gray-200
             flex items-center justify-between px-6 z-10
           "
         >
@@ -112,7 +112,6 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Conteúdo da Página (AGORA COM ROLAGEM INDEPENDENTE) */}
         <main className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <Outlet />

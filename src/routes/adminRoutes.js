@@ -1,5 +1,3 @@
-// Arquivo: backend/src/routes/adminRoutes.js (Completo)
-
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -9,6 +7,7 @@ const upload = multer({ dest: 'uploads/' });
 
 // --- Controllers ---
 const militarController = require('../controllers/militarController');
+const civilController = require('../controllers/civilController'); // <-- NOVO
 const obmController = require('../controllers/obmController');
 const obmFileController = require('../controllers/obmFileController');
 const viaturaController = require('../controllers/viaturaController');
@@ -16,11 +15,12 @@ const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
 const viaturaFileController = require('../controllers/viaturaFileController');
 const userController = require('../controllers/userController');
-const servicoDiaController = require('../controllers/servicoDiaController'); // Importação adicionada
+const servicoDiaController = require('../controllers/servicoDiaController');
 
 // --- Validadores ---
 const validationMiddleware = require('../middlewares/validationMiddleware');
 const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
+const { createCivilSchema, updateCivilSchema } = require('../validators/civilValidator'); // <-- NOVO
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
@@ -45,6 +45,12 @@ router.get('/militares', militarController.getAll);
 router.post('/militares', validationMiddleware(createMilitarSchema), militarController.create);
 router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
+
+// --- ROTAS DE CIVIS (NOVAS) ---
+router.get('/civis', civilController.getAll);
+router.post('/civis', validationMiddleware(createCivilSchema), civilController.create);
+router.put('/civis/:id', validationMiddleware(updateCivilSchema), civilController.update);
+router.delete('/civis/:id', civilController.delete);
 
 // --- ROTAS DE VIATURAS ---
 router.get('/viaturas', viaturaController.getAll);
@@ -71,7 +77,7 @@ router.put(
   userController.changePassword
 );
 
-// --- ROTA DE METADADOs ---
+// --- ROTA DE METADADOS ---
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
 module.exports = router;

@@ -1,9 +1,8 @@
-// Arquivo: backend/src/controllers/militarController.js (Atualizado)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const militarController = {
+  // Listar todos os militares com paginação e filtros
   getAll: async (req, res) => {
     const { nome_completo, posto_graduacao, matricula, obm_id, all } = req.query;
 
@@ -11,7 +10,7 @@ const militarController = {
       .select(
         'militares.id', 'militares.matricula', 'militares.nome_completo',
         'militares.nome_guerra', 'militares.posto_graduacao', 'militares.ativo',
-        'militares.obm_id', 'militares.tipo', // Inclui o novo campo 'tipo'
+        'militares.obm_id',
         'obms.abreviatura as obm_abreviatura'
       )
       .leftJoin('obms', 'militares.obm_id', 'obms.id')
@@ -44,55 +43,53 @@ const militarController = {
     });
   },
 
+  // Criar um novo militar
   create: async (req, res) => {
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, tipo } = req.body;
-    
-    if (tipo === 'Militar' && matricula) {
-      const matriculaExists = await db('militares').where({ matricula }).first();
-      if (matriculaExists) {
-        throw new AppError('Matrícula já cadastrada no sistema.', 409);
-      }
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
+
+    const matriculaExists = await db('militares').where({ matricula }).first();
+    if (matriculaExists) {
+      throw new AppError('Matrícula já cadastrada no sistema.', 409);
     }
 
     const [novoMilitar] = await db('militares')
-      .insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, tipo })
+      .insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id })
       .returning('*');
-      
+
     res.status(201).json(novoMilitar);
   },
 
+  // Atualizar um militar existente
   update: async (req, res) => {
     const { id } = req.params;
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, tipo } = req.body;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
 
     const militarAtual = await db('militares').where({ id }).first();
     if (!militarAtual) {
       throw new AppError('Militar não encontrado.', 404);
     }
 
-    if (tipo === 'Militar' && matricula && matricula !== militarAtual.matricula) {
+    if (matricula && matricula !== militarAtual.matricula) {
       const matriculaConflict = await db('militares').where({ matricula }).andWhereNot({ id }).first();
       if (matriculaConflict) {
         throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
       }
     }
 
-    const dadosAtualizacao = { 
-      matricula: tipo === 'Militar' ? matricula : null, 
-      nome_completo, nome_guerra, 
-      posto_graduacao: tipo === 'Militar' ? posto_graduacao : null, 
-      ativo, obm_id, tipo, 
-      updated_at: db.fn.now() 
+    const dadosAtualizacao = {
+      matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id,
+      updated_at: db.fn.now()
     };
 
     const [militarAtualizado] = await db('militares')
       .where({ id })
       .update(dadosAtualizacao)
       .returning('*');
-      
+
     res.status(200).json(militarAtualizado);
   },
 
+  // Deletar um militar
   delete: async (req, res) => {
     const { id } = req.params;
     const result = await db('militares').where({ id }).del();

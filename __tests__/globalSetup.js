@@ -1,62 +1,51 @@
-// Arquivo: __tests__/globalSetup.js (Corrigido)
+// Arquivo: backend/__tests__/globalSetup.js (Corrigido e Aprimorado)
 
-// Carrega as variáveis de ambiente específicas para teste
 require('dotenv').config({ path: './.env.test' });
-
-// Importa a instância do Knex, que já está configurada para o ambiente de teste
 const db = require('../src/config/database');
 const bcrypt = require('bcryptjs');
 
 module.exports = async () => {
   console.log('[Global Setup] Iniciando configuração do ambiente de teste...');
 
-  const tabelas = [
-    'plantoes_militares',
-    'plantoes',
-    'militares',
-    'viaturas',
-    'obms',
-    'usuarios'
-  ];
-
-  // 1. Limpa todas as tabelas na ordem correta usando a sintaxe do Knex
-  console.log('[Global Setup] Limpando tabelas...');
-  for (const tabela of tabelas) {
-    try {
-      // --- CORREÇÃO APLICADA AQUI ---
-      // Usando a sintaxe do Knex para deletar os registros
-      await db(tabela).del();
-      // -----------------------------
-    } catch (error) {
-      // Ignora o erro "tabela não existe" (código 42P01 para PostgreSQL)
-      // Isso permite que o teste rode mesmo na primeira vez, antes das migrations
-      if (error.code !== '42P01') {
-        console.error(`Erro ao limpar a tabela ${tabela}:`, error);
-        process.exit(1);
-      }
-    }
-  }
-
-  // 2. Cria o usuário admin para os testes usando a sintaxe do Knex
-  console.log('[Global Setup] Criando usuário "admin" para os testes...');
   try {
+    // 1. Limpa as tabelas na ordem correta para evitar erros de chave estrangeira
+    console.log('[Global Setup] Limpando tabelas...');
+    await db('plantoes_militares').del();
+    await db('plantoes').del();
+    await db('militares').del();
+    await db('viaturas').del();
+    await db('obms').del();
+    await db('usuarios').del();
+    console.log('[Global Setup] Tabelas limpas.');
+
+    // 2. Cria o usuário 'admin' para os testes
+    console.log('[Global Setup] Criando usuário "admin" para os testes...');
     const senhaPlana = 'cbmgo@2025';
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senhaPlana, salt);
-
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Usando a sintaxe do Knex para inserir o usuário
     await db('usuarios').insert({
       login: 'admin',
       senha_hash: senhaHash,
       perfil: 'Admin'
     });
-    // -----------------------------
+    console.log('[Global Setup] Usuário "admin" criado.');
+
+    // --- CORREÇÃO PRINCIPAL APLICADA AQUI ---
+    // 3. Insere uma OBM de teste que estará disponível para todos os testes
+    console.log('[Global Setup] Inserindo dados de suporte (OBM de Teste)...');
+    await db('obms').insert({
+        nome: 'Comando Geral de Teste',
+        abreviatura: 'CG-TESTE',
+        cidade: 'Goiânia',
+        telefone: '6232010000'
+    });
+    console.log('[Global Setup] OBM de Teste inserida com sucesso.');
+    // --- FIM DA CORREÇÃO ---
 
   } catch (error) {
-    console.error('Erro ao criar usuário admin no setup global:', error);
-    process.exit(1);
+    console.error('❌ ERRO CRÍTICO no Global Setup:', error);
+    process.exit(1); // Aborta a execução dos testes se o setup falhar
   }
 
-  console.log('[Global Setup] Ambiente de teste configurado com sucesso.');
+  console.log('✅ [Global Setup] Ambiente de teste configurado com sucesso.');
 };

@@ -1,56 +1,35 @@
-// Arquivo: backend/src/validators/militarValidator.js (Atualizado)
-
 const Joi = require('joi');
 
-const baseSchema = {
+// Schema base para criação e atualização, agora simplificado.
+const militarSchema = {
+  // Campos que agora são sempre obrigatórios
+  matricula: Joi.string().min(3).max(20).required().messages({
+    'string.empty': 'A matrícula é obrigatória.',
+    'any.required': 'A matrícula é obrigatória.',
+  }),
+  posto_graduacao: Joi.string().min(2).max(50).required().messages({
+    'string.empty': 'O posto/graduação é obrigatório.',
+    'any.required': 'O posto/graduação é obrigatório.',
+  }),
+
+  // Campos que já eram obrigatórios
   nome_completo: Joi.string().min(3).max(150).required().messages({
     'string.empty': 'O nome completo é obrigatório.',
     'any.required': 'O nome completo é obrigatório.',
   }),
-  nome_guerra: Joi.string().min(2).max(50).required().messages({
-    'string.empty': 'O nome de guerra é obrigatório.',
-    'any.required': 'O nome de guerra é obrigatório.',
-  }),
-  ativo: Joi.boolean().required(),
   obm_id: Joi.number().integer().positive().required().messages({
     'number.base': 'A OBM é obrigatória.',
     'any.required': 'A OBM é obrigatória.',
   }),
-  // Novo campo 'tipo'
-  tipo: Joi.string().valid('Militar', 'Civil').required().messages({
-    'any.only': 'O tipo deve ser "Militar" ou "Civil".',
-    'any.required': 'O tipo é obrigatório.',
-  }),
+  ativo: Joi.boolean().required(),
+
+  // Nome de guerra agora é opcional
+  nome_guerra: Joi.string().min(2).max(50).optional().allow(null, ''),
 };
 
-const createMilitarSchema = Joi.object({
-  ...baseSchema,
-  // Validação condicional para matrícula e posto/graduação
-  matricula: Joi.when('tipo', {
-    is: 'Militar',
-    then: Joi.string().min(3).max(20).required(),
-    otherwise: Joi.string().optional().allow(null, ''),
-  }),
-  posto_graduacao: Joi.when('tipo', {
-    is: 'Militar',
-    then: Joi.string().min(2).max(50).required(),
-    otherwise: Joi.string().optional().allow(null, ''),
-  }),
-});
+const createMilitarSchema = Joi.object(militarSchema);
 
-const updateMilitarSchema = Joi.object({
-  ...baseSchema,
-  matricula: Joi.when('tipo', {
-    is: 'Militar',
-    then: Joi.string().min(3).max(20).required(),
-    otherwise: Joi.string().optional().allow(null, ''),
-  }),
-  posto_graduacao: Joi.when('tipo', {
-    is: 'Militar',
-    then: Joi.string().min(2).max(50).required(),
-    otherwise: Joi.string().optional().allow(null, ''),
-  }),
-}).options({ allowUnknown: true }); // Permite campos extras como 'id'
+const updateMilitarSchema = Joi.object(militarSchema).options({ allowUnknown: true });
 
 module.exports = {
   createMilitarSchema,

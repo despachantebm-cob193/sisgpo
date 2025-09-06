@@ -1,8 +1,14 @@
+// Arquivo: frontend/src/services/api.ts (COM A CORREÇÃO FINAL E ROBUSTA )
+
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-// A baseURL aponta para a raiz da API, definida no arquivo .env do frontend
-const baseURL = import.meta.env.VITE_API_BASE_URL;
+// 1. Tenta ler a baseURL do ambiente Vite.
+// 2. Se for indefinida (como pode acontecer em alguns ambientes de teste),
+//    usa um valor padrão explícito para o servidor de desenvolvimento/teste.
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3333';
+
+console.log(`[API Service] Configurando Axios com baseURL: ${baseURL}` );
 
 const api = axios.create({
   baseURL: baseURL,

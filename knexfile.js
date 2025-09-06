@@ -1,4 +1,4 @@
-// Arquivo: knexfile.js (Corrigido)
+// Arquivo: knexfile.js (Corrigido para carregar o .env correto)
 
 const path = require('path');
 
