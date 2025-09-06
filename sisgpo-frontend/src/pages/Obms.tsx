@@ -1,5 +1,3 @@
-// Arquivo: frontend/src/pages/Obms.tsx (Código Completo com Medição Dinâmica de Altura)
-
 import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2, Building, MapPin, Phone } from 'lucide-react';
@@ -13,7 +11,7 @@ import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Obm {
   id: number;
   nome: string;
@@ -21,11 +19,21 @@ interface Obm {
   cidade: string | null;
   telefone: string | null;
 }
+
+// --- NOVA INTERFACE PARA AS OPÇÕES DO DROPDOWN ---
+export interface ObmOption {
+  value: string;
+  label: string;
+  cidade: string;
+}
+
 interface ApiResponse<T> { data: T[]; }
 
 export default function Obms() {
-  // Hooks de estado e funções de dados (sem alteração)
   const [obms, setObms] = useState<Obm[]>([]);
+  // --- NOVO ESTADO PARA AS OPÇÕES DO FORMULÁRIO ---
+  const [obmOptions, setObmOptions] = useState<ObmOption[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome: '' });
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
@@ -42,10 +50,17 @@ export default function Obms() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ ...filters, all: 'true' });
-      const response = await api.get<ApiResponse<Obm>>(`/api/admin/obms?${params.toString()}`);
-      setObms(response.data.data);
+      // --- BUSCA OS DADOS EM PARALELO ---
+      const [obmsRes, optionsRes] = await Promise.all([
+        api.get<ApiResponse<Obm>>(`/api/admin/obms?${params.toString()}`),
+        api.get<ObmOption[]>('/api/admin/viaturas/distinct-obms') // Novo endpoint
+      ]);
+      
+      setObms(obmsRes.data.data);
+      setObmOptions(optionsRes.data); // Armazena as opções
+
     } catch (err) {
-      toast.error('Não foi possível carregar as OBMs.');
+      toast.error('Não foi possível carregar os dados das OBMs.');
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +86,7 @@ export default function Obms() {
       }
       toast.success(`OBM ${action} com sucesso!`);
       handleCloseFormModal();
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
@@ -90,7 +105,7 @@ export default function Obms() {
     try {
       await api.delete(`/api/admin/obms/${itemToDeleteId}`);
       toast.success('OBM excluída com sucesso!');
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir OBM.');
     } finally {
@@ -108,7 +123,7 @@ export default function Obms() {
     try {
       const response = await api.post('/api/admin/obms/upload', formData);
       toast.success(response.data.message || 'Arquivo processado com sucesso!');
-      fetchData();
+      await fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
@@ -119,27 +134,23 @@ export default function Obms() {
     }
   };
 
-  // --- AJUSTE NA VIRTUALIZAÇÃO ---
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: obms.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 130, // Uma estimativa inicial razoável para os cards
+    estimateSize: () => 130,
     overscan: 10,
-    // Adiciona a medição de elemento
     measureElement:
       typeof window !== 'undefined' &&
       navigator.userAgent.indexOf('Firefox') === -1
         ? element => element.getBoundingClientRect().height
         : undefined,
   });
-  // --- FIM DO AJUSTE ---
 
   const gridTemplateColumns = "2.5fr 1fr 1fr 1fr 0.5fr";
 
   return (
     <div>
-      {/* Cabeçalho e área de upload (sem alteração) */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">OBMs</h2>
@@ -192,11 +203,8 @@ export default function Obms() {
                 return (
                   <div
                     key={obm.id}
-                    // --- AJUSTE NA VIRTUALIZAÇÃO ---
-                    // Adiciona a ref para medição e o data-index
                     ref={rowVirtualizer.measureElement}
                     data-index={virtualItem.index}
-                    // --- FIM DO AJUSTE ---
                     style={{
                       position: 'absolute',
                       top: 0,
@@ -207,7 +215,6 @@ export default function Obms() {
                     }}
                     className="md:p-0"
                   >
-                    {/* Layout de Card para Mobile */}
                     <div className="md:hidden bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                       <div className="flex justify-between items-start">
                         <p className="text-lg font-bold text-gray-800 flex items-center">
@@ -227,7 +234,6 @@ export default function Obms() {
                       </div>
                     </div>
 
-                    {/* Layout de Tabela para Desktop */}
                     <div style={{ gridTemplateColumns }} className="hidden md:grid items-center border-b border-gray-200 h-full">
                       <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={obm.nome}>{obm.nome}</div>
                       <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</div>
@@ -246,9 +252,16 @@ export default function Obms() {
         </div>
       </div>
 
-      {/* Modais (sem alteração) */}
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}>
-        <ObmForm obmToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
+        {/* --- PASSANDO AS NOVAS OPÇÕES PARA O FORMULÁRIO --- */}
+        <ObmForm 
+          obmToEdit={itemToEdit} 
+          obmOptions={obmOptions}
+          onSave={handleSave} 
+          onCancel={handleCloseFormModal} 
+          isLoading={isSaving} 
+          errors={validationErrors} 
+        />
       </Modal>
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta OBM?" isLoading={isDeleting} />
     </div>

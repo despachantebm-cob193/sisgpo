@@ -6,11 +6,10 @@ import {
   Building,
   Car,
   Users,
-  UserSquare, // <-- ÍCONE PARA CIVIS
+  Clipboard, // Ícone reutilizado para a escala
   Calendar,
   LogOut,
   UserCircle,
-  Clipboard,
   Menu,
   X,
 } from 'lucide-react';
@@ -75,8 +74,8 @@ export default function AppLayout() {
           <NavItem to="/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
           <NavItem to="/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
           <NavItem to="/militares" icon={Users} label="Militares" onClick={closeSidebar} />
-          {/* NOVO LINK PARA CIVIS */}
-          <NavItem to="/civis" icon={UserSquare} label="Civis" onClick={closeSidebar} />
+          {/* --- LINHA ATUALIZADA AQUI --- */}
+          <NavItem to="/civis" icon={Clipboard} label="Escala de Médicos" onClick={closeSidebar} />
           <NavItem to="/plantoes" icon={Calendar} label="Plantões" onClick={closeSidebar} />
           <NavItem to="/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
           <NavItem to="/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />

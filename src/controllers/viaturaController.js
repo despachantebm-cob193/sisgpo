@@ -1,5 +1,3 @@
-// Arquivo: backend/src/controllers/viaturaController.js (Corrigido)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -8,8 +6,6 @@ const viaturaController = {
     const { page = 1, limit = 15, prefixo, all } = req.query;
     const offset = (page - 1) * limit;
 
-    // --- CORREÇÃO PRINCIPAL AQUI ---
-    // A query agora faz um LEFT JOIN com a tabela de OBMs para buscar o obm_id
     const query = db('viaturas as v')
       .leftJoin('obms as o', 'v.obm', 'o.nome')
       .select(
@@ -19,9 +15,8 @@ const viaturaController = {
         'v.cidade',
         'v.obm',
         'v.telefone',
-        'o.id as obm_id' // Seleciona o ID da OBM e o renomeia para obm_id
+        'o.id as obm_id'
       );
-    // --- FIM DA CORREÇÃO ---
 
     if (prefixo) {
       query.where('v.prefixo', 'ilike', `%${prefixo}%`);
@@ -81,7 +76,30 @@ const viaturaController = {
       throw new AppError('Viatura não encontrada.', 404);
     }
     res.status(204).send();
-  }
+  },
+
+  // --- NOVO MÉTODO ADICIONADO ---
+  getDistinctObms: async (req, res) => {
+    try {
+      // Busca valores distintos e não nulos para obm e cidade
+      const distinctData = await db('viaturas')
+        .distinct('obm', 'cidade')
+        .whereNotNull('obm')
+        .orderBy('obm', 'asc');
+
+      // Formata os dados para o formato que o react-select espera: { label, value, cidade }
+      const options = distinctData.map(item => ({
+        value: item.obm, // O valor a ser salvo
+        label: item.obm, // O texto a ser exibido
+        cidade: item.cidade // Um dado extra para autopreenchimento
+      }));
+
+      res.status(200).json(options);
+    } catch (error) {
+      console.error("Erro ao buscar OBMs distintas:", error);
+      throw new AppError("Não foi possível carregar a lista de OBMs existentes.", 500);
+    }
+  },
 };
 
 module.exports = viaturaController;

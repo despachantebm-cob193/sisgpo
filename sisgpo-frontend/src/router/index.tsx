@@ -8,7 +8,7 @@ import NotFound from '../pages/NotFound';
 import Obms from '../pages/Obms';
 import Viaturas from '../pages/Viaturas';
 import Militares from '../pages/Militares';
-import Civis from '../pages/Civis'; // <-- IMPORTAÇÃO DA NOVA PÁGINA
+import Civis from '../pages/EscalaMedicos'; // <-- IMPORTAÇÃO DA NOVA PÁGINA
 import Plantoes from '../pages/Plantoes';
 import Profile from '../pages/Profile';
 import ServicoDia from '../pages/ServicoDia';

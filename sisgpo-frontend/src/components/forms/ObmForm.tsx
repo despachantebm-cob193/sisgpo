@@ -1,10 +1,10 @@
-// Arquivo: frontend/src/components/forms/ObmForm.tsx
-
 import React, { useState, useEffect, FormEvent } from 'react';
+import CreatableSelect from 'react-select/creatable';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
 import FormError from '../ui/FormError';
+import { ObmOption } from '../../pages/Obms'; // Importando a interface da página
 
 // Interfaces
 interface Obm {
@@ -22,13 +22,14 @@ interface ValidationError {
 
 interface ObmFormProps {
   obmToEdit?: Obm | null;
+  obmOptions: ObmOption[];
   onSave: (obm: Omit<Obm, 'id'> & { id?: number }) => void;
   onCancel: () => void;
   isLoading: boolean;
   errors?: ValidationError[];
 }
 
-const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoading, errors = [] }) => {
+const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCancel, isLoading, errors = [] }) => {
   const [formData, setFormData] = useState<Obm>({
     nome: '',
     abreviatura: '',
@@ -36,7 +37,10 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoadin
     telefone: '',
   });
 
-  // Função para encontrar erro de um campo específico
+  // --- NOVO ESTADO PARA GERENCIAR AS OPÇÕES INTERNAMENTE ---
+  // Isso evita a mutação direta da prop `obmOptions`
+  const [internalOptions, setInternalOptions] = useState<ObmOption[]>(obmOptions);
+
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
 
   useEffect(() => {
@@ -49,14 +53,41 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoadin
         telefone: obmToEdit.telefone || '',
       });
     } else {
-      // Reseta para o estado inicial limpo ao criar um novo
       setFormData({ nome: '', abreviatura: '', cidade: '', telefone: '' });
     }
-  }, [obmToEdit]);
+    // Sincroniza as opções internas sempre que a prop mudar
+    setInternalOptions(obmOptions);
+  }, [obmToEdit, obmOptions]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (selectedOption: ObmOption | null) => {
+    if (selectedOption) {
+      setFormData(prev => ({
+        ...prev,
+        nome: selectedOption.value,
+        cidade: selectedOption.cidade || prev.cidade,
+      }));
+    } else {
+      // Limpa os campos se a seleção for removida
+      setFormData(prev => ({ ...prev, nome: '', cidade: '' }));
+    }
+  };
+
+  const handleCreateOption = (inputValue: string) => {
+    // Cria uma nova opção e a adiciona ao estado *interno* do formulário
+    const newOption: ObmOption = { value: inputValue, label: inputValue, cidade: '' };
+    setInternalOptions(prev => [...prev, newOption]);
+    
+    // Define os dados do formulário para a nova opção criada
+    setFormData(prev => ({
+      ...prev,
+      nome: inputValue,
+      cidade: '', // Limpa a cidade para a nova OBM
+    }));
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -64,17 +95,31 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, onSave, onCancel, isLoadin
     onSave(formData);
   };
 
+  const currentSelectValue = formData.nome ? { value: formData.nome, label: formData.nome, cidade: formData.cidade || '' } : null;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="nome">Nome da OBM</Label>
-        <Input
+        <CreatableSelect
           id="nome"
-          name="nome"
-          value={formData.nome}
-          onChange={handleChange}
-          required
-          hasError={!!getError('nome')}
+          isClearable
+          options={internalOptions} // Usa as opções internas
+          value={currentSelectValue}
+          onChange={handleSelectChange}
+          onCreateOption={handleCreateOption}
+          placeholder="Selecione ou digite para criar uma OBM"
+          formatCreateLabel={(inputValue) => `Criar nova OBM: "${inputValue}"`}
+          styles={{
+            control: (base, state) => ({
+              ...base,
+              borderColor: getError('nome') ? '#EF4444' : (state.isFocused ? '#6366F1' : '#D1D5DB'),
+              boxShadow: state.isFocused ? '0 0 0 1px #6366F1' : 'none',
+              '&:hover': {
+                borderColor: state.isFocused ? '#6366F1' : '#9CA3AF',
+              }
+            })
+          }}
         />
         <FormError message={getError('nome')} />
       </div>

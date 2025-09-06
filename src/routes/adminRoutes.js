@@ -7,7 +7,8 @@ const upload = multer({ dest: 'uploads/' });
 
 // --- Controllers ---
 const militarController = require('../controllers/militarController');
-const civilController = require('../controllers/civilController'); // <-- NOVO
+// --- IMPORTAÇÃO ATUALIZADA ---
+const escalaController = require('../controllers/escalaController'); 
 const obmController = require('../controllers/obmController');
 const obmFileController = require('../controllers/obmFileController');
 const viaturaController = require('../controllers/viaturaController');
@@ -20,7 +21,8 @@ const servicoDiaController = require('../controllers/servicoDiaController');
 // --- Validadores ---
 const validationMiddleware = require('../middlewares/validationMiddleware');
 const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
-const { createCivilSchema, updateCivilSchema } = require('../validators/civilValidator'); // <-- NOVO
+// --- IMPORTAÇÃO ATUALIZADA ---
+const { createEscalaSchema, updateEscalaSchema } = require('../validators/escalaValidator'); 
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
@@ -46,14 +48,16 @@ router.post('/militares', validationMiddleware(createMilitarSchema), militarCont
 router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
 
-// --- ROTAS DE CIVIS (NOVAS) ---
-router.get('/civis', civilController.getAll);
-router.post('/civis', validationMiddleware(createCivilSchema), civilController.create);
-router.put('/civis/:id', validationMiddleware(updateCivilSchema), civilController.update);
-router.delete('/civis/:id', civilController.delete);
+// --- ROTAS DE ESCALA (ANTIGA CIVIS) ---
+// O endpoint continua '/civis' para não quebrar o frontend, mas a lógica agora é da escala.
+router.get('/civis', escalaController.getAll);
+router.post('/civis', validationMiddleware(createEscalaSchema), escalaController.create);
+router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);
+router.delete('/civis/:id', escalaController.delete);
 
 // --- ROTAS DE VIATURAS ---
 router.get('/viaturas', viaturaController.getAll);
+router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
 router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
 router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
 router.delete('/viaturas/:id', viaturaController.delete);
