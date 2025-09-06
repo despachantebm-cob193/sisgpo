@@ -1,7 +1,7 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
-const civilController = {
+const escalaController = {
   // Listar todos os registros da escala com filtros
   getAll: async (req, res) => {
     const { nome_completo, funcao, all } = req.query;
@@ -84,4 +84,4 @@ const civilController = {
   }
 };
 
-module.exports = civilController;
+module.exports = escalaController;

@@ -7,7 +7,6 @@ const upload = multer({ dest: 'uploads/' });
 
 // --- Controllers ---
 const militarController = require('../controllers/militarController');
-// --- IMPORTAÇÃO ATUALIZADA ---
 const escalaController = require('../controllers/escalaController'); 
 const obmController = require('../controllers/obmController');
 const obmFileController = require('../controllers/obmFileController');
@@ -21,7 +20,6 @@ const servicoDiaController = require('../controllers/servicoDiaController');
 // --- Validadores ---
 const validationMiddleware = require('../middlewares/validationMiddleware');
 const { createMilitarSchema, updateMilitarSchema } = require('../validators/militarValidator');
-// --- IMPORTAÇÃO ATUALIZADA ---
 const { createEscalaSchema, updateEscalaSchema } = require('../validators/escalaValidator'); 
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');

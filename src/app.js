@@ -34,22 +34,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'API do SISGPO está funcionando!' });
 });
 
-// ===================================================================
-// REGISTRO DAS ROTAS
-// ===================================================================
-
-// 1. Rotas de Autenticação (PÚBLICAS)
-// Prefixo: /api/auth
-// Exemplo: POST /api/auth/login
+// Rotas de Autenticação (PÚBLICAS)
 app.use('/api/auth', authRoutes);
 
-// 2. Rotas de Administração (PROTEGIDAS)
-// Prefixo: /api/admin
-// Todas as rotas aqui dentro exigirão um token válido.
-// Exemplo: GET /api/admin/dashboard/stats
+// Rotas de Administração (PROTEGIDAS)
 app.use('/api/admin', authMiddleware, adminRoutes);
-
-// ===================================================================
 
 app.use(errorMiddleware);
 

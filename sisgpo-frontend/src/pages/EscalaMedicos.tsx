@@ -5,13 +5,13 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import CivilForm from '../components/forms/EscalaForm';
+import EscalaForm from '../components/forms/EscalaForm'; // Renomeado para consistência
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { Edit, Trash2 } from 'lucide-react';
 
-// --- INTERFACE ATUALIZADA PARA A ESCALA DE SERVIÇO ---
+// Interfaces
 interface EscalaServico {
   id: number;
   nome_completo: string;
@@ -27,7 +27,7 @@ interface ApiResponse<T> {
   data: T[];
 }
 
-export default function EscalaMedicos() { // Nome do componente atualizado para clareza
+export default function EscalaMedicos() {
   const [registros, setRegistros] = useState<EscalaServico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
@@ -43,10 +43,12 @@ export default function EscalaMedicos() { // Nome do componente atualizado para 
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ ...filters, all: 'true' });
+      // A rota da API ainda é /civis, conforme a refatoração
       const response = await api.get<ApiResponse<EscalaServico>>(`/api/admin/civis?${params.toString()}`);
       setRegistros(response.data.data || []);
     } catch (err) {
       toast.error('Não foi possível carregar os registros da escala.');
+      setRegistros([]); // Garante que registros seja um array vazio em caso de erro
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +60,7 @@ export default function EscalaMedicos() { // Nome do componente atualizado para 
   const rowVirtualizer = useVirtualizer({
     count: registros.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 58, // Manter uma estimativa base
+    estimateSize: () => 58,
     overscan: 10,
   });
 
@@ -115,15 +117,10 @@ export default function EscalaMedicos() { // Nome do componente atualizado para 
     }
   };
 
-  // Função para formatar data e hora para exibição
   const formatDateTime = (isoString: string) => {
     if (!isoString) return 'N/A';
     return new Date(isoString).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   };
 
@@ -147,6 +144,8 @@ export default function EscalaMedicos() { // Nome do componente atualizado para 
       />
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        {/* --- CORREÇÃO ESTRUTURAL --- */}
+        {/* O cabeçalho da tabela agora fica fora do contêiner de virtualização */}
         <div style={{ display: 'grid', gridTemplateColumns }} className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</div>
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</div>
@@ -160,7 +159,7 @@ export default function EscalaMedicos() { // Nome do componente atualizado para 
         <div ref={parentRef} className="overflow-y-auto" style={{ height: '70vh' }}>
           {isLoading ? (
             <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : (
+          ) : registros.length > 0 ? (
             <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
               {rowVirtualizer.getVirtualItems().map((virtualItem) => {
                 const registro = registros[virtualItem.index];
@@ -194,12 +193,16 @@ export default function EscalaMedicos() { // Nome do componente atualizado para 
                 );
               })}
             </div>
+          ) : (
+            <div className="flex justify-center items-center h-full">
+              <p className="text-gray-500">Nenhum registro encontrado.</p>
+            </div>
           )}
         </div>
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Registro de Escala' : 'Adicionar Registro na Escala'}>
-        <CivilForm civilToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
+        <EscalaForm civilToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir este registro da escala? Esta ação não pode ser desfeita." isLoading={isDeleting} />
     </div>

@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 // Schema para criar um novo registro na escala
-const createCivilSchema = Joi.object({
+const createEscalaSchema = Joi.object({
   nome_completo: Joi.string().min(3).max(150).required().messages({
     'string.empty': 'O nome do médico é obrigatório.',
     'any.required': 'O nome do médico é obrigatório.',
@@ -23,11 +23,11 @@ const createCivilSchema = Joi.object({
     'any.required': 'O status é obrigatório.',
   }),
   observacoes: Joi.string().optional().allow(null, ''),
-  ativo: Joi.boolean().optional().default(true), // Mantemos o campo ativo
+  ativo: Joi.boolean().optional().default(true),
 });
 
 // Schema para atualizar um registro existente
-const updateCivilSchema = Joi.object({
+const updateEscalaSchema = Joi.object({
   nome_completo: Joi.string().min(3).max(150).optional(),
   funcao: Joi.string().min(3).max(100).optional(),
   entrada_servico: Joi.date().iso().optional(),
@@ -38,6 +38,6 @@ const updateCivilSchema = Joi.object({
 }).options({ allowUnknown: true }); // Permite campos extras como 'id'
 
 module.exports = {
-  createCivilSchema,
-  updateCivilSchema,
+  createEscalaSchema,
+  updateEscalaSchema,
 };

@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/services/api.ts (COM A CORREÇÃO FINAL E ROBUSTA )
+// Arquivo: frontend/src/services/api.ts (COM A CORREÇÃO FINAL E ROBUSTA)
 
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';

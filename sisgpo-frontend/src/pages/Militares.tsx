@@ -13,7 +13,7 @@ import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { Edit, Trash2 } from 'lucide-react';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Militar {
   id: number;
   matricula: string;
@@ -49,7 +49,6 @@ export default function Militares() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Usamos 'all=true' para que a virtualização funcione corretamente com todos os dados
       const params = new URLSearchParams({ ...filters, all: 'true' });
       const [militaresRes, obmsRes] = await Promise.all([
         api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`),

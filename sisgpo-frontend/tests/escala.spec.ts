@@ -1,6 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
 
-// Função de login reutilizável
 async function login(page: Page) {
   await page.goto('/login');
   await page.locator('input[id="login"]').fill('admin');
@@ -34,10 +33,11 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
     await page.locator('textarea[name="observacoes"]').fill('Observação de teste inicial.');
 
     await page.locator('button:has-text("Salvar")').click();
+    
+    // A mensagem de sucesso no toast é "Registro de escala criado com sucesso!"
     await expect(page.getByText('Registro de escala criado com sucesso!')).toBeVisible();
-
+    
     // --- ETAPA DE LEITURA (READ) ---
-    // A lista é ordenada pela data de entrada, então o novo registro deve estar visível
     const registroItem = page.locator('div[data-index]').filter({ hasText: nomeMedico });
     await expect(registroItem).toBeVisible({ timeout: 10000 });
     await expect(registroItem).toContainText(funcao);
@@ -54,7 +54,6 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
     await page.locator('button:has-text("Salvar")').click();
     await expect(page.getByText('Registro de escala atualizado com sucesso!')).toBeVisible();
 
-    // Verifica se o item foi realmente atualizado na lista
     const registroAtualizado = page.locator('div[data-index]').filter({ hasText: nomeMedicoAtualizado });
     await expect(registroAtualizado).toBeVisible();
     await expect(registroAtualizado).toContainText('Ausente');
@@ -65,7 +64,6 @@ test.describe('Fluxo de CRUD para Escala de Médicos', () => {
     await page.locator('button:has-text("Confirmar Exclusão")').click();
     await expect(page.getByText('Registro excluído!')).toBeVisible();
     
-    // Verifica se o item desapareceu da lista
     await expect(registroAtualizado).not.toBeVisible();
   });
 });
