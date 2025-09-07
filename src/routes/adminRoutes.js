@@ -1,4 +1,4 @@
-// Arquivo: backend/src/routes/adminRoutes.js (Versão Completa e Atualizada)
+// Arquivo: backend/src/routes/adminRoutes.js (Completo e Corrigido)
 
 const express = require('express');
 const router = express.Router();
@@ -37,7 +37,7 @@ router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaSta
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
-router.get('/obms/search', obmController.search); // Rota para busca assíncrona
+router.get('/obms/search', obmController.search);
 router.post('/obms', validationMiddleware(createObmSchema), obmController.create);
 router.put('/obms/:id', validationMiddleware(updateObmSchema), obmController.update);
 router.delete('/obms/:id', obmController.delete);
@@ -55,13 +55,17 @@ router.post('/civis', validationMiddleware(createEscalaSchema), escalaController
 router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);
 router.delete('/civis/:id', escalaController.delete);
 
-// --- ROTAS DE VIATURAS ---
+// --- ROTAS DE VIATURAS (COM A ORDEM CORRIGIDA) ---
 router.get('/viaturas', viaturaController.getAll);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
 router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
-router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
-router.delete('/viaturas/:id', viaturaController.delete);
 router.post('/viaturas/upload-csv', upload.single('file'), viaturaFileController.upload);
+
+// **CORREÇÃO APLICADA AQUI:** A rota mais específica vem ANTES da rota com parâmetro dinâmico.
+router.delete('/viaturas/clear-all', viaturaController.clearAll); // Rota para limpar a tabela
+router.delete('/viaturas/:id', viaturaController.delete); // Rota para deletar uma viatura específica
+router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
+
 
 // --- ROTAS DE PLANTÕES ---
 router.post('/plantoes', validationMiddleware(plantaoSchema), plantaoController.create);

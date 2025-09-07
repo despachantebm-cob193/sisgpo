@@ -1,8 +1,8 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx (Versão Final com Paginação)
+// Arquivo: frontend/src/pages/Viaturas.tsx (Completo)
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, Edit, Trash2, Car, Building, MapPin } from 'lucide-react';
+import { Upload, Edit, Trash2, AlertTriangle } from 'lucide-react';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -36,6 +36,10 @@ export default function Viaturas() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [lastUpload, setLastUpload] = useState<string | null>(null);
+
+  // Novos estados para a limpeza da tabela
+  const [isClearConfirmModalOpen, setIsClearConfirmModalOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -142,11 +146,32 @@ export default function Viaturas() {
     }
   };
 
+  const handleClearAllViaturas = async () => {
+    setIsClearing(true);
+    try {
+      await api.delete('/api/admin/viaturas/clear-all');
+      toast.success('Tabela de viaturas limpa com sucesso!');
+      fetchData(); // Recarrega os dados (que agora estarão vazios)
+      fetchLastUpload(); // Limpa a data de último upload
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao limpar a tabela de viaturas.');
+    } finally {
+      setIsClearing(false);
+      setIsClearConfirmModalOpen(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-gray-900">Viaturas</h2>
-        <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">Adicionar Viatura</Button>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">Adicionar Viatura</Button>
+          <Button onClick={() => setIsClearConfirmModalOpen(true)} className="!bg-red-700 hover:!bg-red-800 w-full md:w-auto">
+            <Trash2 className="w-4 h-4 mr-2" />
+            Limpar Tabela
+          </Button>
+        </div>
       </div>
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
@@ -226,6 +251,15 @@ export default function Viaturas() {
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
       <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
+      
+      <ConfirmationModal
+        isOpen={isClearConfirmModalOpen}
+        onClose={() => setIsClearConfirmModalOpen(false)}
+        onConfirm={handleClearAllViaturas}
+        title="Confirmar Limpeza Total"
+        message="ATENÇÃO: Esta ação é irreversível e irá apagar TODAS as viaturas do banco de dados. Deseja continuar?"
+        isLoading={isClearing}
+      />
     </div>
   );
 }

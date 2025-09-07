@@ -1,3 +1,5 @@
+// Arquivo: backend/src/controllers/viaturaController.js (Completo e Corrigido)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -90,6 +92,25 @@ const viaturaController = {
     } catch (error) {
       console.error("Erro ao buscar OBMs distintas:", error);
       throw new AppError("Não foi possível carregar a lista de OBMs existentes.", 500);
+    }
+  },
+
+  clearAll: async (req, res) => {
+    try {
+      // --- CORREÇÃO APLICADA AQUI ---
+      // A sintaxe correta para o Knex com PostgreSQL é usar .toSQL() e depois .raw()
+      // ou, de forma mais simples e direta, usar o .raw() diretamente.
+      // O Knex não suporta as opções RESTART IDENTITY e CASCADE diretamente no .truncate()
+      // de uma forma que seja compatível com todos os bancos.
+      await db.raw('TRUNCATE TABLE viaturas RESTART IDENTITY CASCADE');
+      
+      // Também é uma boa prática limpar os metadados relacionados.
+      await db('metadata').where({ key: 'viaturas_last_upload' }).del();
+
+      res.status(200).json({ message: 'Tabela de viaturas limpa com sucesso!' });
+    } catch (error) {
+      console.error("ERRO AO LIMPAR TABELA DE VIATURAS:", error);
+      throw new AppError("Não foi possível limpar a tabela de viaturas.", 500);
     }
   },
 };
