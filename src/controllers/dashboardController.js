@@ -1,8 +1,7 @@
-// Arquivo: backend/src/controllers/dashboardController.js (Versão Final Segura)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+// Função auxiliar para extrair o tipo da viatura a partir do prefixo
 const getTipoViatura = (prefixo) => {
   if (!prefixo) return 'OUTROS';
   const partes = prefixo.split('-');
@@ -104,19 +103,29 @@ const dashboardController = {
     }
   },
 
+  /**
+   * =======================================================================
+   * FUNÇÃO PRINCIPAL REFATORADA
+   * =======================================================================
+   */
   getViaturaStatsDetalhado: async (req, res) => {
     const { obm_id } = req.query;
     try {
+      // 1. CONSTRUÇÃO DA QUERY COM LEFT JOIN E COALESCE
       const query = db('viaturas as v')
+        // Junta a tabela de viaturas (v) com a de obms (o) pela coluna de nome completo.
         .leftJoin('obms as o', 'v.obm', 'o.nome')
         .select(
           'v.prefixo',
+          // Usa a abreviatura se existir (o.abreviatura não for nula), senão, usa o nome completo (v.obm) como fallback.
+          // O resultado é apelidado de 'local_final' para facilitar o uso no JavaScript.
           db.raw('COALESCE(o.abreviatura, v.obm) as local_final')
         )
-        .where('v.ativa', true)
-        .orderBy('local_final', 'asc')
-        .orderBy('v.prefixo', 'asc');
+        .where('v.ativa', true) // Considera apenas viaturas ativas
+        .orderBy('local_final', 'asc') // Ordena pelo nome do local (abreviatura ou nome completo)
+        .orderBy('v.prefixo', 'asc');  // Ordenação secundária pelo prefixo
 
+      // Filtro opcional por OBM (se um ID for passado na query string)
       if (obm_id) {
         const obm = await db('obms').where({ id: obm_id }).first();
         if (obm) {
@@ -124,38 +133,46 @@ const dashboardController = {
         }
       }
 
+      // 2. EXECUÇÃO DA CONSULTA
       const viaturasAtivas = await query;
 
+      // 3. LÓGICA DE AGRUPAMENTO (REDUCE)
+      // Esta lógica agora trabalha com o campo 'local_final', que já contém a abreviatura ou o fallback.
       const stats = viaturasAtivas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
         const nomeLocal = vtr.local_final || 'OBM Não Informada';
 
+        // Cria o grupo do tipo de viatura se ainda não existir
         if (!acc[tipo]) {
           acc[tipo] = {
             tipo: tipo,
             quantidade: 0,
-            obms: {}
+            obms: {} // Usamos um objeto para agrupar por OBM/local de forma eficiente
           };
         }
         
         acc[tipo].quantidade++;
 
+        // Cria o subgrupo da OBM (usando a abreviatura/fallback) se não existir
         if (!acc[tipo].obms[nomeLocal]) {
           acc[tipo].obms[nomeLocal] = [];
         }
         
+        // Adiciona o prefixo da viatura ao seu respectivo grupo de OBM
         acc[tipo].obms[nomeLocal].push(vtr.prefixo);
         
         return acc;
       }, {});
 
+      // 4. FORMATAÇÃO FINAL DO RESULTADO
+      // Converte o objeto de OBMs em um array, como o frontend espera.
       const resultadoFinal = Object.values(stats).map(item => ({
         ...item,
         obms: Object.entries(item.obms).map(([nome, prefixos]) => ({
           nome,
           prefixos
         }))
-      })).sort((a, b) => a.tipo.localeCompare(b.tipo));
+      })).sort((a, b) => a.tipo.localeCompare(b.tipo)); // Ordena por tipo alfabeticamente
 
       res.status(200).json(resultadoFinal);
 

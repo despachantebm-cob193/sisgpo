@@ -1,5 +1,3 @@
-// Arquivo: frontend/src/pages/Dashboard.tsx (Versão Otimizada para UI/UX)
-
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/services/api';
 import StatCard from '@/components/ui/StatCard';
@@ -10,7 +8,7 @@ import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import toast from 'react-hot-toast';
 
-// Interfaces
+// Interfaces para tipagem dos dados
 interface DashboardStats {
   total_militares_ativos: number;
   total_viaturas_disponiveis: number;

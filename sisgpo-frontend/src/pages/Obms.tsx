@@ -1,9 +1,10 @@
-// Arquivo: frontend/src/pages/Obms.tsx (Versão Final com Paginação)
+// Arquivo: frontend/src/pages/Obms.tsx
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, Edit, Trash2, Building, MapPin, Phone } from 'lucide-react';
+import { Upload, Edit, Trash2 } from 'lucide-react';
 
+// Importações de componentes da UI
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -13,13 +14,36 @@ import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 
-// Interfaces
-interface Obm { id: number; nome: string; abreviatura: string; cidade: string | null; telefone: string | null; }
-export interface ObmOption { value: string; label: string; cidade: string; }
-interface PaginationState { currentPage: number; totalPages: number; }
-interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
+// ===== 1. IMPORTAÇÃO DA NOVA FUNÇÃO DE FORMATAÇÃO =====
+import { formatarTelefone } from '../utils/formatters';
+
+// Interfaces para tipagem dos dados
+interface Obm {
+  id: number;
+  nome: string;
+  abreviatura: string;
+  cidade: string | null;
+  telefone: string | null;
+}
+
+export interface ObmOption {
+  value: string;
+  label: string;
+  cidade: string;
+}
+
+interface PaginationState {
+  currentPage: number;
+  totalPages: number;
+}
+
+interface ApiResponse<T> {
+  data: T[];
+  pagination: PaginationState | null;
+}
 
 export default function Obms() {
+  // Estados para dados e controle da UI
   const [obms, setObms] = useState<Obm[]>([]);
   const [obmOptions, setObmOptions] = useState<ObmOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +51,7 @@ export default function Obms() {
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Estados de modais e ações
+  // Estados para modais e ações de CRUD
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Obm | null>(null);
@@ -38,12 +62,13 @@ export default function Obms() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Função para buscar os dados da API
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(currentPage),
-        limit: '20',
+        limit: '20', // Define um limite de itens por página
         ...filters
       });
       const [obmsRes, optionsRes] = await Promise.all([
@@ -62,17 +87,27 @@ export default function Obms() {
     }
   }, [filters, currentPage]);
 
+  // Efeito para buscar dados quando o componente monta ou os filtros/página mudam
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Funções de manipulação de eventos (handlers)
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ nome: e.target.value });
-    setCurrentPage(1);
+    setCurrentPage(1); // Reseta para a primeira página ao filtrar
   };
 
-  const handleOpenFormModal = (item: Obm | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
+  const handleOpenFormModal = (item: Obm | null = null) => {
+    setItemToEdit(item);
+    setValidationErrors([]);
+    setIsFormModalOpen(true);
+  };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
-  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+
+  const handleDeleteClick = (id: number) => {
+    setItemToDeleteId(id);
+    setIsConfirmModalOpen(true);
+  };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
 
   const handleSave = async (data: Omit<Obm, 'id'> & { id?: number }) => {
@@ -88,7 +123,7 @@ export default function Obms() {
       }
       toast.success(`OBM ${action} com sucesso!`);
       handleCloseFormModal();
-      await fetchData();
+      await fetchData(); // Recarrega os dados
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
@@ -107,7 +142,7 @@ export default function Obms() {
     try {
       await api.delete(`/api/admin/obms/${itemToDeleteId}`);
       toast.success('OBM excluída com sucesso!');
-      await fetchData();
+      await fetchData(); // Recarrega os dados
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir OBM.');
     } finally {
@@ -116,7 +151,10 @@ export default function Obms() {
     }
   };
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) setSelectedFile(event.target.files[0]); };
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) setSelectedFile(event.target.files[0]);
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) return;
     setIsUploading(true);
@@ -136,6 +174,7 @@ export default function Obms() {
     }
   };
 
+  // Renderização do componente
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -145,6 +184,7 @@ export default function Obms() {
         </div>
         <Button onClick={() => handleOpenFormModal()}>Adicionar Nova OBM</Button>
       </div>
+
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Atualizar Cidades/Telefones via Planilha</h3>
         <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -160,6 +200,7 @@ export default function Obms() {
           </Button>
         </div>
       </div>
+
       <div className="mb-4">
         <Input
           type="text"
@@ -191,7 +232,12 @@ export default function Obms() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{obm.nome}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.abreviatura}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.cidade || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{obm.telefone || 'N/A'}</td>
+                    
+                    {/* ===== 2. APLICAÇÃO DA FUNÇÃO DE FORMATAÇÃO ===== */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatarTelefone(obm.telefone)}
+                    </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-4">
                       <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
                       <button onClick={() => handleDeleteClick(obm.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>

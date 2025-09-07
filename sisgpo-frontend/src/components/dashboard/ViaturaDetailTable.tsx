@@ -1,10 +1,8 @@
-// Arquivo: frontend/src/components/dashboard/ViaturaDetailTable.tsx (Código Completo e Responsivo)
-
 import React from 'react';
 import Spinner from '@/components/ui/Spinner';
 import { MapPin } from 'lucide-react';
 
-// Interfaces (sem alteração)
+// Interfaces para tipagem dos dados
 interface ObmGrupo {
   nome: string;
   prefixos: string[];
@@ -42,8 +40,6 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
     <div className="bg-white p-4 rounded-lg shadow-md col-span-1 lg:col-span-2">
       <h3 className="text-xl font-semibold text-gray-800 mb-4">Detalhamento de Viaturas por Tipo</h3>
       
-      {/* --- INÍCIO DA LÓGICA RESPONSIVA --- */}
-
       {/* Tabela para Telas Maiores (md e acima) */}
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -114,8 +110,6 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
           </div>
         ))}
       </div>
-      {/* --- FIM DA LÓGICA RESPONSIVA --- */}
-
     </div>
   );
 };

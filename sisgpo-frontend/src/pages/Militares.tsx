@@ -1,9 +1,10 @@
-// Arquivo: frontend/src/pages/Militares.tsx (Versão Otimizada com Paginação)
+// Arquivo: frontend/src/pages/Militares.tsx (Versão Final Corrigida com Tipagem)
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer, VirtualItem } from '@tanstack/react-virtual'; // Tipo VirtualItem importado
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -11,10 +12,9 @@ import MilitarForm from '../components/forms/MilitarForm';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import Pagination from '../components/ui/Pagination'; // Importa o novo componente
 import { Edit, Trash2 } from 'lucide-react';
 
-// Interfaces
+// Interfaces (sem alteração)
 interface Militar {
   id: number;
   matricula: string;
@@ -34,14 +34,45 @@ interface ApiResponse<T> {
   pagination: PaginationState | null;
 }
 
-export default function Militares() {
-  const [militares, setMilitares] = useState<Militar[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({ nome_completo: '' });
-  const [pagination, setPagination] = useState<PaginationState | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+// Função de busca com tipagem correta
+const fetchMilitares = async ({ pageParam = 1, queryKey }: { pageParam: number; queryKey: (string | object)[] }) => {
+  const [_key, filters] = queryKey;
+  const params = new URLSearchParams({
+    page: String(pageParam),
+    limit: '50',
+    ...(filters as Record<string, string>),
+  });
+  const response = await api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`);
+  return response.data;
+};
 
-  // Estados para modais e ações (sem alteração)
+export default function Militares() {
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState({ nome_completo: '' });
+
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery({
+    queryKey: ['militares', filters],
+    queryFn: fetchMilitares,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: ApiResponse<Militar>) => { // <-- TIPO APLICADO
+      if (lastPage.pagination && lastPage.pagination.currentPage < lastPage.pagination.totalPages) {
+        return lastPage.pagination.currentPage + 1;
+      }
+      return undefined;
+    },
+  });
+
+  const allData = data?.pages.flatMap(page => page.data) ?? [];
+
+  // Estados para modais e ações de CRUD (sem alteração)
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Militar | null>(null);
@@ -50,43 +81,46 @@ export default function Militares() {
   const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Remove o 'all=true' e adiciona os parâmetros de paginação
-      const params = new URLSearchParams({
-        page: String(currentPage),
-        limit: '50', // Carrega 50 por vez, pode ser ajustado
-        ...filters,
-      });
-      const response = await api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`);
-      
-      setMilitares(response.data.data || []);
-      setPagination(response.data.pagination);
-    } catch (err) {
-      toast.error('Não foi possível carregar os dados dos militares.');
-      setMilitares([]);
-      setPagination(null);
-    } finally {
-      setIsLoading(false);
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: hasNextPage ? allData.length + 1 : allData.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60,
+    overscan: 5,
+  });
+
+  useEffect(() => {
+    const virtualItems = rowVirtualizer.getVirtualItems();
+    if (virtualItems.length === 0) return;
+
+    const lastItem = virtualItems[virtualItems.length - 1];
+    if (lastItem && lastItem.index >= allData.length - 1 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [filters, currentPage]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  }, [
+    rowVirtualizer.getVirtualItems(),
+    allData.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ nome_completo: e.target.value });
-    setCurrentPage(1); // Reseta para a primeira página ao filtrar
   };
 
-  // Funções de controle de modal e CRUD (sem alteração na lógica interna)
-  const handleOpenFormModal = (item: Militar | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
+  const handleOpenFormModal = (item: Militar | null = null) => {
+    setItemToEdit(item);
+    setValidationErrors([]);
+    setIsFormModalOpen(true);
+  };
+
   const handleCloseFormModal = () => setIsFormModalOpen(false);
-  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+  const handleDeleteClick = (id: number) => {
+    setItemToDeleteId(id);
+    setIsConfirmModalOpen(true);
+  };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
 
   const handleSave = async (data: any) => {
@@ -101,7 +135,7 @@ export default function Militares() {
       }
       toast.success(`Militar ${action} com sucesso!`);
       handleCloseFormModal();
-      await fetchData(); 
+      queryClient.invalidateQueries({ queryKey: ['militares'] });
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
@@ -120,7 +154,7 @@ export default function Militares() {
     try {
       await api.delete(`/api/admin/militares/${itemToDeleteId}`);
       toast.success('Militar excluído!');
-      await fetchData(); 
+      queryClient.invalidateQueries({ queryKey: ['militares'] });
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir.');
     } finally {
@@ -158,43 +192,62 @@ export default function Militares() {
           <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</div>
         </div>
 
-        <div className="overflow-y-auto" style={{ height: '65vh' }}>
+        <div ref={parentRef} className="overflow-y-auto" style={{ height: '65vh' }}>
           {isLoading ? (
             <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : militares.length > 0 ? (
-            militares.map(militar => (
-              <div
-                key={militar.id}
-                style={{ display: 'grid', gridTemplateColumns }}
-                className="items-center border-b border-gray-200"
-              >
-                <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{militar.nome_completo}</div>
-                <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra || 'N/A'}</div>
-                <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.posto_graduacao}</div>
-                <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</div>
-                <div className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {militar.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </div>
-                <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                  <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
-                  <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
-                </div>
-              </div>
-            ))
+          ) : isError ? (
+            <div className="flex justify-center items-center h-full"><p className="text-red-500">Erro ao carregar dados: {error?.message}</p></div>
           ) : (
-            <div className="flex justify-center items-center h-full"><p className="text-gray-500">Nenhum militar encontrado.</p></div>
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+              {rowVirtualizer.getVirtualItems().map((virtualItem: VirtualItem) => { // <-- TIPO APLICADO
+                const isLoaderRow = virtualItem.index > allData.length - 1;
+                const item = allData[virtualItem.index];
+
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                      display: 'grid',
+                      gridTemplateColumns: gridTemplateColumns,
+                      alignItems: 'center',
+                    }}
+                    className="border-b border-gray-200"
+                  >
+                    {isLoaderRow ? (
+                      <div className="col-span-full flex justify-center items-center p-4">
+                        {hasNextPage ? <Spinner /> : <p className="text-gray-500">Fim dos resultados.</p>}
+                      </div>
+                    ) : (
+                      item && ( // Adiciona uma verificação para garantir que o item existe
+                        <>
+                          <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={item.nome_completo}>{item.nome_completo}</div>
+                          <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nome_guerra || 'N/A'}</div>
+                          <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.posto_graduacao}</div>
+                          <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.matricula}</div>
+                          <div className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {item.ativo ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                          <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                            <button onClick={() => handleOpenFormModal(item)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
+                            <button onClick={() => handleDeleteClick(item.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                          </div>
+                        </>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
-        
-        {pagination && (
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Militar' : 'Adicionar Novo Militar'}>

@@ -1,3 +1,5 @@
+// Arquivo: backend/src/controllers/militarController.js
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -24,7 +26,7 @@ const militarController = {
     }
 
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 15;
+    const limit = parseInt(req.query.limit, 10) || 50; // Aumentado para 50 para corresponder ao frontend
     const offset = (page - 1) * limit;
 
     const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'm.id' }).first();
