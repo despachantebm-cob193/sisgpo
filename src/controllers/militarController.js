@@ -1,5 +1,3 @@
-// Arquivo: backend/src/controllers/militarController.js
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -7,33 +5,30 @@ const militarController = {
   getAll: async (req, res) => {
     const { nome_completo, matricula, posto_graduacao, ativo, all } = req.query;
 
-    const query = db('militares as m')
-      .leftJoin('obms as o', 'm.obm_id', 'o.id')
-      .select(
-        'm.id', 'm.matricula', 'm.nome_completo', 'm.nome_guerra',
-        'm.posto_graduacao', 'm.ativo', 'm.obm_id',
-        'o.abreviatura as obm_abreviatura'
-      );
+    // Query simplificada, sem JOINs, buscando diretamente 'obm_nome'
+    const query = db('militares').select(
+      'id', 'matricula', 'nome_completo', 'nome_guerra',
+      'posto_graduacao', 'ativo', 'obm_nome'
+    );
 
-    if (nome_completo) query.where('m.nome_completo', 'ilike', `%${nome_completo}%`);
-    if (matricula) query.where('m.matricula', 'ilike', `%${matricula}%`);
-    if (posto_graduacao) query.where('m.posto_graduacao', 'ilike', `%${posto_graduacao}%`);
-    if (ativo) query.where('m.ativo', '=', ativo);
+    if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
+    if (matricula) query.where('matricula', 'ilike', `%${matricula}%`);
+    if (posto_graduacao) query.where('posto_graduacao', 'ilike', `%${posto_graduacao}%`);
+    if (ativo) query.where('ativo', '=', ativo);
 
     if (all === 'true') {
-      const militares = await query.orderBy('m.nome_completo', 'asc');
+      const militares = await query.orderBy('nome_completo', 'asc');
       return res.status(200).json({ data: militares, pagination: null });
     }
 
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 50; // Aumentado para 50 para corresponder ao frontend
+    const limit = parseInt(req.query.limit, 10) || 50;
     const offset = (page - 1) * limit;
 
-    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'm.id' }).first();
-    const dataQuery = query.clone().orderBy('m.nome_completo', 'asc').limit(limit).offset(offset);
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'id' }).first();
+    const dataQuery = query.clone().orderBy('nome_completo', 'asc').limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
-    
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
@@ -44,18 +39,20 @@ const militarController = {
   },
 
   create: async (req, res) => {
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
+    // Usa 'obm_nome' em vez de 'obm_id'
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
     const matriculaExists = await db('militares').where({ matricula }).first();
     if (matriculaExists) {
       throw new AppError('Matrícula já cadastrada no sistema.', 409);
     }
-    const [novoMilitar] = await db('militares').insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id }).returning('*');
+    const [novoMilitar] = await db('militares').insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome }).returning('*');
     res.status(201).json(novoMilitar);
   },
 
   update: async (req, res) => {
     const { id } = req.params;
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id } = req.body;
+    // Usa 'obm_nome' em vez de 'obm_id'
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
     const militarParaAtualizar = await db('militares').where({ id }).first();
     if (!militarParaAtualizar) {
       throw new AppError('Militar não encontrado.', 404);
@@ -66,7 +63,7 @@ const militarController = {
         throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
       }
     }
-    const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_id, updated_at: db.fn.now() };
+    const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, updated_at: db.fn.now() };
     const [militarAtualizado] = await db('militares').where({ id }).update(dadosAtualizacao).returning('*');
     res.status(200).json(militarAtualizado);
   },
@@ -78,6 +75,21 @@ const militarController = {
       throw new AppError('Militar não encontrado.', 404);
     }
     res.status(204).send();
+  },
+  
+  getByMatricula: async (req, res) => {
+    const { matricula } = req.params;
+    if (!matricula) {
+      throw new AppError('Matrícula não fornecida.', 400);
+    }
+    const militar = await db('militares')
+      .select('id', 'nome_completo', 'posto_graduacao')
+      .where({ matricula: matricula, ativo: true })
+      .first();
+    if (!militar) {
+      throw new AppError('Militar não encontrado ou inativo para esta matrícula.', 404);
+    }
+    res.status(200).json(militar);
   },
 };
 

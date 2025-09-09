@@ -9,7 +9,7 @@ const upload = multer({ dest: 'uploads/' });
 
 // --- Controllers ---
 const militarController = require('../controllers/militarController');
-const militarFileController = require('../controllers/militarFileController'); // Controller para upload de militares
+const militarFileController = require('../controllers/militarFileController');
 const escalaController = require('../controllers/escalaController'); 
 const obmController = require('../controllers/obmController');
 const obmFileController = require('../controllers/obmFileController');
@@ -49,11 +49,12 @@ router.get('/militares', militarController.getAll);
 router.post('/militares', validationMiddleware(createMilitarSchema), militarController.create);
 router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
-// ROTA ADICIONADA PARA UPLOAD DE MILITARES
 router.post('/militares/upload', upload.single('file'), militarFileController.upload);
+// --- ROTA ADICIONADA PARA BUSCA POR MATRÍCULA ---
+router.get('/militares/matricula/:matricula', militarController.getByMatricula);
 
 // --- ROTAS DE ESCALA (MÉDICOS) ---
-router.get('/civis', escalaController.getAll); // Mantido como /civis por compatibilidade
+router.get('/civis', escalaController.getAll);
 router.post('/civis', validationMiddleware(createEscalaSchema), escalaController.create);
 router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);
 router.delete('/civis/:id', escalaController.delete);
