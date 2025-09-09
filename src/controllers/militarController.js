@@ -1,9 +1,12 @@
-// Arquivo: backend/src/controllers/militarController.js (Completo e Corrigido)
+// Arquivo: backend/src/controllers/militarController.js (Completo e Atualizado)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const militarController = {
+  /**
+   * Lista todos os militares com suporte a filtros e paginação.
+   */
   getAll: async (req, res) => {
     const { nome_completo, matricula, posto_graduacao, ativo, all } = req.query;
 
@@ -39,6 +42,60 @@ const militarController = {
     });
   },
 
+  /**
+   * Busca militares por termo para componentes de select assíncrono.
+   */
+  search: async (req, res) => {
+    const { term } = req.query;
+
+    if (!term || term.length < 2) {
+      return res.status(200).json([]);
+    }
+
+    try {
+      const militares = await db('militares')
+        .where('nome_completo', 'ilike', `%${term}%`)
+        .orWhere('nome_guerra', 'ilike', `%${term}%`)
+        .orWhere('matricula', 'ilike', `%${term}%`)
+        .andWhere('ativo', true)
+        .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra')
+        .limit(15);
+
+      const options = militares.map(m => ({
+        value: m.id,
+        label: `${m.posto_graduacao} ${m.nome_guerra || m.nome_completo} (${m.matricula})`,
+        militar: m,
+      }));
+
+      res.status(200).json(options);
+    } catch (error) {
+      console.error("Erro ao buscar militares:", error);
+      throw new AppError("Não foi possível realizar a busca por militares.", 500);
+    }
+  },
+
+  /**
+   * Busca um militar específico pela matrícula (usado na versão anterior do formulário).
+   */
+  getByMatricula: async (req, res) => {
+    const { matricula } = req.params;
+    if (!matricula) {
+      throw new AppError('Matrícula não fornecida.', 400);
+    }
+    const militar = await db('militares')
+      .select('id', 'nome_completo', 'posto_graduacao')
+      .where({ matricula: matricula, ativo: true })
+      .first();
+      
+    if (!militar) {
+      throw new AppError('Militar não encontrado ou inativo para esta matrícula.', 404);
+    }
+    res.status(200).json(militar);
+  },
+
+  /**
+   * Cria um novo militar.
+   */
   create: async (req, res) => {
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
     const matriculaExists = await db('militares').where({ matricula }).first();
@@ -49,6 +106,9 @@ const militarController = {
     res.status(201).json(novoMilitar);
   },
 
+  /**
+   * Atualiza um militar existente.
+   */
   update: async (req, res) => {
     const { id } = req.params;
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
@@ -67,6 +127,9 @@ const militarController = {
     res.status(200).json(militarAtualizado);
   },
 
+  /**
+   * Deleta um militar.
+   */
   delete: async (req, res) => {
     const { id } = req.params;
     const result = await db('militares').where({ id }).del();
@@ -74,23 +137,6 @@ const militarController = {
       throw new AppError('Militar não encontrado.', 404);
     }
     res.status(204).send();
-  },
-  
-  // --- FUNÇÃO-CHAVE PARA A BUSCA ---
-  getByMatricula: async (req, res) => {
-    const { matricula } = req.params;
-    if (!matricula) {
-      throw new AppError('Matrícula não fornecida.', 400);
-    }
-    const militar = await db('militares')
-      .select('id', 'nome_completo', 'posto_graduacao')
-      .where({ matricula: matricula, ativo: true }) // Busca apenas militares ativos
-      .first();
-      
-    if (!militar) {
-      throw new AppError('Militar não encontrado ou inativo para esta matrícula.', 404);
-    }
-    res.status(200).json(militar);
   },
 };
 
