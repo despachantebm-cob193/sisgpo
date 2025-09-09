@@ -1,21 +1,22 @@
-// Arquivo: backend/src/routes/adminRoutes.js (Completo e Corrigido)
+// Arquivo: backend/src/routes/adminRoutes.js (Completo e Atualizado)
 
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 
-// Configuração do Multer
+// Configuração do Multer para lidar com uploads de arquivos
 const upload = multer({ dest: 'uploads/' });
 
 // --- Controllers ---
 const militarController = require('../controllers/militarController');
+const militarFileController = require('../controllers/militarFileController'); // Controller para upload de militares
 const escalaController = require('../controllers/escalaController'); 
 const obmController = require('../controllers/obmController');
 const obmFileController = require('../controllers/obmFileController');
 const viaturaController = require('../controllers/viaturaController');
+const viaturaFileController = require('../controllers/viaturaFileController');
 const plantaoController = require('../controllers/plantaoController');
 const dashboardController = require('../controllers/dashboardController');
-const viaturaFileController = require('../controllers/viaturaFileController');
 const userController = require('../controllers/userController');
 const servicoDiaController = require('../controllers/servicoDiaController');
 
@@ -48,24 +49,23 @@ router.get('/militares', militarController.getAll);
 router.post('/militares', validationMiddleware(createMilitarSchema), militarController.create);
 router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
+// ROTA ADICIONADA PARA UPLOAD DE MILITARES
+router.post('/militares/upload', upload.single('file'), militarFileController.upload);
 
-// --- ROTAS DE ESCALA (ANTIGA CIVIS) ---
-router.get('/civis', escalaController.getAll);
+// --- ROTAS DE ESCALA (MÉDICOS) ---
+router.get('/civis', escalaController.getAll); // Mantido como /civis por compatibilidade
 router.post('/civis', validationMiddleware(createEscalaSchema), escalaController.create);
 router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);
 router.delete('/civis/:id', escalaController.delete);
 
-// --- ROTAS DE VIATURAS (COM A ORDEM CORRIGIDA) ---
+// --- ROTAS DE VIATURAS ---
 router.get('/viaturas', viaturaController.getAll);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
 router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
 router.post('/viaturas/upload-csv', upload.single('file'), viaturaFileController.upload);
-
-// **CORREÇÃO APLICADA AQUI:** A rota mais específica vem ANTES da rota com parâmetro dinâmico.
-router.delete('/viaturas/clear-all', viaturaController.clearAll); // Rota para limpar a tabela
-router.delete('/viaturas/:id', viaturaController.delete); // Rota para deletar uma viatura específica
+router.delete('/viaturas/clear-all', viaturaController.clearAll);
+router.delete('/viaturas/:id', viaturaController.delete);
 router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
-
 
 // --- ROTAS DE PLANTÕES ---
 router.post('/plantoes', validationMiddleware(plantaoSchema), plantaoController.create);

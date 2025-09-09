@@ -1,18 +1,12 @@
-import React, { useState, useEffect, FormEvent } from 'react';
-import AsyncSelect from 'react-select/async';
-import toast from 'react-hot-toast';
-import api from '../../services/api';
+// Arquivo: frontend/src/components/forms/MilitarForm.tsx (Corrigido para Desnormalização)
 
+import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
 import FormError from '../ui/FormError';
 
-// Interfaces (sem alteração)
-interface ObmOption {
-  value: number;
-  label: string;
-}
+// 1. Interface 'Militar' atualizada para usar 'obm_nome'
 interface Militar {
   id?: number;
   matricula: string;
@@ -20,12 +14,15 @@ interface Militar {
   nome_guerra: string | null;
   posto_graduacao: string;
   ativo: boolean;
-  obm_id: number | null;
+  obm_nome: string | null; // <-- MUDANÇA PRINCIPAL
 }
+
 interface ValidationError {
   field: string;
   message: string;
 }
+
+// 2. O tipo de dados do formulário agora também usa 'obm_nome'
 type MilitarFormData = Omit<Militar, 'id'> & { id?: number };
 
 interface MilitarFormProps {
@@ -37,58 +34,25 @@ interface MilitarFormProps {
 }
 
 const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCancel, isLoading, errors = [] }) => {
+  // 3. Estado inicial ajustado para 'obm_nome'
   const getInitialState = (): Militar => ({
     matricula: '',
     nome_completo: '',
     nome_guerra: '',
     posto_graduacao: '',
     ativo: true,
-    obm_id: null,
+    obm_nome: '', // <-- MUDANÇA PRINCIPAL
   });
 
   const [formData, setFormData] = useState<Militar>(getInitialState());
-  const [defaultObmOption, setDefaultObmOption] = useState<ObmOption | null>(null);
 
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
 
-  // --- CORREÇÃO APLICADA AQUI ---
-  // Simplifica e torna a função de busca mais robusta.
-  const loadObmOptions = (inputValue: string, callback: (options: ObmOption[]) => void) => {
-    // Não faz a busca se o termo for muito curto, para evitar sobrecarga.
-    if (!inputValue || inputValue.length < 2) {
-      return callback([]);
-    }
-    
-    // Faz a chamada para a rota de busca específica.
-    api.get(`/api/admin/obms/search?term=${inputValue}`)
-      .then(response => {
-        // A API já retorna os dados no formato { value, label }, então passamos diretamente.
-        callback(response.data);
-      })
-      .catch(() => {
-        // Em caso de erro, retorna um array vazio.
-        toast.error("Erro ao buscar OBMs.");
-        callback([]);
-      });
-  };
-
   useEffect(() => {
-    // Lógica para preencher o formulário ao editar (sem alterações, mas revisada para garantir consistência)
     if (militarToEdit) {
       setFormData(militarToEdit);
-      if (militarToEdit.obm_id) {
-        // Busca a OBM específica para preencher o valor padrão do select.
-        // Usamos a rota /obms com `all=true` e um filtro de ID.
-        api.get(`/api/admin/obms?id=${militarToEdit.obm_id}&all=true`).then(res => {
-          const obm = res.data.data[0];
-          if (obm) {
-            setDefaultObmOption({ value: obm.id, label: `${obm.abreviatura} - ${obm.nome}` });
-          }
-        }).catch(() => toast.error("Não foi possível carregar a OBM do militar."));
-      }
     } else {
       setFormData(getInitialState());
-      setDefaultObmOption(null);
     }
   }, [militarToEdit]);
 
@@ -100,11 +64,6 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCanc
     }));
   };
 
-  const handleObmChange = (selectedOption: ObmOption | null) => {
-    setFormData(prev => ({ ...prev, obm_id: selectedOption ? selectedOption.value : null }));
-    setDefaultObmOption(selectedOption);
-  };
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     onSave(formData);
@@ -112,7 +71,6 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCanc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Campos de texto (sem alteração) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="matricula">Matrícula</Label>
@@ -137,19 +95,10 @@ const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCanc
           <FormError message={getError('nome_guerra')} />
         </div>
         <div>
-          <Label htmlFor="obm_id">OBM de Lotação</Label>
-          <AsyncSelect
-            id="obm_id"
-            name="obm_id" // Adiciona o name para consistência
-            cacheOptions
-            defaultOptions
-            value={defaultObmOption}
-            loadOptions={loadObmOptions}
-            onChange={handleObmChange}
-            placeholder="Digite para buscar uma OBM..."
-            noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? "Digite pelo menos 2 caracteres" : "Nenhuma OBM encontrada"}
-          />
-          <FormError message={getError('obm_id')} />
+          {/* 4. O campo de select da OBM foi substituído por um input de texto simples */}
+          <Label htmlFor="obm_nome">OBM (Nome por extenso)</Label>
+          <Input id="obm_nome" name="obm_nome" value={formData.obm_nome || ''} onChange={handleChange} hasError={!!getError('obm_nome')} />
+          <FormError message={getError('obm_nome')} />
         </div>
       </div>
       <div className="flex items-center">

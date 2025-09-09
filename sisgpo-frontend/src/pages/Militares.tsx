@@ -1,20 +1,19 @@
-// Arquivo: frontend/src/pages/Militares.tsx (Versão Final Corrigida com Tipagem)
+// Arquivo: frontend/src/pages/Militares.tsx (Ajustado para Desnormalização)
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { Upload, Edit, Trash2 } from 'lucide-react';
+
 import api from '../services/api';
-import { useVirtualizer, VirtualItem } from '@tanstack/react-virtual'; // Tipo VirtualItem importado
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-
 import Button from '../components/ui/Button';
-import Modal from '../components/ui/Modal';
-import MilitarForm from '../components/forms/MilitarForm';
-import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import MilitarForm from '../components/forms/MilitarForm'; // O formulário também será ajustado
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { Edit, Trash2 } from 'lucide-react';
+import Pagination from '../components/ui/Pagination';
 
-// Interfaces (sem alteração)
+// Interface ajustada para a nova estrutura desnormalizada
 interface Militar {
   id: number;
   matricula: string;
@@ -22,57 +21,20 @@ interface Militar {
   nome_guerra: string | null;
   posto_graduacao: string;
   ativo: boolean;
-  obm_id: number | null;
-  obm_abreviatura?: string;
-}
-interface PaginationState {
-  currentPage: number;
-  totalPages: number;
-}
-interface ApiResponse<T> {
-  data: T[];
-  pagination: PaginationState | null;
+  obm_nome: string | null; // <-- MUDANÇA PRINCIPAL AQUI
 }
 
-// Função de busca com tipagem correta
-const fetchMilitares = async ({ pageParam = 1, queryKey }: { pageParam: number; queryKey: (string | object)[] }) => {
-  const [_key, filters] = queryKey;
-  const params = new URLSearchParams({
-    page: String(pageParam),
-    limit: '50',
-    ...(filters as Record<string, string>),
-  });
-  const response = await api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`);
-  return response.data;
-};
+interface PaginationState { currentPage: number; totalPages: number; }
+interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Militares() {
-  const queryClient = useQueryClient();
+  const [militares, setMilitares] = useState<Militar[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = useInfiniteQuery({
-    queryKey: ['militares', filters],
-    queryFn: fetchMilitares,
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: ApiResponse<Militar>) => { // <-- TIPO APLICADO
-      if (lastPage.pagination && lastPage.pagination.currentPage < lastPage.pagination.totalPages) {
-        return lastPage.pagination.currentPage + 1;
-      }
-      return undefined;
-    },
-  });
-
-  const allData = data?.pages.flatMap(page => page.data) ?? [];
-
-  // Estados para modais e ações de CRUD (sem alteração)
+  // Estados para modais e ações
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Militar | null>(null);
@@ -80,68 +42,57 @@ export default function Militares() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: hasNextPage ? allData.length + 1 : allData.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 60,
-    overscan: 5,
-  });
-
-  useEffect(() => {
-    const virtualItems = rowVirtualizer.getVirtualItems();
-    if (virtualItems.length === 0) return;
-
-    const lastItem = virtualItems[virtualItems.length - 1];
-    if (lastItem && lastItem.index >= allData.length - 1 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(currentPage), limit: '20', ...filters });
+      const response = await api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`);
+      setMilitares(response.data.data);
+      setPagination(response.data.pagination);
+    } catch (err) {
+      toast.error('Não foi possível carregar os militares.');
+    } finally {
+      setIsLoading(false);
     }
-  }, [
-    rowVirtualizer.getVirtualItems(),
-    allData.length,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  ]);
+  }, [filters, currentPage]);
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ nome_completo: e.target.value });
+    setCurrentPage(1);
   };
 
-  const handleOpenFormModal = (item: Militar | null = null) => {
-    setItemToEdit(item);
-    setValidationErrors([]);
-    setIsFormModalOpen(true);
-  };
-
+  const handleOpenFormModal = (item: Militar | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
-  const handleDeleteClick = (id: number) => {
-    setItemToDeleteId(id);
-    setIsConfirmModalOpen(true);
-  };
+  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) setSelectedFile(event.target.files[0]); };
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: Omit<Militar, 'id'> & { id?: number }) => {
     setIsSaving(true);
     setValidationErrors([]);
     const action = data.id ? 'atualizado' : 'criado';
+    const { id, ...payload } = data;
     try {
-      if (data.id) {
-        await api.put(`/api/admin/militares/${data.id}`, data);
+      if (id) {
+        await api.put(`/api/admin/militares/${id}`, payload);
       } else {
-        await api.post('/api/admin/militares', data);
+        await api.post('/api/admin/militares', payload);
       }
       toast.success(`Militar ${action} com sucesso!`);
       handleCloseFormModal();
-      queryClient.invalidateQueries({ queryKey: ['militares'] });
+      fetchData();
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
-        toast.error(err.response.data.errors[0]?.message || 'Corrija os erros.');
+        toast.error(err.response.data.errors[0]?.message || 'Por favor, corrija os erros.');
       } else {
-        toast.error(err.response?.data?.message || 'Erro ao salvar.');
+        toast.error(err.response?.data?.message || 'Erro ao salvar o militar.');
       }
     } finally {
       setIsSaving(false);
@@ -153,27 +104,59 @@ export default function Militares() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/militares/${itemToDeleteId}`);
-      toast.success('Militar excluído!');
-      queryClient.invalidateQueries({ queryKey: ['militares'] });
+      toast.success('Militar excluído com sucesso!');
+      fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erro ao excluir.');
+      toast.error(err.response?.data?.message || 'Erro ao excluir o militar.');
     } finally {
       setIsDeleting(false);
       handleCloseConfirmModal();
     }
   };
 
-  const gridTemplateColumns = "1.5fr 1.5fr 1fr 1fr 1fr 0.5fr";
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    try {
+      // Chama a nova rota de upload de militares
+      const response = await api.post('/api/admin/militares/upload', formData);
+      toast.success(response.data.message || 'Arquivo enviado com sucesso!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao enviar arquivo.');
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      const fileInput = document.getElementById('militar-file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    }
+  };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Efetivo (Militares)</h2>
-          <p className="text-gray-600 mt-2">Gerencie o efetivo de militares da corporação.</p>
-        </div>
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Efetivo (Militares)</h2>
         <Button onClick={() => handleOpenFormModal()}>Adicionar Militar</Button>
       </div>
+
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Importar/Atualizar Militares via Planilha</h3>
+        <div className="flex items-center gap-4">
+          <label htmlFor="militar-file-upload" className="flex-1">
+            <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-100">
+              <Upload className="w-5 h-5 text-gray-500 mr-2" />
+              <span className="text-sm text-gray-600">{selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo (XLSX)'}</span>
+            </div>
+            <input id="militar-file-upload" type="file" className="sr-only" accept=".xlsx" onChange={handleFileChange} />
+          </label>
+          <Button onClick={handleUpload} disabled={!selectedFile || isUploading}>
+            {isUploading ? <Spinner className="h-5 w-5" /> : 'Enviar'}
+          </Button>
+        </div>
+      </div>
+
       <Input
         type="text"
         placeholder="Filtrar por nome..."
@@ -183,77 +166,61 @@ export default function Militares() {
       />
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div style={{ display: 'grid', gridTemplateColumns }} className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome Completo</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome Completo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th> {/* <-- COLUNA ATUALIZADA */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              ) : militares.length > 0 ? (
+                militares.map((militar) => (
+                  <tr key={militar.id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{militar.nome_completo}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.posto_graduacao}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.obm_nome || 'N/A'}</td> {/* <-- DADO ATUALIZADO */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {militar.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                      <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={7} className="text-center py-10 text-gray-500">Nenhum militar encontrado.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
-
-        <div ref={parentRef} className="overflow-y-auto" style={{ height: '65vh' }}>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : isError ? (
-            <div className="flex justify-center items-center h-full"><p className="text-red-500">Erro ao carregar dados: {error?.message}</p></div>
-          ) : (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-              {rowVirtualizer.getVirtualItems().map((virtualItem: VirtualItem) => { // <-- TIPO APLICADO
-                const isLoaderRow = virtualItem.index > allData.length - 1;
-                const item = allData[virtualItem.index];
-
-                return (
-                  <div
-                    key={virtualItem.key}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                      display: 'grid',
-                      gridTemplateColumns: gridTemplateColumns,
-                      alignItems: 'center',
-                    }}
-                    className="border-b border-gray-200"
-                  >
-                    {isLoaderRow ? (
-                      <div className="col-span-full flex justify-center items-center p-4">
-                        {hasNextPage ? <Spinner /> : <p className="text-gray-500">Fim dos resultados.</p>}
-                      </div>
-                    ) : (
-                      item && ( // Adiciona uma verificação para garantir que o item existe
-                        <>
-                          <div className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 truncate" title={item.nome_completo}>{item.nome_completo}</div>
-                          <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nome_guerra || 'N/A'}</div>
-                          <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.posto_graduacao}</div>
-                          <div className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.matricula}</div>
-                          <div className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {item.ativo ? 'Ativo' : 'Inativo'}
-                            </span>
-                          </div>
-                          <div className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                            <button onClick={() => handleOpenFormModal(item)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5" /></button>
-                            <button onClick={() => handleDeleteClick(item.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5" /></button>
-                          </div>
-                        </>
-                      )
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Militar' : 'Adicionar Novo Militar'}>
         <MilitarForm militarToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir este militar? Esta ação não pode ser desfeita." isLoading={isDeleting} />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir este militar?" isLoading={isDeleting} />
     </div>
   );
 }

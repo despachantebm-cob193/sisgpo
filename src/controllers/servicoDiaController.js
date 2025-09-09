@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/servicoDiaController.js (Correção Definitiva)
+// Arquivo: backend/src/controllers/servicoDiaController.js
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -7,6 +7,7 @@ const servicoDiaController = {
   // Busca o serviço do dia para uma data específica (ou a data atual)
   getByDate: async (req, res) => {
     const { data } = req.query;
+    // Se nenhuma data for fornecida, usa a data atual
     const dataBusca = data || new Date().toISOString().split('T')[0];
 
     try {
@@ -15,7 +16,8 @@ const servicoDiaController = {
         .select(
           'sd.funcao',
           'm.nome_guerra',
-          'm.posto_graduacao'
+          'm.posto_graduacao',
+          'm.id as militar_id' // Inclui o ID para edição
         )
         .where('sd.data', '=', dataBusca);
 
@@ -36,11 +38,10 @@ const servicoDiaController = {
 
     try {
       await db.transaction(async trx => {
-        // Primeiro, deleta os registros existentes para a data para simplificar a lógica.
-        // Isso evita problemas com onConflict em diferentes bancos de dados e é mais explícito.
+        // Deleta todos os registros para a data especificada para garantir uma atualização limpa
         await trx('servico_dia').where({ data }).del();
 
-        // Filtra apenas os serviços que têm um militar_id válido para inserir.
+        // Filtra apenas os serviços que têm um militar_id válido para inserir
         const servicosParaInserir = servicos
           .filter(servico => servico.funcao && servico.militar_id)
           .map(servico => ({
@@ -49,7 +50,7 @@ const servicoDiaController = {
             militar_id: Number(servico.militar_id),
           }));
 
-        // Insere os novos registros em lote, se houver algum.
+        // Insere os novos registros em lote, se houver algum
         if (servicosParaInserir.length > 0) {
           await trx('servico_dia').insert(servicosParaInserir);
         }
