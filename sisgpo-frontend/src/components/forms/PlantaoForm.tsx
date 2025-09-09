@@ -9,7 +9,7 @@ import { Trash2, Search } from 'lucide-react';
 import api from '../../services/api';
 import Spinner from '../ui/Spinner';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Viatura { id: number; prefixo: string; }
 interface GuarnicaoMembro {
   matricula: string;
@@ -18,7 +18,7 @@ interface GuarnicaoMembro {
   posto_graduacao: string;
   funcao: string;
   isLoading?: boolean;
-  error?: string | null; // <-- NOVO CAMPO: para armazenar a mensagem de erro
+  error?: string | null;
 }
 interface PlantaoFormData {
   id?: number;
@@ -45,7 +45,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
     posto_graduacao: '',
     funcao: '',
     isLoading: false,
-    error: null, // <-- NOVO CAMPO: inicializado como nulo
+    error: null,
   });
 
   const getInitialFormData = (): PlantaoFormData => ({
@@ -72,7 +72,6 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
     const novaGuarnicao = [...formData.guarnicao];
     (novaGuarnicao[index] as any)[field] = value;
     
-    // Se a matrícula for alterada, limpa o erro anterior
     if (field === 'matricula') {
       novaGuarnicao[index].error = null;
     }
@@ -88,7 +87,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
     }
 
     handleGuarnicaoChange(index, 'isLoading', true);
-    handleGuarnicaoChange(index, 'error', null); // Limpa erros anteriores
+    handleGuarnicaoChange(index, 'error', null);
 
     try {
       const response = await api.get(`/api/admin/militares/matricula/${matricula}`);
@@ -107,18 +106,15 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       const errorMessage = error.response?.data?.message || 'Erro ao buscar militar.';
       toast.error(errorMessage);
       
-      // --- CORREÇÃO PRINCIPAL APLICADA AQUI ---
-      // Atualiza o estado da linha específica da guarnição com a mensagem de erro
       const novaGuarnicao = [...formData.guarnicao];
       novaGuarnicao[index] = {
         ...novaGuarnicao[index],
         militar_id: null,
-        nome_completo: '', // Limpa o nome
-        posto_graduacao: '', // Limpa o posto
-        error: 'Matrícula não encontrada', // Define a mensagem de erro
+        nome_completo: '',
+        posto_graduacao: '',
+        error: 'Matrícula não encontrada',
       };
       setFormData(prev => ({ ...prev, guarnicao: novaGuarnicao }));
-      // --- FIM DA CORREÇÃO ---
 
     } finally {
       handleGuarnicaoChange(index, 'isLoading', false);
@@ -184,7 +180,6 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Militar</Label>
-                  {/* --- RENDERIZAÇÃO CONDICIONAL DO FEEDBACK --- */}
                   <div className={`h-10 flex items-center px-3 rounded-md text-sm ${membro.error ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'}`}>
                     {membro.error ? (
                       <span>{membro.error}</span>
@@ -192,7 +187,6 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
                       <span>{membro.posto_graduacao} {membro.nome_completo}</span>
                     )}
                   </div>
-                  {/* --- FIM DA RENDERIZAÇÃO CONDICIONAL --- */}
                 </div>
                 <div>
                   <Label htmlFor={`funcao-${index}`}>Função</Label>

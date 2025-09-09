@@ -1,3 +1,5 @@
+// Arquivo: backend/src/controllers/militarController.js (Completo e Corrigido)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -5,7 +7,6 @@ const militarController = {
   getAll: async (req, res) => {
     const { nome_completo, matricula, posto_graduacao, ativo, all } = req.query;
 
-    // Query simplificada, sem JOINs, buscando diretamente 'obm_nome'
     const query = db('militares').select(
       'id', 'matricula', 'nome_completo', 'nome_guerra',
       'posto_graduacao', 'ativo', 'obm_nome'
@@ -39,7 +40,6 @@ const militarController = {
   },
 
   create: async (req, res) => {
-    // Usa 'obm_nome' em vez de 'obm_id'
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
     const matriculaExists = await db('militares').where({ matricula }).first();
     if (matriculaExists) {
@@ -51,7 +51,6 @@ const militarController = {
 
   update: async (req, res) => {
     const { id } = req.params;
-    // Usa 'obm_nome' em vez de 'obm_id'
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
     const militarParaAtualizar = await db('militares').where({ id }).first();
     if (!militarParaAtualizar) {
@@ -77,6 +76,7 @@ const militarController = {
     res.status(204).send();
   },
   
+  // --- FUNÇÃO-CHAVE PARA A BUSCA ---
   getByMatricula: async (req, res) => {
     const { matricula } = req.params;
     if (!matricula) {
@@ -84,8 +84,9 @@ const militarController = {
     }
     const militar = await db('militares')
       .select('id', 'nome_completo', 'posto_graduacao')
-      .where({ matricula: matricula, ativo: true })
+      .where({ matricula: matricula, ativo: true }) // Busca apenas militares ativos
       .first();
+      
     if (!militar) {
       throw new AppError('Militar não encontrado ou inativo para esta matrícula.', 404);
     }
