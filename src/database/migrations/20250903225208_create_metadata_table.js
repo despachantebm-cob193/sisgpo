@@ -1,4 +1,4 @@
-// Arquivo: src/database/migrations/...(seu_timestamp)_create_metadata_table.js
+// Arquivo: backend/src/database/migrations/<timestamp>_create_metadata_table.js
 
 /**
  * @param { import("knex").Knex } knex

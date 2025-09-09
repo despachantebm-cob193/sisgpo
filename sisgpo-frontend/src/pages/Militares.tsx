@@ -1,5 +1,3 @@
-// Arquivo: frontend/src/pages/Militares.tsx (Ajustado para Desnormalização)
-
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2 } from 'lucide-react';
@@ -9,11 +7,11 @@ import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import MilitarForm from '../components/forms/MilitarForm'; // O formulário também será ajustado
+import MilitarForm from '../components/forms/MilitarForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 
-// Interface ajustada para a nova estrutura desnormalizada
+// Interfaces (sem alteração)
 interface Militar {
   id: number;
   matricula: string;
@@ -21,20 +19,18 @@ interface Militar {
   nome_guerra: string | null;
   posto_graduacao: string;
   ativo: boolean;
-  obm_nome: string | null; // <-- MUDANÇA PRINCIPAL AQUI
+  obm_nome: string | null;
 }
-
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Militares() {
+  // Hooks de estado (sem alteração)
   const [militares, setMilitares] = useState<Militar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Estados para modais e ações
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Militar | null>(null);
@@ -45,6 +41,7 @@ export default function Militares() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Funções de lógica (fetchData, handleSave, etc. - sem alteração)
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -67,11 +64,22 @@ export default function Militares() {
     setCurrentPage(1);
   };
 
-  const handleOpenFormModal = (item: Militar | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
+  const handleOpenFormModal = (item: Militar | null = null) => {
+    setItemToEdit(item);
+    setValidationErrors([]);
+    setIsFormModalOpen(true);
+  };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
-  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+
+  const handleDeleteClick = (id: number) => {
+    setItemToDeleteId(id);
+    setIsConfirmModalOpen(true);
+  };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) setSelectedFile(event.target.files[0]); };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) setSelectedFile(event.target.files[0]);
+  };
 
   const handleSave = async (data: Omit<Militar, 'id'> & { id?: number }) => {
     setIsSaving(true);
@@ -120,7 +128,6 @@ export default function Militares() {
     const formData = new FormData();
     formData.append('file', selectedFile);
     try {
-      // Chama a nova rota de upload de militares
       const response = await api.post('/api/admin/militares/upload', formData);
       toast.success(response.data.message || 'Arquivo enviado com sucesso!');
       fetchData();
@@ -136,21 +143,30 @@ export default function Militares() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Efetivo (Militares)</h2>
-        <Button onClick={() => handleOpenFormModal()}>Adicionar Militar</Button>
+      {/* --- CORREÇÃO DE LAYOUT NO CABEÇALHO --- */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Efetivo (Militares)</h2>
+          <p className="text-gray-600 mt-2">Gerencie os militares do efetivo.</p>
+        </div>
+        {/* O botão agora tem largura automática por padrão */}
+        <Button onClick={() => handleOpenFormModal()}>
+          Adicionar Militar
+        </Button>
       </div>
 
+      {/* --- CORREÇÃO DE LAYOUT NA ÁREA DE UPLOAD --- */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Importar/Atualizar Militares via Planilha</h3>
-        <div className="flex items-center gap-4">
-          <label htmlFor="militar-file-upload" className="flex-1">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <label htmlFor="militar-file-upload" className="flex-1 w-full">
             <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-100">
               <Upload className="w-5 h-5 text-gray-500 mr-2" />
               <span className="text-sm text-gray-600">{selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo (XLSX)'}</span>
             </div>
             <input id="militar-file-upload" type="file" className="sr-only" accept=".xlsx" onChange={handleFileChange} />
           </label>
+          {/* O botão de Enviar também terá largura automática */}
           <Button onClick={handleUpload} disabled={!selectedFile || isUploading}>
             {isUploading ? <Spinner className="h-5 w-5" /> : 'Enviar'}
           </Button>
@@ -165,19 +181,12 @@ export default function Militares() {
         className="max-w-xs mb-4"
       />
 
+      {/* O restante do código da tabela e modais permanece o mesmo */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome Completo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th> {/* <-- COLUNA ATUALIZADA */}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-              </tr>
+              <tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome Completo</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th></tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {isLoading ? (
@@ -189,7 +198,7 @@ export default function Militares() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.nome_guerra}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.posto_graduacao}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.obm_nome || 'N/A'}</td> {/* <-- DADO ATUALIZADO */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.obm_nome || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {militar.ativo ? 'Ativo' : 'Inativo'}
