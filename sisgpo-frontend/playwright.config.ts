@@ -1,3 +1,5 @@
+// Arquivo: frontend/playwright.config.ts
+
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -9,7 +11,6 @@ export default defineConfig({
   reporter: 'html',
   
   // Aumenta o timeout global para cada teste individualmente.
-  // Isso dá mais margem para a execução de cada passo.
   timeout: 60 * 1000, // 60 segundos
 
   use: {

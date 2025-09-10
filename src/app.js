@@ -1,3 +1,5 @@
+// Arquivo: backend/src/app.js (VERSÃO CORRIGIDA COM CORS)
+
 require('dotenv').config();
 const express = require('express');
 require('express-async-errors');
@@ -38,6 +40,7 @@ app.use('/api/auth', authRoutes);
 // Rotas de Administração (PROTEGIDAS)
 app.use('/api/admin', authMiddleware, adminRoutes);
 
+// Middleware de erro deve ser o último
 app.use(errorMiddleware);
 
 module.exports = app;

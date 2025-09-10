@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/services/api.ts (VERSÃO CORRIGIDA E ROBUSTA)
+
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
@@ -8,7 +10,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3333';
 
 // Adiciona um log no console para depuração, que aparecerá no console do navegador
 // durante os testes do Playwright, nos ajudando a confirmar qual URL está sendo usada.
-console.log(`[API Service] Configurando Axios com baseURL: ${baseURL}` );
+console.log(`[API Service] Configurando Axios com baseURL: ${baseURL}`  );
 
 const api = axios.create({
   baseURL: baseURL,

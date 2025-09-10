@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/pages/Login.tsx (VERSÃO CORRIGIDA E ROBUSTA)
+
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -7,6 +9,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
 
+// Interface para a resposta da API
 interface LoginResponse {
   token: string;
   user: { id: number; login: string; perfil: 'Admin' | 'Usuario'; };
@@ -20,6 +23,7 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Se já houver um token, redireciona para o dashboard
   if (authToken) {
     return <Navigate to="/" replace />;
   }
@@ -29,16 +33,23 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // CAMINHO CORRETO PARA A ROTA DE LOGIN
+      // --- PONTO CRÍTICO DE VERIFICAÇÃO ---
+      // Garante que a chamada é para a rota de autenticação correta
       const response = await api.post<LoginResponse>('/api/auth/login', { login, senha } );
       
+      // Salva o token e os dados do utilizador no estado global (Zustand)
       setToken(response.data.token);
       setUser(response.data.user);
+
+      // Navega para a página principal e mostra uma notificação de sucesso
       navigate('/');
       toast.success('Login bem-sucedido!');
+
     } catch (err: any) {
+      // Exibe a mensagem de erro vinda do backend ou uma mensagem genérica
       const errorMessage = err.response?.data?.message || 'Erro ao tentar fazer login.';
       toast.error(errorMessage);
+      console.error("Falha no login:", err.response?.data || err.message); // Log detalhado no console do navegador
     } finally {
       setIsLoading(false);
     }
@@ -58,14 +69,14 @@ export default function Login() {
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="login" className="text-gray-300">Usuário</Label>
+              <Label htmlFor="login" className="text-gray-300">Utilizador</Label>
               <Input
                 id="login"
                 type="text"
                 value={login}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
-                placeholder="Digite seu usuário"
+                placeholder="Digite seu utilizador"
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
