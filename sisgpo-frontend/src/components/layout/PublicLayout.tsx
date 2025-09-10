@@ -8,7 +8,7 @@ export default function PublicLayout() {
       <header className="bg-white shadow-md sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-gray-800">SISGPO - Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-800">SISGPO</h1>
             
             {/* --- ESTE É O ELEMENTO CORRETO --- */}
             {/* Ele é um componente <Link> que se parece com um botão */}
