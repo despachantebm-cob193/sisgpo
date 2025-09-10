@@ -1,71 +1,144 @@
-// Arquivo: backend/diagnostico-militares.js
+// Arquivo: backend/src/controllers/militarController.js (VERSÃO FINAL CORRIGIDA)
 
-// Carrega as variáveis de ambiente para conectar ao banco de dados correto
-require('dotenv').config();
-
-// Importa a instância do Knex
 const db = require('../config/database');
+const AppError = require('../utils/AppError');
 
-// --- IMPORTANTE: COLOQUE AQUI UMA MATRÍCULA QUE VOCÊ SABE QUE EXISTE NO SEU BANCO DE DADOS ---
-const MATRICULA_PARA_TESTAR = '2636'; // Use a matrícula da sua imagem ou outra válida
+const militarController = {
+  /**
+   * Lista todos os militares com suporte a filtros e paginação.
+   */
+  getAll: async (req, res) => {
+    const { nome_completo, matricula, posto_graduacao, ativo, all } = req.query;
 
-async function runDiagnosis() {
-  console.log('--- INICIANDO SCRIPT DE DIAGNÓSTICO DE BUSCA DE MILITAR ---');
-  
-  if (!MATRICULA_PARA_TESTAR) {
-    console.error('\n❌ ERRO: Por favor, defina a MATRICULA_PARA_TESTAR no topo do script.');
-    return;
-  }
+    const query = db('militares').select(
+      'id', 'matricula', 'nome_completo', 'nome_guerra',
+      'posto_graduacao', 'ativo', 'obm_nome'
+    );
 
-  try {
-    // 1. Teste de Conexão Simples
-    console.log('\n[PASSO 1] Testando a conexão com o banco de dados...');
-    const result = await db.raw('SELECT 1+1 AS result');
-    if (result.rows[0].result === 2) {
-      console.log('✅ Conexão com o banco de dados bem-sucedida!');
-    } else {
-      throw new Error('A conexão com o banco de dados falhou no teste básico.');
+    if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
+    if (matricula) query.where('matricula', 'ilike', `%${matricula}%`);
+    if (posto_graduacao) query.where('posto_graduacao', 'ilike', `%${posto_graduacao}%`);
+    if (ativo) query.where('ativo', '=', ativo);
+
+    if (all === 'true') {
+      const militares = await query.orderBy('nome_completo', 'asc');
+      return res.status(200).json({ data: militares, pagination: null });
     }
 
-    // 2. Executando a consulta exata do Controller
-    console.log(`\n[PASSO 2] Executando a consulta para a matrícula: ${MATRICULA_PARA_TESTAR}...`);
-    
-    const militarQuery = db('militares')
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const offset = (page - 1) * limit;
+
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'id' }).first();
+    const dataQuery = query.clone().orderBy('nome_completo', 'asc').limit(limit).offset(offset);
+
+    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+    const totalRecords = parseInt(totalResult.count, 10);
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json({
+      data,
+      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
+    });
+  },
+
+  /**
+   * Busca militares por termo para componentes de select assíncrono.
+   * ESTA É A FUNÇÃO QUE ESTAVA A FALTAR OU INCORRETA.
+   */
+  search: async (req, res) => {
+    const { term } = req.query;
+
+    if (!term || term.length < 2) {
+      return res.status(200).json([]);
+    }
+
+    try {
+      const militares = await db('militares')
+        .where('nome_completo', 'ilike', `%${term}%`)
+        .orWhere('nome_guerra', 'ilike', `%${term}%`)
+        .orWhere('matricula', 'ilike', `%${term}%`)
+        .andWhere('ativo', true)
+        .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra')
+        .limit(15);
+
+      const options = militares.map(m => ({
+        value: m.id,
+        label: `${m.posto_graduacao} ${m.nome_guerra || m.nome_completo} (${m.matricula})`,
+        militar: m,
+      }));
+
+      res.status(200).json(options);
+    } catch (error) {
+      console.error("Erro ao buscar militares:", error);
+      throw new AppError("Não foi possível realizar a busca por militares.", 500);
+    }
+  },
+
+  /**
+   * Busca um militar específico pela matrícula.
+   */
+  getByMatricula: async (req, res) => {
+    const { matricula } = req.params;
+    if (!matricula) {
+      throw new AppError('Matrícula não fornecida.', 400);
+    }
+    const militar = await db('militares')
       .select('id', 'nome_completo', 'posto_graduacao')
-      .where({ matricula: MATRICULA_PARA_TESTAR, ativo: true }) // Importante: verifica se o militar está ativo
+      .where({ matricula: matricula, ativo: true })
       .first();
-
-    // Imprime o SQL que será executado para verificação
-    console.log('\nSQL Gerado pelo Knex:');
-    console.log(militarQuery.toString());
-
-    // Executa a consulta
-    const militarResult = await militarQuery;
-
-    console.log('\n✅ [SUCESSO] A consulta foi executada sem erros!');
-    console.log('\nResultado da Consulta:');
-    
-    if (militarResult) {
-      console.log(militarResult);
-      console.log('\n[CONCLUSÃO] SUCESSO! O militar foi encontrado no banco de dados. O problema provavelmente está na rota do backend ou na chamada do frontend.');
-    } else {
-      console.log('   -> NENHUM RESULTADO ENCONTRADO.');
-      console.log('\n[CONCLUSÃO] FALHA! O militar não foi encontrado. Verifique os seguintes pontos:');
-      console.log(`   1. A matrícula "${MATRICULA_PARA_TESTAR}" realmente existe na tabela "militares"?`);
-      console.log('   2. A coluna "ativo" para este militar está marcada como "true"? A busca só retorna militares ativos.');
+      
+    if (!militar) {
+      throw new AppError('Militar não encontrado ou inativo para esta matrícula.', 404);
     }
+    res.status(200).json(militar);
+  },
 
-  } catch (error) {
-    console.error('\n❌ [ERRO] Ocorreu um erro durante o diagnóstico!');
-    console.error('-------------------------------------------------');
-    console.error('Mensagem do Erro:', error.message);
-    console.error('-------------------------------------------------');
-  } finally {
-    // 3. Encerrando a conexão
-    console.log('\n[PASSO 3] Encerrando a conexão com o banco de dados...');
-    await db.destroy();
-    console.log('--- FIM DO SCRIPT DE DIAGNÓSTICO ---');
-  }
-}
+  /**
+   * Cria um novo militar.
+   */
+  create: async (req, res) => {
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
+    const matriculaExists = await db('militares').where({ matricula }).first();
+    if (matriculaExists) {
+      throw new AppError('Matrícula já cadastrada no sistema.', 409);
+    }
+    const [novoMilitar] = await db('militares').insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome }).returning('*');
+    res.status(201).json(novoMilitar);
+  },
 
-runDiagnosis();
+  /**
+   * Atualiza um militar existente.
+   */
+  update: async (req, res) => {
+    const { id } = req.params;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
+    const militarParaAtualizar = await db('militares').where({ id }).first();
+    if (!militarParaAtualizar) {
+      throw new AppError('Militar não encontrado.', 404);
+    }
+    if (matricula && matricula !== militarParaAtualizar.matricula) {
+      const matriculaConflict = await db('militares').where('matricula', matricula).andWhere('id', '!=', id).first();
+      if (matriculaConflict) {
+        throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
+      }
+    }
+    const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, updated_at: db.fn.now() };
+    const [militarAtualizado] = await db('militares').where({ id }).update(dadosAtualizacao).returning('*');
+    res.status(200).json(militarAtualizado);
+  },
+
+  /**
+   * Deleta um militar.
+   */
+  delete: async (req, res) => {
+    const { id } = req.params;
+    const result = await db('militares').where({ id }).del();
+    if (result === 0) {
+      throw new AppError('Militar não encontrado.', 404);
+    }
+    res.status(204).send();
+  },
+};
+
+module.exports = militarController;
