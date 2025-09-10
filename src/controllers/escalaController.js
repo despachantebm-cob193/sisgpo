@@ -63,7 +63,7 @@ const escalaController = {
       const options = civis.map(c => ({
         value: c.id,
         label: `${c.nome_completo} (${c.funcao || 'Civil'})`, // Adiciona um fallback para a função
-        civil: c,
+        civil: c, // Renomeado para evitar conflito com a palavra-chave 'militar'
       }));
 
       res.status(200).json(options);

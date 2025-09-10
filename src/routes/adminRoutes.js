@@ -35,6 +35,8 @@ router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaSt
 router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
 router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
 router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
+// ROTA ADICIONADA/CORRIGIDA PARA O SERVIÇO DE DIA NO DASHBOARD
+router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
 
 // --- ROTAS DE OBMS ---
 router.get('/obms', obmController.getAll);
@@ -55,7 +57,7 @@ router.post('/militares/upload', upload.single('file'), militarFileController.up
 
 // --- ROTAS DE ESCALA (MÉDICOS / CIVIS) ---
 router.get('/civis', escalaController.getAll);
-router.get('/civis/search', escalaController.search); // <-- ROTA DE BUSCA ADICIONADA
+router.get('/civis/search', escalaController.search);
 router.post('/civis', validationMiddleware(createEscalaSchema), escalaController.create);
 router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);
 router.delete('/civis/:id', escalaController.delete);
@@ -76,7 +78,7 @@ router.get('/plantoes/:id', plantaoController.getById);
 router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
 
-// --- ROTAS DE SERVIÇO DO DIA ---
+// --- ROTAS DE SERVIÇO DO DIA (PÁGINA DE GERENCIAMENTO) ---
 router.get('/servico-dia', servicoDiaController.getByDate);
 router.post('/servico-dia', servicoDiaController.save);
 

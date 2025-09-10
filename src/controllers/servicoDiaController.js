@@ -1,56 +1,74 @@
-// Arquivo: backend/src/controllers/servicoDiaController.js
+// Arquivo: backend/src/controllers/servicoDiaController.js (VERSÃO POLIMÓRFICA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const servicoDiaController = {
-  // Busca o serviço do dia para uma data específica (ou a data atual)
   getByDate: async (req, res) => {
     const { data } = req.query;
-    // Se nenhuma data for fornecida, usa a data atual
     const dataBusca = data || new Date().toISOString().split('T')[0];
 
     try {
-      const servico = await db('servico_dia as sd')
-        .leftJoin('militares as m', 'sd.militar_id', 'm.id')
-        .select(
-          'sd.funcao',
-          'm.nome_guerra',
-          'm.posto_graduacao',
-          'm.id as militar_id' // Inclui o ID para edição
-        )
-        .where('sd.data', '=', dataBusca);
+      const servicos = await db('servico_dia').where({ data: dataBusca });
 
-      res.status(200).json(servico);
+      const servicoMilitares = servicos.filter(s => s.pessoa_type === 'militar');
+      const servicoCivis = servicos.filter(s => s.pessoa_type === 'civil');
+
+      let militaresData = [];
+      if (servicoMilitares.length > 0) {
+        militaresData = await db('militares')
+          .select('id', 'posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(nome_guerra), ''), nome_completo) as nome_guerra"))
+          .whereIn('id', servicoMilitares.map(s => s.pessoa_id));
+      }
+
+      let civisData = [];
+      if (servicoCivis.length > 0) {
+        civisData = await db('civis')
+          .select('id', 'funcao as posto_graduacao', 'nome_completo as nome_guerra')
+          .whereIn('id', servicoCivis.map(s => s.pessoa_id));
+      }
+
+      const resultadoFinal = servicos.map(servico => {
+        const pessoaData = servico.pessoa_type === 'militar'
+          ? militaresData.find(m => m.id === servico.pessoa_id)
+          : civisData.find(c => c.id === servico.pessoa_id);
+        
+        return {
+          funcao: servico.funcao,
+          pessoa_id: servico.pessoa_id,
+          pessoa_type: servico.pessoa_type,
+          nome_guerra: pessoaData?.nome_guerra || null,
+          posto_graduacao: pessoaData?.posto_graduacao || null,
+        };
+      });
+
+      res.status(200).json(resultadoFinal);
     } catch (error) {
       console.error("ERRO AO BUSCAR SERVIÇO DO DIA:", error);
       throw new AppError("Não foi possível carregar os dados do serviço de dia.", 500);
     }
   },
 
-  // Salva ou atualiza o serviço do dia
   save: async (req, res) => {
     const { data, servicos } = req.body;
 
     if (!data || !servicos || !Array.isArray(servicos)) {
-      throw new AppError('Formato de dados inválido. Data e lista de serviços são obrigatórios.', 400);
+      throw new AppError('Formato de dados inválido.', 400);
     }
 
     try {
       await db.transaction(async trx => {
-        // Deleta todos os registros para a data especificada para garantir uma atualização limpa
         await trx('servico_dia').where({ data }).del();
 
-        // Filtra apenas os serviços que têm um militar_id válido para inserir
         const servicosParaInserir = servicos
-          .filter(servico => servico.funcao && servico.militar_id)
-          .map(servico => ({
+          .filter(s => s.funcao && s.pessoa_id && s.pessoa_type)
+          .map(s => ({
             data,
-            funcao: servico.funcao,
-            militar_id: Number(servico.militar_id),
+            funcao: s.funcao,
+            pessoa_id: Number(s.pessoa_id),
+            pessoa_type: s.pessoa_type,
           }));
 
-        // Insere os novos registros em lote, se houver algum
         if (servicosParaInserir.length > 0) {
           await trx('servico_dia').insert(servicosParaInserir);
         }

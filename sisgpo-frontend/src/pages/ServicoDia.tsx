@@ -1,8 +1,9 @@
-// Arquivo: frontend/src/pages/ServicoDia.tsx (VERSÃO FINAL COM BUSCA DIFERENCIADA)
+// Arquivo: frontend/src/pages/ServicoDia.tsx (VERSÃO FINAL COM TIPO EXPLÍCITO)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import AsyncSelect from 'react-select/async';
+import { MultiValue, SingleValue } from 'react-select';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -10,28 +11,24 @@ import Label from '../components/ui/Label';
 import Spinner from '../components/ui/Spinner';
 
 // --- Interfaces ---
-interface MilitarOption {
-  value: number;
-  label: string;
-}
-interface CivilOption {
+interface SelectOption {
   value: number;
   label: string;
 }
 interface Servico {
   funcao: string;
-  militar_id: number | null;
-  militar_label?: string;
+  pessoas: { id: number; label: string; type: 'militar' | 'civil' }[];
 }
 
 // --- Listas de Funções ---
 const FUNCOES_MILITARES = [
   "Superior de Dia", "Coordenador de Operações", "Supervisor de Dia", "Supervisor de Atendimento",
   "Alpha - 1º BBM", "Bravo - 2º BBM", "Charlie - 7º BBM", "Delta - 8º BBM",
-  "Perito", "Odontólogo"
+  "Perito", "Odontólogo", "Médico"
 ];
-const FUNCOES_CIVIS = ["Médico", "Regulador"];
+const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
+const FUNCOES_MULTI_SELECAO = ["Regulador"];
 
 export default function ServicoDia() {
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
@@ -39,40 +36,40 @@ export default function ServicoDia() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- Funções de Busca Separadas ---
-  const loadMilitarOptions = (inputValue: string, callback: (options: MilitarOption[]) => void) => {
+  const loadMilitarOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
     if (!inputValue || inputValue.length < 2) return callback([]);
-    api.get(`/api/admin/militares/search?term=${inputValue}`)
-      .then(response => callback(response.data))
-      .catch(() => callback([]));
+    api.get(`/api/admin/militares/search?term=${inputValue}`).then(res => callback(res.data)).catch(() => callback([]));
   };
 
-  const loadCivilOptions = (inputValue: string, callback: (options: CivilOption[]) => void) => {
+  const loadCivilOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
     if (!inputValue || inputValue.length < 2) return callback([]);
-    api.get(`/api/admin/civis/search?term=${inputValue}`)
-      .then(response => callback(response.data))
-      .catch(() => callback([]));
+    api.get(`/api/admin/civis/search?term=${inputValue}`).then(res => callback(res.data)).catch(() => callback([]));
   };
 
-  // Busca os dados do serviço do dia
   const fetchServicoDoDia = useCallback(async (dataSelecionada: string) => {
     setIsLoading(true);
     try {
       const response = await api.get(`/api/admin/servico-dia?data=${dataSelecionada}`);
-      const servicosDaApi: { funcao: string; militar_id: number; nome_guerra: string; posto_graduacao: string; }[] = response.data || [];
+      const servicosDaApi: { funcao: string; pessoa_id: number; nome_guerra: string; posto_graduacao: string; pessoa_type: 'militar' | 'civil' }[] = response.data || [];
       
-      const servicosFormatados = TODAS_AS_FUNCOES.map(funcao => {
-        const servicoExistente = servicosDaApi.find(s => s.funcao === funcao);
+      const servicosAgrupados = TODAS_AS_FUNCOES.map(funcao => {
+        const pessoasNestaFuncao = servicosDaApi
+          .filter(s => s.funcao === funcao)
+          .map(s => ({
+            id: s.pessoa_id,
+            label: `${s.posto_graduacao || ''} ${s.nome_guerra || ''}`.trim(),
+            type: s.pessoa_type,
+          }));
+        
         return {
           funcao,
-          militar_id: servicoExistente ? servicoExistente.militar_id : null,
-          militar_label: servicoExistente ? `${servicoExistente.posto_graduacao} ${servicoExistente.nome_guerra}` : undefined,
+          pessoas: pessoasNestaFuncao,
         };
       });
-      setServicos(servicosFormatados);
+      setServicos(servicosAgrupados);
     } catch (error) {
       toast.error("Não foi possível carregar o serviço do dia.");
-      setServicos(TODAS_AS_FUNCOES.map(funcao => ({ funcao, militar_id: null })));
+      setServicos(TODAS_AS_FUNCOES.map(funcao => ({ funcao, pessoas: [] })));
     } finally {
       setIsLoading(false);
     }
@@ -82,13 +79,25 @@ export default function ServicoDia() {
     if (data) fetchServicoDoDia(data);
   }, [data, fetchServicoDoDia]);
 
-  // Manipulador de seleção que funciona para ambos os tipos
-  const handleSelectChange = (funcao: string, selectedOption: MilitarOption | CivilOption | null) => {
+  const handleSelectChange = (funcao: string, selectedOptions: MultiValue<SelectOption> | SingleValue<SelectOption>) => {
+    const isCivil = FUNCOES_CIVIS.includes(funcao);
+    
+    const novasPessoas = (Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions])
+      .filter((opt): opt is SelectOption => opt !== null)
+      .map(opt => {
+        // --- CORREÇÃO APLICADA AQUI ---
+        // Definimos explicitamente o tipo da variável 'type' antes de a usarmos.
+        const type: 'militar' | 'civil' = isCivil ? 'civil' : 'militar';
+        return {
+          id: opt.value,
+          label: opt.label.replace(/\s\(.*\)$/, ''),
+          type: type, // Usamos a variável com o tipo explícito
+        };
+      });
+
     setServicos(prevServicos =>
       prevServicos.map(s => 
-        s.funcao === funcao 
-          ? { ...s, militar_id: selectedOption?.value ?? null, militar_label: selectedOption?.label } 
-          : s
+        s.funcao === funcao ? { ...s, pessoas: novasPessoas } : s
       )
     );
   };
@@ -96,7 +105,15 @@ export default function ServicoDia() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const payload = { data, servicos: servicos.map(({ funcao, militar_id }) => ({ funcao, militar_id })) };
+      const payloadServicos = servicos.flatMap(s => 
+        s.pessoas.map(p => ({
+          funcao: s.funcao,
+          pessoa_id: p.id,
+          pessoa_type: p.type,
+        }))
+      );
+      
+      const payload = { data, servicos: payloadServicos };
       await api.post('/api/admin/servico-dia', payload);
       toast.success('Serviço do dia salvo com sucesso!');
     } catch (error) {
@@ -121,24 +138,27 @@ export default function ServicoDia() {
       ) : (
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {servicos.map(({ funcao, militar_id, militar_label }) => {
-              // Determina qual função de busca usar com base na lista
-              const isCivilFunction = FUNCOES_CIVIS.includes(funcao);
-              const loadOptions = isCivilFunction ? loadCivilOptions : loadMilitarOptions;
-              const placeholder = isCivilFunction ? "Buscar médico/regulador..." : "Buscar militar...";
+            {servicos.map(({ funcao, pessoas }) => {
+              const isMulti = FUNCOES_MULTI_SELECAO.includes(funcao);
+              const isCivil = FUNCOES_CIVIS.includes(funcao);
+              const loadOptions = isCivil ? loadCivilOptions : loadMilitarOptions;
+              const placeholder = isCivil ? "Buscar regulador(es)..." : "Buscar militar...";
+              
+              const selectValue = pessoas.map(p => ({ value: p.id, label: p.label }));
 
               return (
                 <div key={funcao}>
                   <Label htmlFor={funcao}>{funcao}</Label>
                   <AsyncSelect
                     id={funcao}
+                    isMulti={isMulti}
                     cacheOptions
                     loadOptions={loadOptions}
                     defaultOptions
                     isClearable
                     placeholder={placeholder}
-                    value={militar_id ? { value: militar_id, label: militar_label || 'Carregando...' } : null}
-                    onChange={(option) => handleSelectChange(funcao, option)}
+                    value={isMulti ? selectValue : selectValue[0] || null}
+                    onChange={(options) => handleSelectChange(funcao, options)}
                     noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Digite pelo menos 2 caracteres' : 'Nenhum resultado encontrado'}
                   />
                 </div>
@@ -155,4 +175,3 @@ export default function ServicoDia() {
     </div>
   );
 }
-  

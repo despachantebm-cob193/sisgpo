@@ -1,9 +1,9 @@
-// Arquivo: backend/src/controllers/dashboardController.js (VERSÃO CORRIGIDA)
+// Arquivo: backend/src/controllers/dashboardController.js (Completo e Corrigido)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
-// Função auxiliar para extrair o tipo da viatura a partir do prefixo
+// Função auxiliar para extrair o tipo da viatura
 const getTipoViatura = (prefixo) => {
   if (!prefixo) return 'OUTROS';
   const partes = prefixo.split('-');
@@ -20,46 +20,32 @@ const dashboardController = {
   getStats: async (req, res) => {
     const { obm_id } = req.query;
     try {
-      // --- CORREÇÃO APLICADA AQUI ---
-      // Inicia as queries sem aplicar o filtro ainda
       const militaresQuery = db('militares').where({ ativo: true });
       const viaturasQuery = db('viaturas').where({ ativa: true });
 
-      // Se um obm_id for fornecido, busca o nome da OBM e aplica o filtro correto
       if (obm_id) {
         const obm = await db('obms').where({ id: obm_id }).first();
         if (obm) {
-          // Filtra 'militares' pela coluna 'obm_nome'
           militaresQuery.where({ obm_nome: obm.nome });
-          // Filtra 'viaturas' pela coluna 'obm' (que também é o nome)
           viaturasQuery.where({ obm: obm.nome });
         }
       }
-      // --- FIM DA CORREÇÃO ---
 
       const totalMilitaresAtivos = militaresQuery.count({ count: '*' }).first();
       const totalViaturasDisponiveis = viaturasQuery.count({ count: '*' }).first();
-
-      // Queries que não dependem do filtro de OBM
       const totalObms = db('obms').count({ count: '*' }).first();
-      const totalPlantoesMes = db.raw(
-        "SELECT COUNT(*) FROM plantoes WHERE date_trunc('month', data_plantao) = date_trunc('month', CURRENT_DATE)"
-      ).then(res => res.rows[0]);
+      const totalPlantoesMes = db.raw("SELECT COUNT(*) FROM plantoes WHERE date_trunc('month', data_plantao) = date_trunc('month', CURRENT_DATE)").then(res => res.rows[0]);
 
       const [militaresResult, viaturasResult, obmsResult, plantoesResult] = await Promise.all([
-        totalMilitaresAtivos,
-        totalViaturasDisponiveis,
-        totalObms,
-        totalPlantoesMes
+        totalMilitaresAtivos, totalViaturasDisponiveis, totalObms, totalPlantoesMes
       ]);
 
-      const formattedStats = {
+      res.status(200).json({
         total_militares_ativos: parseInt(militaresResult.count, 10),
         total_viaturas_disponiveis: parseInt(viaturasResult.count, 10),
         total_obms: parseInt(obmsResult.count, 10),
         total_plantoes_mes: parseInt(plantoesResult.count, 10),
-      };
-      res.status(200).json(formattedStats);
+      });
     } catch (error) {
       console.error("ERRO AO BUSCAR ESTATÍSTICAS GERAIS:", error);
       throw new AppError("Não foi possível carregar as estatísticas do dashboard.", 500);
@@ -76,15 +62,12 @@ const dashboardController = {
         .groupBy('posto_graduacao')
         .orderBy('count', 'desc');
 
-      // --- CORREÇÃO APLICADA AQUI ---
       if (obm_id) {
         const obm = await db('obms').where({ id: obm_id }).first();
         if (obm) {
-          // Filtra pela coluna de texto 'obm_nome'
           query.andWhere({ obm_nome: obm.nome });
         }
       }
-      // --- FIM DA CORREÇÃO ---
 
       const militaresPorPosto = await query;
       const formattedData = militaresPorPosto.map(item => ({
@@ -103,27 +86,20 @@ const dashboardController = {
     try {
       const query = db('viaturas').select('prefixo').where('ativa', true);
       
-      // --- CORREÇÃO APLICADA AQUI ---
       if (obm_id) {
         const obm = await db('obms').where({ id: obm_id }).first();
         if (obm) {
-          // Filtra pela coluna de texto 'obm'
           query.andWhere({ obm: obm.nome });
         }
       }
-      // --- FIM DA CORREÇÃO ---
 
       const viaturasAtivas = await query;
-
       const stats = viaturasAtivas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
-        if (!acc[tipo]) {
-          acc[tipo] = { name: tipo, value: 0 };
-        }
+        if (!acc[tipo]) { acc[tipo] = { name: tipo, value: 0 }; }
         acc[tipo].value++;
         return acc;
       }, {});
-
       const chartData = Object.values(stats).sort((a, b) => b.value - a.value);
       res.status(200).json(chartData);
     } catch (error) {
@@ -132,57 +108,35 @@ const dashboardController = {
     }
   },
 
-  // As outras funções (getViaturaStatsDetalhado, getViaturaStatsPorObm, getMetadataByKey) não precisam de alteração,
-  // pois já usam a coluna de texto ou não são afetadas pelo filtro.
-  
   getViaturaStatsDetalhado: async (req, res) => {
     const { obm_id } = req.query;
     try {
       const query = db('viaturas as v')
         .leftJoin('obms as o', 'v.obm', 'o.nome')
-        .select(
-          'v.prefixo',
-          db.raw('COALESCE(o.abreviatura, v.obm) as local_final')
-        )
+        .select('v.prefixo', db.raw('COALESCE(o.abreviatura, v.obm) as local_final'))
         .where('v.ativa', true)
-        .orderBy('local_final', 'asc')
-        .orderBy('v.prefixo', 'asc');
+        .orderBy('local_final', 'asc').orderBy('v.prefixo', 'asc');
 
       if (obm_id) {
         const obm = await db('obms').where({ id: obm_id }).first();
-        if (obm) {
-          query.andWhere('v.obm', obm.nome);
-        }
+        if (obm) { query.andWhere('v.obm', obm.nome); }
       }
 
       const viaturasAtivas = await query;
-
       const stats = viaturasAtivas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
         const nomeLocal = vtr.local_final || 'OBM Não Informada';
-
-        if (!acc[tipo]) {
-          acc[tipo] = { tipo: tipo, quantidade: 0, obms: {} };
-        }
-        
+        if (!acc[tipo]) { acc[tipo] = { tipo: tipo, quantidade: 0, obms: {} }; }
         acc[tipo].quantidade++;
-
-        if (!acc[tipo].obms[nomeLocal]) {
-          acc[tipo].obms[nomeLocal] = [];
-        }
-        
+        if (!acc[tipo].obms[nomeLocal]) { acc[tipo].obms[nomeLocal] = []; }
         acc[tipo].obms[nomeLocal].push(vtr.prefixo);
-        
         return acc;
       }, {});
-
       const resultadoFinal = Object.values(stats).map(item => ({
         ...item,
         obms: Object.entries(item.obms).map(([nome, prefixos]) => ({ nome, prefixos }))
       })).sort((a, b) => a.tipo.localeCompare(b.tipo));
-
       res.status(200).json(resultadoFinal);
-
     } catch (error) {
       console.error("ERRO AO BUSCAR ESTATÍSTICAS DETALHADAS DE VIATURAS:", error);
       throw new AppError("Não foi possível carregar as estatísticas detalhadas de viaturas.", 500);
@@ -195,28 +149,17 @@ const dashboardController = {
         db('obms').select('id', 'nome', 'abreviatura').orderBy('abreviatura', 'asc'),
         db('viaturas').select('prefixo', 'obm as nome_obm').where('ativa', true)
       ]);
-  
       const viaturasPorNomeObm = viaturas.reduce((acc, vtr) => {
         const nomeObm = vtr.nome_obm || 'Sem OBM';
-        if (!acc[nomeObm]) {
-          acc[nomeObm] = [];
-        }
+        if (!acc[nomeObm]) { acc[nomeObm] = []; }
         acc[nomeObm].push(vtr.prefixo);
         return acc;
       }, {});
-  
       const resultadoFinal = obms.map(obm => {
         const prefixos = viaturasPorNomeObm[obm.nome] || [];
-        return {
-          id: obm.id,
-          nome: obm.abreviatura,
-          quantidade: prefixos.length,
-          prefixos: prefixos.sort(),
-        };
+        return { id: obm.id, nome: obm.abreviatura, quantidade: prefixos.length, prefixos: prefixos.sort() };
       });
-  
       res.status(200).json(resultadoFinal);
-  
     } catch (error) {
       console.error("ERRO AO BUSCAR ESTATÍSTICAS DE VIATURAS POR OBM:", error);
       throw new AppError("Não foi possível carregar as estatísticas de viaturas por OBM.", 500);
@@ -227,13 +170,35 @@ const dashboardController = {
     const { key } = req.params;
     try {
       const metadata = await db('metadata').where({ key }).first();
-      if (!metadata) {
-        return res.status(404).json({ message: 'Metadado não encontrado.' });
-      }
+      if (!metadata) { return res.status(404).json({ message: 'Metadado não encontrado.' }); }
       res.status(200).json(metadata);
     } catch (error) {
       console.error(`ERRO AO BUSCAR METADADO '${key}':`, error);
       throw new AppError('Não foi possível buscar a informação de metadados.', 500);
+    }
+  },
+
+  // --- FUNÇÃO CORRIGIDA PARA O DASHBOARD ---
+  getServicoDia: async (req, res) => {
+    const dataBusca = new Date().toISOString().split('T')[0];
+
+    try {
+      const servicoMilitares = await db('servico_dia as sd')
+        .join('militares as m', 'sd.pessoa_id', 'm.id')
+        .select('sd.funcao', 'm.posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_guerra"))
+        .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'militar' });
+
+      const servicoCivis = await db('servico_dia as sd')
+        .join('civis as c', 'sd.pessoa_id', 'c.id')
+        .select('sd.funcao', 'c.funcao as posto_graduacao', 'c.nome_completo as nome_guerra')
+        .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'civil' });
+
+      const servicoCompleto = [...servicoMilitares, ...servicoCivis];
+      
+      res.status(200).json(servicoCompleto);
+    } catch (error) {
+      console.error("ERRO AO BUSCAR SERVIÇO DO DIA PARA O DASHBOARD:", error);
+      throw new AppError("Não foi possível carregar os dados do serviço de dia.", 500);
     }
   },
 };

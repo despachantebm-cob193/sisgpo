@@ -8,51 +8,23 @@ import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import toast from 'react-hot-toast';
 
-// Interfaces para tipagem dos dados
-interface DashboardStats {
-  total_militares_ativos: number;
-  total_viaturas_disponiveis: number;
-  total_obms: number;
-  total_plantoes_mes: number;
-}
-interface ChartStat {
-  name: string;
-  value: number;
-}
-interface Obm {
-  id: number;
-  abreviatura: string;
-  nome: string;
-}
-interface ObmGrupo {
-  nome: string;
-  prefixos: string[];
-}
-interface ViaturaStatAgrupada {
-  tipo: string;
-  quantidade: number;
-  obms: ObmGrupo[];
-}
-interface ViaturaPorObmStat {
-  id: number;
-  nome: string;
-  quantidade: number;
-  prefixos: string[];
-}
-interface ServicoInfo {
-  funcao: string;
-  nome_guerra: string | null;
-  posto_graduacao: string | null;
-}
+// Interfaces (sem alterações)
+interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_plantoes_mes: number; }
+interface ChartStat { name: string; value: number; }
+interface Obm { id: number; abreviatura: string; nome: string; }
+interface ObmGrupo { nome: string; prefixos: string[]; }
+interface ViaturaStatAgrupada { tipo: string; quantidade: number; obms: ObmGrupo[]; }
+interface ViaturaPorObmStat { id: number; nome: string; quantidade: number; prefixos: string[]; }
+interface ServicoInfo { funcao: string; nome_guerra: string | null; posto_graduacao: string | null; }
 
 export default function Dashboard() {
+  // Hooks de estado e funções de busca (sem alterações)
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
   const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
   const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
   const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
-  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [obms, setObms] = useState<Obm[]>([]);
@@ -88,12 +60,8 @@ export default function Dashboard() {
       const queryString = params.toString();
 
       const [
-        statsRes, 
-        viaturaTipoRes, 
-        militarStatsRes, 
-        viaturaDetailRes,
-        viaturaPorObmRes,
-        servicoDiaRes
+        statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes,
+        viaturaPorObmRes, servicoDiaRes
       ] = await Promise.all([
         api.get<DashboardStats>(`/api/admin/dashboard/stats?${queryString}`),
         api.get<ChartStat[]>(`/api/admin/dashboard/viatura-stats-por-tipo?${queryString}`),
@@ -128,38 +96,22 @@ export default function Dashboard() {
   }, [fetchDashboardData]);
 
   if (error) {
-    return (
-      <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">
-        {error}
-      </div>
-    );
+    return <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">{error}</div>;
   }
 
   return (
     <div className="space-y-8">
-      {/* Seção do Cabeçalho e Cartões de Estatísticas */}
+      {/* Cabeçalho e Stats (sem alteração) */}
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h2>
-            <p className="text-gray-600 mt-2">
-              Visão geral do poder operacional.
-            </p>
+            <p className="text-gray-600 mt-2">Visão geral do poder operacional.</p>
           </div>
           <div className="w-full md:w-auto">
-            <label htmlFor="obm-filter" className="sr-only">Filtrar por OBM</label>
-            <select
-              id="obm-filter"
-              value={selectedObm}
-              onChange={(e) => setSelectedObm(e.target.value)}
-              className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
+            <select id="obm-filter" value={selectedObm} onChange={(e) => setSelectedObm(e.target.value)} className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
               <option value="">Todas as OBMs</option>
-              {obms.map((obm) => (
-                <option key={obm.id} value={obm.id}>
-                  {obm.abreviatura} - {obm.nome}
-                </option>
-              ))}
+              {obms.map((obm) => (<option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>))}
             </select>
           </div>
         </div>
@@ -171,16 +123,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Novo Componente: Serviço de Dia */}
+      {/* Serviço de Dia (sem alteração) */}
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
 
-      {/* Tabela de Detalhamento de Viaturas */}
+      {/* --- CORREÇÃO DE LAYOUT APLICADA AQUI --- */}
+      {/* Tabela de Detalhamento de Viaturas agora ocupa a largura total */}
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
 
-      {/* Componente: Viaturas por Unidade */}
-      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
-
-      {/* Seção dos Gráficos Lado a Lado */}
+      {/* Novo grid para colocar os dois gráficos restantes lado a lado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ViaturaTypeChart 
           data={viaturaTipoStats} 
@@ -189,6 +139,10 @@ export default function Dashboard() {
         />
         <MilitarRankChart data={militarStats} isLoading={isLoading} />
       </div>
+      {/* --- FIM DA CORREÇÃO --- */}
+
+      {/* Viaturas por Unidade (sem alteração) */}
+      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
     </div>
   );
 }
