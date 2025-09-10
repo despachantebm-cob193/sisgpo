@@ -1,36 +1,66 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 
-import AppLayout from '../components/layout/AppLayout';
+// Layouts
+import AppLayout from '../components/layout/AppLayout';      // <-- CAMINHO CORRIGIDO
+import PublicLayout from '../components/layout/PublicLayout';  // <-- CAMINHO CORRIGIDO
 
+// Páginas
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
-import NotFound from '../pages/NotFound';
 import Obms from '../pages/Obms';
 import Viaturas from '../pages/Viaturas';
 import Militares from '../pages/Militares';
-import Civis from '../pages/EscalaMedicos'; // <-- IMPORTAÇÃO DA NOVA PÁGINA
+import EscalaMedicos from '../pages/EscalaMedicos';
 import Plantoes from '../pages/Plantoes';
-import Profile from '../pages/Profile';
 import ServicoDia from '../pages/ServicoDia';
+import Profile from '../pages/Profile';
+import NotFound from '../pages/NotFound';
 
 export const router = createBrowserRouter([
+  // --- ROTAS PÚBLICAS ---
   {
     path: '/',
-    element: <AppLayout />,
+    element: <PublicLayout />,
     errorElement: <NotFound />,
     children: [
-      { index: true, element: <Dashboard /> },
-      { path: 'obms', element: <Obms /> },
-      { path: 'viaturas', element: <Viaturas /> },
-      { path: 'militares', element: <Militares /> },
-      { path: 'civis', element: <Civis /> }, // <-- NOVA ROTA ADICIONADA
-      { path: 'plantoes', element: <Plantoes /> },
-      { path: 'servico-dia', element: <ServicoDia /> },
-      { path: 'perfil', element: <Profile /> },
+      {
+        index: true,
+        element: <Dashboard />,
+      },
     ],
   },
   {
     path: '/login',
     element: <Login />,
+  },
+
+  // --- ROTAS PRIVADAS (ÁREA RESTRITA) ---
+  {
+    path: '/app',
+    element: <AppLayout />,
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/app/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      { path: 'obms', element: <Obms /> },
+      { path: 'viaturas', element: <Viaturas /> },
+      { path: 'militares', element: <Militares /> },
+      { path: 'civis', element: <EscalaMedicos /> },
+      { path: 'plantoes', element: <Plantoes /> },
+      { path: 'servico-dia', element: <ServicoDia /> },
+      { path: 'perfil', element: <Profile /> },
+    ],
+  },
+
+  // Rota de "Não Encontrado" para qualquer outro caminho
+  {
+    path: '*',
+    element: <NotFound />,
   },
 ]);

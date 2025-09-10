@@ -1,15 +1,12 @@
-// Arquivo: frontend/src/pages/Login.tsx (VERSÃO CORRIGIDA E ROBUSTA)
-
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
-import api from '../services/api'; // Nossa instância base do Axios
+import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
 
-// Interface para a resposta da API
 interface LoginResponse {
   token: string;
   user: { id: number; login: string; perfil: 'Admin' | 'Usuario'; };
@@ -23,33 +20,32 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Se já houver um token, redireciona para o dashboard
+  // --- CORREÇÃO APLICADA AQUI ---
+  // Se já houver um token, redireciona para o dashboard DENTRO da área logada.
   if (authToken) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app/dashboard" replace />;
   }
+  // --- FIM DA CORREÇÃO ---
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
 
     try {
-      // --- PONTO CRÍTICO DE VERIFICAÇÃO ---
-      // Garante que a chamada é para a rota de autenticação correta
-      const response = await api.post<LoginResponse>('/api/auth/login', { login, senha } );
+      const response = await api.post<LoginResponse>('/api/auth/login', { login, senha });
       
-      // Salva o token e os dados do utilizador no estado global (Zustand)
       setToken(response.data.token);
       setUser(response.data.user);
 
-      // Navega para a página principal e mostra uma notificação de sucesso
-      navigate('/');
+      // --- CORREÇÃO APLICADA AQUI ---
+      // Após o login, navega para o dashboard DENTRO da área logada.
+      navigate('/app/dashboard');
       toast.success('Login bem-sucedido!');
 
     } catch (err: any) {
-      // Exibe a mensagem de erro vinda do backend ou uma mensagem genérica
       const errorMessage = err.response?.data?.message || 'Erro ao tentar fazer login.';
       toast.error(errorMessage);
-      console.error("Falha no login:", err.response?.data || err.message); // Log detalhado no console do navegador
+      console.error("Falha no login:", err.response?.data || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -69,14 +65,14 @@ export default function Login() {
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="login" className="text-gray-300">Utilizador</Label>
+              <Label htmlFor="login" className="text-gray-300">Usuário</Label>
               <Input
                 id="login"
                 type="text"
                 value={login}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
-                placeholder="Digite seu utilizador"
+                placeholder="Digite seu usuário"
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>

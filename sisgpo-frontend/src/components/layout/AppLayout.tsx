@@ -6,7 +6,7 @@ import {
   Building,
   Car,
   Users,
-  Clipboard, // Ícone reutilizado para a escala
+  Clipboard,
   Calendar,
   LogOut,
   UserCircle,
@@ -14,11 +14,12 @@ import {
   X,
 } from 'lucide-react';
 
-// Componente NavItem (sem alteração)
+// --- CORREÇÃO APLICADA AQUI ---
+// O 'to' agora é o caminho completo, sem lógicas complexas.
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
   <NavLink
-    to={to}
-    end
+    to={to} // Usamos o caminho completo diretamente
+    end // A propriedade 'end' garante a correspondência exata para o dashboard
     onClick={onClick}
     className={({ isActive }) =>
       `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
@@ -32,6 +33,7 @@ const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.E
     {label}
   </NavLink>
 );
+// --- FIM DA CORREÇÃO ---
 
 export default function AppLayout() {
   const { token, logout, user } = useAuthStore();
@@ -45,7 +47,6 @@ export default function AppLayout() {
 
   return (
     <div className="relative md:flex h-screen bg-gray-100 font-sans">
-      {/* Overlay (sem alteração) */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
@@ -53,7 +54,6 @@ export default function AppLayout() {
         ></div>
       )}
 
-      {/* Barra Lateral */}
       <aside
         className={`
           fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col
@@ -70,15 +70,16 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-2">
-          <NavItem to="/" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
-          <NavItem to="/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
-          <NavItem to="/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
-          <NavItem to="/militares" icon={Users} label="Militares" onClick={closeSidebar} />
-          {/* --- LINHA ATUALIZADA AQUI --- */}
-          <NavItem to="/civis" icon={Clipboard} label="Escala de Médicos" onClick={closeSidebar} />
-          <NavItem to="/plantoes" icon={Calendar} label="Plantões" onClick={closeSidebar} />
-          <NavItem to="/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
-          <NavItem to="/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
+          {/* --- CORREÇÃO APLICADA AQUI --- */}
+          {/* Os 'to' props agora contêm o caminho completo, incluindo /app */}
+          <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
+          <NavItem to="/app/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
+          <NavItem to="/app/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
+          <NavItem to="/app/militares" icon={Users} label="Militares" onClick={closeSidebar} />
+          <NavItem to="/app/civis" icon={Clipboard} label="Escala de Médicos" onClick={closeSidebar} />
+          <NavItem to="/app/plantoes" icon={Calendar} label="Plantões" onClick={closeSidebar} />
+          <NavItem to="/app/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
+          <NavItem to="/app/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
         </nav>
 
         <div className="px-4 py-4 border-t border-gray-700">
@@ -92,7 +93,6 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Área de Conteúdo Principal (sem alteração) */}
       <div className="flex-1 flex flex-col relative">
         <header
           className="
