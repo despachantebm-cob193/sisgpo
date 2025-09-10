@@ -46,15 +46,16 @@ router.post('/obms/upload', upload.single('file'), obmFileController.upload);
 
 // --- ROTAS DE MILITARES ---
 router.get('/militares', militarController.getAll);
-router.get('/militares/search', militarController.search); // Rota para busca dinâmica
-router.get('/militares/matricula/:matricula', militarController.getByMatricula); // Rota antiga (pode ser mantida ou removida)
+router.get('/militares/search', militarController.search);
+router.get('/militares/matricula/:matricula', militarController.getByMatricula);
 router.post('/militares', validationMiddleware(createMilitarSchema), militarController.create);
 router.put('/militares/:id', validationMiddleware(updateMilitarSchema), militarController.update);
 router.delete('/militares/:id', militarController.delete);
 router.post('/militares/upload', upload.single('file'), militarFileController.upload);
 
-// --- ROTAS DE ESCALA (MÉDICOS) ---
+// --- ROTAS DE ESCALA (MÉDICOS / CIVIS) ---
 router.get('/civis', escalaController.getAll);
+router.get('/civis/search', escalaController.search); // <-- ROTA DE BUSCA ADICIONADA
 router.post('/civis', validationMiddleware(createEscalaSchema), escalaController.create);
 router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaController.update);
 router.delete('/civis/:id', escalaController.delete);

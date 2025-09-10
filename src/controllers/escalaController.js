@@ -1,41 +1,36 @@
+// Arquivo: backend/src/controllers/escalaController.js (Completo e Atualizado)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const escalaController = {
-  // Listar todos os registros da escala com filtros e paginação
+  /**
+   * Lista todos os registros da escala com filtros e paginação.
+   */
   getAll: async (req, res) => {
     const { nome_completo, funcao, all } = req.query;
 
-    // Query base sem ordenação
     const query = db('civis')
       .select(
         'id', 'nome_completo', 'funcao', 'entrada_servico',
         'saida_servico', 'status_servico', 'observacoes', 'ativo'
       );
 
-    // Aplica filtros
     if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
     if (funcao) query.where('funcao', 'ilike', `%${funcao}%`);
 
-    // Se 'all=true' for solicitado, retorna todos os resultados sem paginar
     if (all === 'true') {
-      const registros = await query.orderBy('entrada_servico', 'desc'); // Ordenação aplicada apenas aqui
+      const registros = await query.orderBy('entrada_servico', 'desc');
       return res.status(200).json({ data: registros, pagination: null });
     }
 
-    // Lógica de paginação padrão
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
 
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Clona a query com os filtros, mas limpa a ordenação antes de contar.
     const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'id' }).first();
-    
-    // A ordenação é aplicada apenas na query que busca os dados paginados.
     const dataQuery = query.clone().orderBy('entrada_servico', 'desc').limit(limit).offset(offset);
 
-    // Executa as duas queries em paralelo
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     
     const totalRecords = parseInt(totalResult.count, 10);
@@ -47,7 +42,40 @@ const escalaController = {
     });
   },
 
-  // Métodos create, update e delete permanecem os mesmos
+  /**
+   * Busca civis (médicos/reguladores) por termo para componentes de select assíncrono.
+   */
+  search: async (req, res) => {
+    const { term } = req.query;
+
+    if (!term || term.length < 2) {
+      return res.status(200).json([]);
+    }
+
+    try {
+      const civis = await db('civis')
+        .where('nome_completo', 'ilike', `%${term}%`)
+        .andWhere('ativo', true)
+        .select('id', 'nome_completo', 'funcao')
+        .limit(15);
+
+      // Formata a resposta para o padrão que o react-select espera
+      const options = civis.map(c => ({
+        value: c.id,
+        label: `${c.nome_completo} (${c.funcao || 'Civil'})`, // Adiciona um fallback para a função
+        civil: c,
+      }));
+
+      res.status(200).json(options);
+    } catch (error) {
+      console.error("Erro ao buscar civis:", error);
+      throw new AppError("Não foi possível realizar a busca por civis.", 500);
+    }
+  },
+
+  /**
+   * Cria um novo registro na escala.
+   */
   create: async (req, res) => {
     const { nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo } = req.body;
     const [novoRegistro] = await db('civis')
@@ -56,6 +84,9 @@ const escalaController = {
     res.status(201).json(novoRegistro);
   },
 
+  /**
+   * Atualiza um registro existente na escala.
+   */
   update: async (req, res) => {
     const { id } = req.params;
     const { nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo } = req.body;
@@ -74,6 +105,9 @@ const escalaController = {
     res.status(200).json(registroAtualizado);
   },
 
+  /**
+   * Deleta um registro da escala.
+   */
   delete: async (req, res) => {
     const { id } = req.params;
     const result = await db('civis').where({ id }).del();
