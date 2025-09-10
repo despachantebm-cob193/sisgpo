@@ -4,7 +4,7 @@
 require('dotenv').config();
 
 // Importa a instância do Knex
-const db = require('./src/config/database');
+const db = require('../config/database');
 
 // --- IMPORTANTE: COLOQUE AQUI UMA MATRÍCULA QUE VOCÊ SABE QUE EXISTE NO SEU BANCO DE DADOS ---
 const MATRICULA_PARA_TESTAR = '2636'; // Use a matrícula da sua imagem ou outra válida
