@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/ServicoDia.tsx (VERSÃO FINAL COM TIPO EXPLÍCITO)
+// Arquivo: frontend/src/pages/ServicoDia.tsx (VERSÃO FINAL COM TODOS OS CAMPOS MÚLTIPLOS)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -28,7 +28,10 @@ const FUNCOES_MILITARES = [
 ];
 const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
-const FUNCOES_MULTI_SELECAO = ["Regulador"];
+
+// --- CORREÇÃO APLICADA AQUI ---
+// Agora, TODAS as funções são consideradas de seleção múltipla.
+const FUNCOES_MULTI_SELECAO = TODAS_AS_FUNCOES;
 
 export default function ServicoDia() {
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
@@ -85,13 +88,11 @@ export default function ServicoDia() {
     const novasPessoas = (Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions])
       .filter((opt): opt is SelectOption => opt !== null)
       .map(opt => {
-        // --- CORREÇÃO APLICADA AQUI ---
-        // Definimos explicitamente o tipo da variável 'type' antes de a usarmos.
         const type: 'militar' | 'civil' = isCivil ? 'civil' : 'militar';
         return {
           id: opt.value,
           label: opt.label.replace(/\s\(.*\)$/, ''),
-          type: type, // Usamos a variável com o tipo explícito
+          type: type,
         };
       });
 
@@ -142,7 +143,7 @@ export default function ServicoDia() {
               const isMulti = FUNCOES_MULTI_SELECAO.includes(funcao);
               const isCivil = FUNCOES_CIVIS.includes(funcao);
               const loadOptions = isCivil ? loadCivilOptions : loadMilitarOptions;
-              const placeholder = isCivil ? "Buscar regulador(es)..." : "Buscar militar...";
+              const placeholder = isCivil ? "Buscar regulador(es)..." : "Buscar militar(es)...";
               
               const selectValue = pessoas.map(p => ({ value: p.id, label: p.label }));
 
