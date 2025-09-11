@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/escalaController.js (VERSÃO ATUALIZADA)
+// Arquivo: backend/src/controllers/escalaController.js (VERSÃO FINAL CORRIGIDA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -59,7 +59,7 @@ const escalaController = {
     res.status(204).send();
   },
 
-  // --- CORREÇÃO APLICADA AQUI ---
+  // --- CORREÇÃO FINAL APLICADA AQUI ---
   searchCivis: async (req, res) => {
     const { term } = req.query;
     if (!term || term.length < 2) return res.status(200).json([]);
@@ -70,11 +70,11 @@ const escalaController = {
       .select('id', 'nome_completo', 'funcao')
       .limit(15);
 
-    // A lógica aqui foi ajustada para retornar apenas o nome no label
+    // A lógica agora garante que o 'label' contenha apenas o nome.
     const options = civis.map(c => ({
       value: c.id,
-      label: c.nome_completo, // <-- Apenas o nome completo
-      civil: c, // O objeto completo ainda é enviado para referência
+      label: c.nome_completo, // <-- GARANTE QUE APENAS O NOME SEJA USADO
+      civil: c,
     }));
     res.status(200).json(options);
   },

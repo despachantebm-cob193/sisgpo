@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/dashboardController.js (VERSÃO COMPLETA E CORRIGIDA)
+// Arquivo: backend/src/controllers/dashboardController.js (VERSÃO FINAL E CORRIGIDA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -17,10 +17,7 @@ const getTipoViatura = (prefixo) => {
 };
 
 const dashboardController = {
-  /**
-   * Retorna estatísticas gerais do sistema (militares, viaturas, OBMs, etc.).
-   * Suporta filtragem por OBM.
-   */
+  // ... (as outras funções como getStats, getMilitarStats, etc., permanecem aqui)
   getStats: async (req, res) => {
     const { obm_id } = req.query;
     try {
@@ -56,9 +53,6 @@ const dashboardController = {
     }
   },
 
-  /**
-   * Retorna a contagem de militares por posto/graduação para o gráfico.
-   */
   getMilitarStats: async (req, res) => {
     const { obm_id } = req.query;
     try {
@@ -88,9 +82,6 @@ const dashboardController = {
     }
   },
 
-  /**
-   * Retorna a contagem de viaturas por tipo para o gráfico.
-   */
   getViaturaStatsPorTipo: async (req, res) => {
     const { obm_id } = req.query;
     try {
@@ -118,9 +109,6 @@ const dashboardController = {
     }
   },
 
-  /**
-   * Retorna um detalhamento das viaturas agrupadas por tipo e OBM.
-   */
   getViaturaStatsDetalhado: async (req, res) => {
     const { obm_id } = req.query;
     try {
@@ -156,9 +144,6 @@ const dashboardController = {
     }
   },
 
-  /**
-   * Retorna a contagem de viaturas por OBM.
-   */
   getViaturaStatsPorObm: async (req, res) => {
     try {
       const [obms, viaturas] = await Promise.all([
@@ -182,9 +167,6 @@ const dashboardController = {
     }
   },
 
-  /**
-   * Busca um metadado específico pela chave.
-   */
   getMetadataByKey: async (req, res) => {
     const { key } = req.params;
     try {
@@ -197,15 +179,12 @@ const dashboardController = {
     }
   },
 
-  /**
-   * Busca os profissionais (militares e civis) escalados para o serviço do dia.
-   * Esta é a função que alimenta o card "Serviço de Dia" no Dashboard.
-   */
+  // --- CORREÇÃO FINAL APLICADA AQUI ---
   getServicoDia: async (req, res) => {
     const dataBusca = new Date().toISOString().split('T')[0];
 
     try {
-      // 1. Busca os militares escalados no dia
+      // Consulta para Militares (continua igual)
       const servicoMilitares = await db('servico_dia as sd')
         .join('militares as m', 'sd.pessoa_id', 'm.id')
         .select(
@@ -215,17 +194,19 @@ const dashboardController = {
         )
         .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'militar' });
 
-      // 2. Busca os civis escalados no dia
+      // Consulta para Civis (CORRIGIDA)
       const servicoCivis = await db('servico_dia as sd')
         .join('civis as c', 'sd.pessoa_id', 'c.id')
         .select(
           'sd.funcao',
-          db.raw("'' as posto_graduacao"), // Retorna um posto/graduação vazio para civis
-          'c.nome_completo as nome_guerra' // Usa o nome completo do civil
+          // Renomeia 'nome_completo' da tabela 'civis' para 'nome_guerra' para unificar a resposta
+          'c.nome_completo as nome_guerra',
+          // Adiciona um campo 'posto_graduacao' vazio para manter a estrutura da resposta consistente
+          db.raw("'' as posto_graduacao")
         )
         .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'civil' });
 
-      // 3. Combina os resultados das duas consultas
+      // Combina os resultados
       const servicoCompleto = [...servicoMilitares, ...servicoCivis];
       
       res.status(200).json(servicoCompleto);
