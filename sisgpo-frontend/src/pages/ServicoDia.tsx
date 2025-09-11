@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/ServicoDia.tsx (VERSÃO FINAL COM TODOS OS CAMPOS MÚLTIPLOS)
+// Arquivo: frontend/src/pages/ServicoDia.tsx (CORREÇÃO FINAL E COMPLETA)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -14,6 +14,8 @@ import Spinner from '../components/ui/Spinner';
 interface SelectOption {
   value: number;
   label: string;
+  // Adicionamos o tipo da pessoa na própria opção para facilitar
+  pessoa_type: 'militar' | 'civil'; 
 }
 interface Servico {
   funcao: string;
@@ -28,7 +30,6 @@ const FUNCOES_MILITARES = [
 ];
 const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
-
 const FUNCOES_MULTI_SELECAO = TODAS_AS_FUNCOES;
 
 export default function ServicoDia() {
@@ -37,15 +38,25 @@ export default function ServicoDia() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // --- CORREÇÃO 1: Funções de busca agora adicionam o 'pessoa_type' ---
   const loadMilitarOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
     if (!inputValue || inputValue.length < 2) return callback([]);
-    api.get(`/api/admin/militares/search?term=${inputValue}`).then(res => callback(res.data)).catch(() => callback([]));
+    api.get(`/api/admin/militares/search?term=${inputValue}`).then(res => {
+      // Adiciona o tipo 'militar' a cada opção
+      const options = res.data.map((o: any) => ({ ...o, pessoa_type: 'militar' }));
+      callback(options);
+    }).catch(() => callback([]));
   };
 
   const loadCivilOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
     if (!inputValue || inputValue.length < 2) return callback([]);
-    api.get(`/api/admin/civis/search?term=${inputValue}`).then(res => callback(res.data)).catch(() => callback([]));
+    api.get(`/api/admin/civis/search?term=${inputValue}`).then(res => {
+      // Adiciona o tipo 'civil' a cada opção
+      const options = res.data.map((o: any) => ({ ...o, pessoa_type: 'civil' }));
+      callback(options);
+    }).catch(() => callback([]));
   };
+  // --- FIM DA CORREÇÃO 1 ---
 
   const fetchServicoDoDia = useCallback(async (dataSelecionada: string) => {
     setIsLoading(true);
@@ -80,20 +91,15 @@ export default function ServicoDia() {
     if (data) fetchServicoDoDia(data);
   }, [data, fetchServicoDoDia]);
 
-  // --- CORREÇÃO APLICADA AQUI ---
+  // --- CORREÇÃO 2: Handler de seleção agora usa o 'pessoa_type' da opção ---
   const handleSelectChange = (funcao: string, selectedOptions: MultiValue<SelectOption> | SingleValue<SelectOption>) => {
-    const isCivil = FUNCOES_CIVIS.includes(funcao);
-    
     const novasPessoas = (Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions])
       .filter((opt): opt is SelectOption => opt !== null)
-      .map(opt => {
-        const type: 'militar' | 'civil' = isCivil ? 'civil' : 'militar';
-        return {
-          id: opt.value,
-          label: opt.label, // Usa o label diretamente, que agora vem limpo da API
-          type: type,
-        };
-      });
+      .map(opt => ({
+        id: opt.value,
+        label: opt.label,
+        type: opt.pessoa_type, // Pega o tipo diretamente da opção selecionada
+      }));
 
     setServicos(prevServicos =>
       prevServicos.map(s => 
@@ -101,7 +107,7 @@ export default function ServicoDia() {
       )
     );
   };
-  // --- FIM DA CORREÇÃO ---
+  // --- FIM DA CORREÇÃO 2 ---
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -110,7 +116,7 @@ export default function ServicoDia() {
         s.pessoas.map(p => ({
           funcao: s.funcao,
           pessoa_id: p.id,
-          pessoa_type: p.type,
+          pessoa_type: p.type, // O tipo correto agora é enviado para a API
         }))
       );
       
@@ -145,7 +151,7 @@ export default function ServicoDia() {
               const loadOptions = isCivil ? loadCivilOptions : loadMilitarOptions;
               const placeholder = isCivil ? "Buscar regulador(es)..." : "Buscar militar(es)...";
               
-              const selectValue = pessoas.map(p => ({ value: p.id, label: p.label }));
+              const selectValue = pessoas.map(p => ({ value: p.id, label: p.label, pessoa_type: p.type }));
 
               return (
                 <div key={funcao}>
@@ -159,8 +165,7 @@ export default function ServicoDia() {
                     isClearable
                     placeholder={placeholder}
                     value={isMulti ? selectValue : selectValue[0] || null}
-                    onChange={(options) => handleSelectChange(funcao, options)}
-                    noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Digite pelo menos 2 caracteres' : 'Nenhum resultado encontrado'}
+                    onChange={(options) => handleSelectChange(funcao, options as any)}
                   />
                 </div>
               );
