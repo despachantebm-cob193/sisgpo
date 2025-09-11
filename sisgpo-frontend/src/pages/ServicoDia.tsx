@@ -29,8 +29,6 @@ const FUNCOES_MILITARES = [
 const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
 
-// --- CORREÇÃO APLICADA AQUI ---
-// Agora, TODAS as funções são consideradas de seleção múltipla.
 const FUNCOES_MULTI_SELECAO = TODAS_AS_FUNCOES;
 
 export default function ServicoDia() {
@@ -82,6 +80,7 @@ export default function ServicoDia() {
     if (data) fetchServicoDoDia(data);
   }, [data, fetchServicoDoDia]);
 
+  // --- CORREÇÃO APLICADA AQUI ---
   const handleSelectChange = (funcao: string, selectedOptions: MultiValue<SelectOption> | SingleValue<SelectOption>) => {
     const isCivil = FUNCOES_CIVIS.includes(funcao);
     
@@ -91,7 +90,7 @@ export default function ServicoDia() {
         const type: 'militar' | 'civil' = isCivil ? 'civil' : 'militar';
         return {
           id: opt.value,
-          label: opt.label.replace(/\s\(.*\)$/, ''),
+          label: opt.label, // Usa o label diretamente, que agora vem limpo da API
           type: type,
         };
       });
@@ -102,6 +101,7 @@ export default function ServicoDia() {
       )
     );
   };
+  // --- FIM DA CORREÇÃO ---
 
   const handleSave = async () => {
     setIsSaving(true);

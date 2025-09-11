@@ -59,6 +59,7 @@ const escalaController = {
     res.status(204).send();
   },
 
+  // --- CORREÇÃO APLICADA AQUI ---
   searchCivis: async (req, res) => {
     const { term } = req.query;
     if (!term || term.length < 2) return res.status(200).json([]);
@@ -69,13 +70,15 @@ const escalaController = {
       .select('id', 'nome_completo', 'funcao')
       .limit(15);
 
+    // A lógica aqui foi ajustada para retornar apenas o nome no label
     const options = civis.map(c => ({
       value: c.id,
-      label: `${c.nome_completo} (${c.funcao || 'Civil'})`,
-      civil: c,
+      label: c.nome_completo, // <-- Apenas o nome completo
+      civil: c, // O objeto completo ainda é enviado para referência
     }));
     res.status(200).json(options);
   },
+  // --- FIM DA CORREÇÃO ---
 
   // --- CRUD PARA A ESCALA DE SERVIÇO (tabela 'escala_medicos') ---
 
