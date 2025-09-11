@@ -1,26 +1,18 @@
-// Arquivo: backend/src/controllers/escalaController.js (Completo e Atualizado)
+// Arquivo: backend/src/controllers/escalaController.js (VERSÃO ATUALIZADA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const escalaController = {
-  /**
-   * Lista todos os registros da escala com filtros e paginação.
-   */
-  getAll: async (req, res) => {
-    const { nome_completo, funcao, all } = req.query;
+  // --- CRUD PARA O CADASTRO DE MÉDICOS (tabela 'civis') ---
 
-    const query = db('civis')
-      .select(
-        'id', 'nome_completo', 'funcao', 'entrada_servico',
-        'saida_servico', 'status_servico', 'observacoes', 'ativo'
-      );
-
+  getAllCivis: async (req, res) => {
+    const { nome_completo, all } = req.query;
+    const query = db('civis').select('id', 'nome_completo', 'funcao', 'telefone', 'observacoes', 'ativo');
     if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
-    if (funcao) query.where('funcao', 'ilike', `%${funcao}%`);
 
     if (all === 'true') {
-      const registros = await query.orderBy('entrada_servico', 'desc');
+      const registros = await query.orderBy('nome_completo', 'asc');
       return res.status(200).json({ data: registros, pagination: null });
     }
 
@@ -29,10 +21,9 @@ const escalaController = {
     const offset = (page - 1) * limit;
 
     const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'id' }).first();
-    const dataQuery = query.clone().orderBy('entrada_servico', 'desc').limit(limit).offset(offset);
+    const dataQuery = query.clone().orderBy('nome_completo', 'asc').limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
-    
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
@@ -42,80 +33,83 @@ const escalaController = {
     });
   },
 
-  /**
-   * Busca civis (médicos/reguladores) por termo para componentes de select assíncrono.
-   */
-  search: async (req, res) => {
-    const { term } = req.query;
-
-    if (!term || term.length < 2) {
-      return res.status(200).json([]);
-    }
-
-    try {
-      const civis = await db('civis')
-        .where('nome_completo', 'ilike', `%${term}%`)
-        .andWhere('ativo', true)
-        .select('id', 'nome_completo', 'funcao')
-        .limit(15);
-
-      // Formata a resposta para o padrão que o react-select espera
-      const options = civis.map(c => ({
-        value: c.id,
-        label: `${c.nome_completo} (${c.funcao || 'Civil'})`, // Adiciona um fallback para a função
-        civil: c, // Renomeado para evitar conflito com a palavra-chave 'militar'
-      }));
-
-      res.status(200).json(options);
-    } catch (error) {
-      console.error("Erro ao buscar civis:", error);
-      throw new AppError("Não foi possível realizar a busca por civis.", 500);
-    }
-  },
-
-  /**
-   * Cria um novo registro na escala.
-   */
-  create: async (req, res) => {
-    const { nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo } = req.body;
+  createCivil: async (req, res) => {
+    const { nome_completo, funcao, telefone, observacoes, ativo } = req.body;
     const [novoRegistro] = await db('civis')
-      .insert({ nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo: ativo !== false })
+      .insert({ nome_completo, funcao, telefone, observacoes, ativo: ativo !== false })
       .returning('*');
     res.status(201).json(novoRegistro);
   },
 
-  /**
-   * Atualiza um registro existente na escala.
-   */
-  update: async (req, res) => {
+  updateCivil: async (req, res) => {
     const { id } = req.params;
-    const { nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo } = req.body;
+    const { nome_completo, funcao, telefone, observacoes, ativo } = req.body;
     const registroExists = await db('civis').where({ id }).first();
-    if (!registroExists) {
-      throw new AppError('Registro de escala não encontrado.', 404);
-    }
-    const dadosAtualizacao = {
-      nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes, ativo,
-      updated_at: db.fn.now()
-    };
-    const [registroAtualizado] = await db('civis')
-      .where({ id })
-      .update(dadosAtualizacao)
-      .returning('*');
+    if (!registroExists) throw new AppError('Registro de médico não encontrado.', 404);
+    
+    const dadosAtualizacao = { nome_completo, funcao, telefone, observacoes, ativo, updated_at: db.fn.now() };
+    const [registroAtualizado] = await db('civis').where({ id }).update(dadosAtualizacao).returning('*');
     res.status(200).json(registroAtualizado);
   },
 
-  /**
-   * Deleta um registro da escala.
-   */
-  delete: async (req, res) => {
+  deleteCivil: async (req, res) => {
     const { id } = req.params;
     const result = await db('civis').where({ id }).del();
-    if (result === 0) {
-      throw new AppError('Registro de escala não encontrado.', 404);
-    }
+    if (result === 0) throw new AppError('Registro de médico não encontrado.', 404);
     res.status(204).send();
-  }
+  },
+
+  searchCivis: async (req, res) => {
+    const { term } = req.query;
+    if (!term || term.length < 2) return res.status(200).json([]);
+    
+    const civis = await db('civis')
+      .where('nome_completo', 'ilike', `%${term}%`)
+      .andWhere('ativo', true)
+      .select('id', 'nome_completo', 'funcao')
+      .limit(15);
+
+    const options = civis.map(c => ({
+      value: c.id,
+      label: `${c.nome_completo} (${c.funcao || 'Civil'})`,
+      civil: c,
+    }));
+    res.status(200).json(options);
+  },
+
+  // --- CRUD PARA A ESCALA DE SERVIÇO (tabela 'escala_medicos') ---
+
+  getAllEscalas: async (req, res) => {
+    const { data_inicio, data_fim } = req.query;
+    const query = db('escala_medicos as em')
+      .join('civis as c', 'em.civil_id', 'c.id')
+      .select(
+        'em.id', 'em.civil_id', 'em.entrada_servico', 'em.saida_servico',
+        'em.status_servico', 'em.observacoes',
+        'c.nome_completo', 'c.funcao'
+      );
+
+    if (data_inicio) query.where('em.entrada_servico', '>=', data_inicio);
+    if (data_fim) query.where('em.saida_servico', '<=', data_fim);
+
+    const escalas = await query.orderBy('em.entrada_servico', 'desc');
+    res.status(200).json(escalas);
+  },
+
+  createEscala: async (req, res) => {
+    const { civil_id, entrada_servico, saida_servico, status_servico, observacoes } = req.body;
+    const [novaEscala] = await db('escala_medicos')
+      .insert({ civil_id, entrada_servico, saida_servico, status_servico, observacoes })
+      .returning('*');
+    res.status(201).json(novaEscala);
+  },
+
+  deleteEscala: async (req, res) => {
+    const { id } = req.params;
+    const result = await db('escala_medicos').where({ id }).del();
+    if (result === 0) throw new AppError('Registro de escala não encontrado.', 404);
+    res.status(204).send();
+  },
 };
 
 module.exports = escalaController;

@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/militarController.js (VERSÃO FINAL CORRIGIDA)
+// Arquivo: backend/src/controllers/militarController.js (VERSÃO ATUALIZADA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -12,7 +12,7 @@ const militarController = {
 
     const query = db('militares').select(
       'id', 'matricula', 'nome_completo', 'nome_guerra',
-      'posto_graduacao', 'ativo', 'obm_nome'
+      'posto_graduacao', 'ativo', 'obm_nome', 'telefone' // Adicionado 'telefone'
     );
 
     if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
@@ -44,7 +44,6 @@ const militarController = {
 
   /**
    * Busca militares por termo para componentes de select assíncrono.
-   * ESTA É A FUNÇÃO QUE ESTAVA A FALTAR OU INCORRETA.
    */
   search: async (req, res) => {
     const { term } = req.query;
@@ -59,13 +58,13 @@ const militarController = {
         .orWhere('nome_guerra', 'ilike', `%${term}%`)
         .orWhere('matricula', 'ilike', `%${term}%`)
         .andWhere('ativo', true)
-        .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra')
+        .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra', 'telefone') // Adicionado 'telefone'
         .limit(15);
 
       const options = militares.map(m => ({
         value: m.id,
         label: `${m.posto_graduacao} ${m.nome_guerra || m.nome_completo} (${m.matricula})`,
-        militar: m,
+        militar: m, // O objeto completo do militar, incluindo o telefone, é enviado aqui
       }));
 
       res.status(200).json(options);
@@ -84,7 +83,7 @@ const militarController = {
       throw new AppError('Matrícula não fornecida.', 400);
     }
     const militar = await db('militares')
-      .select('id', 'nome_completo', 'posto_graduacao')
+      .select('id', 'nome_completo', 'posto_graduacao', 'telefone') // Adicionado 'telefone'
       .where({ matricula: matricula, ativo: true })
       .first();
       
@@ -98,12 +97,12 @@ const militarController = {
    * Cria um novo militar.
    */
   create: async (req, res) => {
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } = req.body;
     const matriculaExists = await db('militares').where({ matricula }).first();
     if (matriculaExists) {
       throw new AppError('Matrícula já cadastrada no sistema.', 409);
     }
-    const [novoMilitar] = await db('militares').insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome }).returning('*');
+    const [novoMilitar] = await db('militares').insert({ matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone }).returning('*');
     res.status(201).json(novoMilitar);
   },
 
@@ -112,7 +111,9 @@ const militarController = {
    */
   update: async (req, res) => {
     const { id } = req.params;
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome } = req.body;
+    // Adicionado 'telefone' à desestruturação
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } = req.body;
+    
     const militarParaAtualizar = await db('militares').where({ id }).first();
     if (!militarParaAtualizar) {
       throw new AppError('Militar não encontrado.', 404);
@@ -123,7 +124,8 @@ const militarController = {
         throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
       }
     }
-    const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, updated_at: db.fn.now() };
+    // Adicionado 'telefone' ao objeto de atualização
+    const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone, updated_at: db.fn.now() };
     const [militarAtualizado] = await db('militares').where({ id }).update(dadosAtualizacao).returning('*');
     res.status(200).json(militarAtualizado);
   },

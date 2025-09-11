@@ -1,4 +1,4 @@
-// Arquivo: backend/src/validators/plantaoValidator.js
+// Arquivo: backend/src/validators/plantaoValidator.js (VERSÃO ATUALIZADA)
 
 const Joi = require('joi');
 
@@ -12,6 +12,8 @@ const guarnicaoItemSchema = Joi.object({
     'string.empty': 'A função do militar não pode estar vazia.',
     'any.required': 'A função do militar é obrigatória.',
   }),
+  // Adiciona o campo telefone como opcional
+  telefone: Joi.string().max(20).optional().allow(null, ''),
 });
 
 const plantaoSchema = Joi.object({
@@ -27,9 +29,7 @@ const plantaoSchema = Joi.object({
     'number.base': 'O ID da OBM deve ser um número.',
     'any.required': 'O ID da OBM é obrigatório.',
   }),
-  observacoes: Joi.string().optional().allow(null, '').messages({
-    'string.base': 'As observações devem ser um texto.',
-  }),
+  observacoes: Joi.string().optional().allow(null, ''),
   guarnicao: Joi.array().items(guarnicaoItemSchema).min(1).required().messages({
     'array.base': 'A guarnição deve ser uma lista de militares.',
     'array.min': 'A guarnição deve ter pelo menos {#limit} militar.',

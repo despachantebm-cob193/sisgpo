@@ -1,4 +1,6 @@
-import { useState, FormEvent } from 'react';
+// Arquivo: frontend/src/pages/Login.tsx (VERSÃO REVISADA)
+
+import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
@@ -7,9 +9,15 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
 
+interface User {
+  id: number;
+  login: string;
+  perfil: 'Admin' | 'Usuario';
+}
+
 interface LoginResponse {
   token: string;
-  user: { id: number; login: string; perfil: 'Admin' | 'Usuario'; };
+  user: User;
 }
 
 export default function Login() {
@@ -20,12 +28,10 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- CORREÇÃO APLICADA AQUI ---
-  // Se já houver um token, redireciona para o dashboard DENTRO da área logada.
+  // Se já existir um token, redireciona para a área logada.
   if (authToken) {
     return <Navigate to="/app/dashboard" replace />;
   }
-  // --- FIM DA CORREÇÃO ---
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -34,13 +40,14 @@ export default function Login() {
     try {
       const response = await api.post<LoginResponse>('/api/auth/login', { login, senha });
       
+      // Salva o token e os dados do usuário no store global
       setToken(response.data.token);
       setUser(response.data.user);
 
-      // --- CORREÇÃO APLICADA AQUI ---
-      // Após o login, navega para o dashboard DENTRO da área logada.
-      navigate('/app/dashboard');
       toast.success('Login bem-sucedido!');
+      
+      // Navega para o dashboard da área restrita
+      navigate('/app/dashboard');
 
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erro ao tentar fazer login.';
@@ -70,7 +77,7 @@ export default function Login() {
                 id="login"
                 type="text"
                 value={login}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
                 placeholder="Digite seu usuário"
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
@@ -82,7 +89,7 @@ export default function Login() {
                 id="senha"
                 type="password"
                 value={senha}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSenha(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSenha(e.target.value)}
                 required
                 placeholder="Digite sua senha"
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"

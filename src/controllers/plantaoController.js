@@ -1,3 +1,5 @@
+// Arquivo: backend/src/controllers/plantaoController.js (VERSÃO ATUALIZADA)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -20,6 +22,16 @@ const plantaoController = {
           funcao: militar.funcao,
         }));
         await trx('plantoes_militares').insert(guarnicaoParaInserir);
+
+        // --- LÓGICA DE ATUALIZAÇÃO DE TELEFONE (CREATE) ---
+        for (const militar of guarnicao) {
+          if (militar.militar_id && militar.telefone) {
+            await trx('militares')
+              .where('id', militar.militar_id)
+              .update({ telefone: militar.telefone });
+          }
+        }
+        // --- FIM DA LÓGICA ---
       }
       
       res.status(201).json({ ...novoPlantao, guarnicao });
@@ -29,17 +41,14 @@ const plantaoController = {
   getAll: async (req, res) => {
     const { data_inicio, data_fim, obm_id, all } = req.query;
     
-    // Query base com os joins necessários
     const query = db('plantoes as p')
       .join('viaturas as v', 'p.viatura_id', 'v.id')
       .join('obms as o', 'p.obm_id', 'o.id');
 
-    // Aplica filtros
     if (data_inicio) query.where('p.data_plantao', '>=', data_inicio);
     if (data_fim) query.where('p.data_plantao', '<=', data_fim);
     if (obm_id) query.where('p.obm_id', '=', obm_id);
 
-    // Query para buscar os dados a serem exibidos
     const baseSelectQuery = query
       .select(
         'p.id', 'p.data_plantao', 'p.observacoes',
@@ -56,11 +65,7 @@ const plantaoController = {
     const limit = parseInt(req.query.limit, 10) || 20;
     const offset = (page - 1) * limit;
 
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Clona a query com os joins e filtros, mas limpa select e order para fazer a contagem.
     const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'p.id' }).first();
-    
-    // Aplica a ordenação e paginação na query que busca os dados.
     const dataQuery = baseSelectQuery.clone().orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
@@ -69,7 +74,7 @@ const plantaoController = {
 
     res.status(200).json({
       data,
-      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
+      pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
     });
   },
 
@@ -83,7 +88,7 @@ const plantaoController = {
     
     const guarnicao = await db('plantoes_militares as pm')
       .join('militares as m', 'pm.militar_id', 'm.id')
-      .select('pm.militar_id', 'pm.funcao', 'm.nome_guerra', 'm.posto_graduacao')
+      .select('pm.militar_id', 'pm.funcao', 'm.nome_guerra', 'm.posto_graduacao', 'm.telefone') // Adicionado 'telefone'
       .where('pm.plantao_id', id);
       
     res.status(200).json({ ...plantao, guarnicao });
@@ -117,6 +122,16 @@ const plantaoController = {
           funcao: militar.funcao,
         }));
         await trx('plantoes_militares').insert(guarnicaoParaInserir);
+
+        // --- LÓGICA DE ATUALIZAÇÃO DE TELEFONE (UPDATE) ---
+        for (const militar of guarnicao) {
+          if (militar.militar_id && militar.telefone) {
+            await trx('militares')
+              .where('id', militar.militar_id)
+              .update({ telefone: militar.telefone });
+          }
+        }
+        // --- FIM DA LÓGICA ---
       }
     });
 

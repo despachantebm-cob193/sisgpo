@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/components/layout/AppLayout.tsx (VERSÃO FINAL COMPLETA)
+
 import { useState } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -6,20 +8,20 @@ import {
   Building,
   Car,
   Users,
-  Clipboard,
   Calendar,
   LogOut,
   UserCircle,
   Menu,
   X,
+  Stethoscope, // Ícone para médicos
+  Clipboard,
 } from 'lucide-react';
 
-// --- CORREÇÃO APLICADA AQUI ---
-// O 'to' agora é o caminho completo, sem lógicas complexas.
+// Componente para os itens de navegação
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
   <NavLink
-    to={to} // Usamos o caminho completo diretamente
-    end // A propriedade 'end' garante a correspondência exata para o dashboard
+    to={to}
+    end={to === '/app/dashboard'} // Garante correspondência exata apenas para o dashboard
     onClick={onClick}
     className={({ isActive }) =>
       `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
@@ -33,7 +35,6 @@ const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.E
     {label}
   </NavLink>
 );
-// --- FIM DA CORREÇÃO ---
 
 export default function AppLayout() {
   const { token, logout, user } = useAuthStore();
@@ -47,6 +48,7 @@ export default function AppLayout() {
 
   return (
     <div className="relative md:flex h-screen bg-gray-100 font-sans">
+      {/* Overlay para fechar a sidebar em telas pequenas */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
@@ -54,6 +56,7 @@ export default function AppLayout() {
         ></div>
       )}
 
+      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col
@@ -69,15 +72,14 @@ export default function AppLayout() {
           </button>
         </div>
 
+        {/* --- ITENS DE NAVEGAÇÃO ATUALIZADOS --- */}
         <nav className="flex-1 px-4 py-4 space-y-2">
-          {/* --- CORREÇÃO APLICADA AQUI --- */}
-          {/* Os 'to' props agora contêm o caminho completo, incluindo /app */}
           <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
           <NavItem to="/app/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
           <NavItem to="/app/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
           <NavItem to="/app/militares" icon={Users} label="Militares" onClick={closeSidebar} />
-          <NavItem to="/app/civis" icon={Clipboard} label="Escala de Médicos" onClick={closeSidebar} />
-          <NavItem to="/app/plantoes" icon={Calendar} label="Plantões" onClick={closeSidebar} />
+          <NavItem to="/app/medicos" icon={Stethoscope} label="Cadastro de Médicos" onClick={closeSidebar} />
+          <NavItem to="/app/plantoes" icon={Calendar} label="Escalas" onClick={closeSidebar} />
           <NavItem to="/app/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
           <NavItem to="/app/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
         </nav>
@@ -93,6 +95,7 @@ export default function AppLayout() {
         </div>
       </aside>
 
+      {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col relative">
         <header
           className="
