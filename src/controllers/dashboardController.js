@@ -188,10 +188,17 @@ const dashboardController = {
         .select('sd.funcao', 'm.posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_guerra"))
         .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'militar' });
 
+      // --- CORREÇÃO APLICADA AQUI ---
+      // Modifica a consulta para civis, removendo o prefixo "Médico Regulador " do nome.
       const servicoCivis = await db('servico_dia as sd')
         .join('civis as c', 'sd.pessoa_id', 'c.id')
-        .select('sd.funcao', 'c.funcao as posto_graduacao', 'c.nome_completo as nome_guerra')
+        .select(
+          'sd.funcao', 
+          db.raw("'' as posto_graduacao"), // Retorna um posto/graduação vazio para civis
+          db.raw("REPLACE(c.nome_completo, 'Médico Regulador ', '') as nome_guerra") // Remove o prefixo
+        )
         .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'civil' });
+      // --- FIM DA CORREÇÃO ---
 
       const servicoCompleto = [...servicoMilitares, ...servicoCivis];
       
