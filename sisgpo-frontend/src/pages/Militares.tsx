@@ -1,9 +1,8 @@
-// Arquivo: frontend/src/pages/Militares.tsx (VERSÃO FINAL COMPLETA)
+// Arquivo: frontend/src/pages/Militares.tsx (VERSÃO FINAL COM CARDS CORRIGIDOS)
 
-import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
+import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Edit, Trash2 } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -15,7 +14,7 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
 
-// Interfaces
+// Interfaces (sem alteração)
 interface Militar {
   id: number;
   matricula: string;
@@ -35,6 +34,7 @@ interface ApiResponse<T> {
 }
 
 export default function Militares() {
+  // ... (todo o código de hooks e handlers permanece o mesmo) ...
   const [militares, setMilitares] = useState<Militar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
@@ -52,7 +52,7 @@ export default function Militares() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '50', ...filters });
+      const params = new URLSearchParams({ page: String(currentPage), limit: '20', ...filters });
       const response = await api.get<ApiResponse<Militar>>(`/api/admin/militares?${params.toString()}`);
       setMilitares(response.data.data);
       setPagination(response.data.pagination);
@@ -140,15 +140,6 @@ export default function Militares() {
     }
   };
 
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: militares.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 65, // Altura estimada de cada linha
-    overscan: 5,
-  });
-  const virtualItems = rowVirtualizer.getVirtualItems();
-
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -171,52 +162,67 @@ export default function Militares() {
       />
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {/* Cabeçalho Fixo para Desktop */}
-        <div className="hidden md:grid grid-cols-[30%_15%_15%_10%_15%_8%_7%] bg-gray-50 border-b sticky top-0 z-10">
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome Completo</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome de Guerra</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Posto/Grad.</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</div>
-          <div className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</div>
-          <div className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</div>
-        </div>
-
-        {/* Container da Lista Virtualizada */}
-        <div ref={parentRef} className="overflow-auto" style={{ height: '60vh' }}>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-          ) : militares.length > 0 ? (
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-              {virtualItems.map((virtualRow) => {
-                const militar = militares[virtualRow.index];
-                return (
-                  <div
-                    key={militar.id}
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: `${virtualRow.size}px`, transform: `translateY(${virtualRow.start}px)` }}
-                    className="p-4 border-b md:p-0 md:border-b md:grid md:grid-cols-[30%_15%_15%_10%_15%_8%_7%] md:items-center"
-                  >
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm font-medium text-gray-900 truncate" data-label="Nome:" title={militar.nome_completo}>{militar.nome_completo}</div>
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm text-gray-500" data-label="Guerra:">{militar.nome_guerra || '-'}</div>
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm text-gray-500" data-label="Posto/Grad:">{militar.posto_graduacao}</div>
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm text-gray-500" data-label="Matrícula:">{militar.matricula}</div>
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm text-gray-500 truncate" data-label="OBM:" title={militar.obm_nome || ''}>{militar.obm_nome || 'N/A'}</div>
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm" data-label="Status:">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50 hidden md:table-header-group">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[30%]">Nome Completo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[15%]">Nome de Guerra</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[15%]">Posto/Grad.</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[10%]">Matrícula</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[15%]">OBM</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[8%]">Status</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[7%]">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 md:divide-y-0">
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              ) : militares.length > 0 ? (
+                militares.map((militar) => (
+                  // --- INÍCIO DA MUDANÇA PRINCIPAL ---
+                  <tr key={militar.id} className="flex flex-col p-4 border-b md:table-row md:p-0 md:border-none">
+                    {/* Células da tabela que se transformam em linhas do card */}
+                    <td className="py-1 md:px-6 md:py-4 md:font-medium md:text-gray-900 truncate" title={militar.nome_completo}>
+                      <span className="font-bold md:hidden">Nome: </span>{militar.nome_completo}
+                    </td>
+                    <td className="py-1 md:px-6 md:py-4 text-gray-500">
+                      <span className="font-bold md:hidden">Guerra: </span>{militar.nome_guerra || '-'}
+                    </td>
+                    <td className="py-1 md:px-6 md:py-4 text-gray-500">
+                      <span className="font-bold md:hidden">Posto/Grad: </span>{militar.posto_graduacao}
+                    </td>
+                    <td className="py-1 md:px-6 md:py-4 text-gray-500">
+                      <span className="font-bold md:hidden">Matrícula: </span>{militar.matricula}
+                    </td>
+                    <td className="py-1 md:px-6 md:py-4 text-gray-500 truncate" title={militar.obm_nome || ''}>
+                      <span className="font-bold md:hidden">OBM: </span>{militar.obm_nome || 'N/A'}
+                    </td>
+                    <td className="py-1 md:px-6 md:py-4 md:text-center">
+                      <span className="font-bold md:hidden">Status: </span>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{militar.ativo ? 'Ativo' : 'Inativo'}</span>
-                    </div>
-                    <div className="px-0 md:px-6 py-1 md:py-4 text-sm font-medium space-x-4 mt-2 md:mt-0 text-center">
+                    </td>
+                    <td className="py-2 md:px-6 md:py-4 text-sm font-medium space-x-4 text-right md:text-center">
                       <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
                       <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex justify-center items-center h-full"><p className="text-gray-500">Nenhum militar encontrado.</p></div>
-          )}
+                    </td>
+                  </tr>
+                  // --- FIM DA MUDANÇA PRINCIPAL ---
+                ))
+              ) : (
+                <tr><td colSpan={7} className="text-center py-10 text-gray-500">Nenhum militar encontrado.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        {pagination && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
+        
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Militar' : 'Adicionar Novo Militar'}>

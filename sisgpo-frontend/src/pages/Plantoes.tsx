@@ -1,4 +1,4 @@
-// Arquivo: src/pages/Plantoes.tsx (VERSÃO FINAL E CORRIGIDA)
+// Arquivo: frontend/src/pages/Plantoes.tsx (VERSÃO FINAL RESPONSIVA)
 
 import React, { useEffect, useState, useCallback, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
@@ -33,10 +33,9 @@ interface EscalaCodec { id: number; data: string; turno: 'Diurno' | 'Noturno'; o
 type ActiveTab = 'plantoes' | 'escalaMedicos' | 'escalaAeronaves' | 'escalaCodec';
 
 export default function Plantoes() {
+  // ... (todo o código de hooks e handlers permanece o mesmo) ...
   const [activeTab, setActiveTab] = useState<ActiveTab>('plantoes');
   const [filters, setFilters] = useState({ data_inicio: '', data_fim: '' });
-
-  // Estados de Plantões de Viaturas
   const [plantoes, setPlantoes] = useState<Plantao[]>([]);
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoadingPlantoes, setIsLoadingPlantoes] = useState(true);
@@ -45,31 +44,22 @@ export default function Plantoes() {
   const [isPlantaoModalOpen, setIsPlantaoModalOpen] = useState(false);
   const [plantaoToEdit, setPlantaoToEdit] = useState<PlantaoDetalhado | null>(null);
   const [isSavingPlantao, setIsSavingPlantao] = useState(false);
-
-  // Estados de Escala de Médicos
   const [escalaMedicos, setEscalaMedicos] = useState<EscalaMedico[]>([]);
   const [isLoadingEscalaMedicos, setIsLoadingEscalaMedicos] = useState(true);
   const [isEscalaMedicoModalOpen, setIsEscalaMedicoModalOpen] = useState(false);
   const [isSavingEscalaMedico, setIsSavingEscalaMedico] = useState(false);
-
-  // Estados de Escala de Aeronaves
   const [escalaAeronaves, setEscalaAeronaves] = useState<EscalaAeronave[]>([]);
   const [isLoadingAeronaves, setIsLoadingAeronaves] = useState(true);
   const [isAeronaveModalOpen, setIsAeronaveModalOpen] = useState(false);
   const [isSavingAeronave, setIsSavingAeronave] = useState(false);
-
-  // Estados de Escala do CODEC
   const [escalaCodec, setEscalaCodec] = useState<EscalaCodec[]>([]);
   const [isLoadingCodec, setIsLoadingCodec] = useState(true);
   const [isCodecModalOpen, setIsCodecModalOpen] = useState(false);
   const [isSavingCodec, setIsSavingCodec] = useState(false);
-  
-  // Estados genéricos para deleção
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number; type: ActiveTab } | null>(null);
 
-  // --- Funções de Busca de Dados ---
   const fetchPlantoes = useCallback(async () => {
     setIsLoadingPlantoes(true);
     try {
@@ -124,7 +114,6 @@ export default function Plantoes() {
     }
   }, [activeTab, fetchPlantoes, fetchEscalaMedicos, fetchEscalaAeronaves, fetchEscalaCodec]);
 
-  // --- Handlers de Ações (Salvar, Deletar) ---
   const handleSavePlantao = async (data: any) => {
     setIsSavingPlantao(true);
     try {
@@ -179,18 +168,11 @@ export default function Plantoes() {
     if (!itemToDelete) return;
     setIsDeleting(true);
     try {
-      // --- CORREÇÃO APLICADA AQUI ---
       let url = `/api/admin/${itemToDelete.type}/${itemToDelete.id}`;
-
-      if (itemToDelete.type === 'escalaAeronaves') {
-        url = `/api/admin/escala-aeronaves/${itemToDelete.id}`;
-      } else if (itemToDelete.type === 'escalaMedicos') {
-        url = `/api/admin/escala-medicos/${itemToDelete.id}`;
-      } else if (itemToDelete.type === 'escalaCodec') {
-        url = `/api/admin/escala-codec/${itemToDelete.id}`;
-      }
-      // --- FIM DA CORREÇÃO ---
-        
+      if (itemToDelete.type === 'escalaAeronaves') url = `/api/admin/escala-aeronaves/${itemToDelete.id}`;
+      else if (itemToDelete.type === 'escalaMedicos') url = `/api/admin/escala-medicos/${itemToDelete.id}`;
+      else if (itemToDelete.type === 'escalaCodec') url = `/api/admin/escala-codec/${itemToDelete.id}`;
+      
       await api.delete(url);
       toast.success('Registro excluído com sucesso!');
       
@@ -214,12 +196,14 @@ export default function Plantoes() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      {/* --- CABEÇALHO CORRIGIDO --- */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Gerenciamento de Escalas</h2>
           <p className="text-gray-600 mt-2">Gerencie as escalas de viaturas, médicos, pilotos e plantonistas.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* Adicionado flex-wrap para quebrar a linha em telas pequenas */}
+        <div className="flex flex-wrap gap-2 justify-center md:justify-end">
           <Button onClick={() => setIsPlantaoModalOpen(true)}><CalendarPlus className="w-4 h-4 mr-2" />Lançar Plantão VTR</Button>
           <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="bg-teal-600 hover:bg-teal-700"><Stethoscope className="w-4 h-4 mr-2" />Escala Médicos</Button>
           <Button onClick={() => setIsAeronaveModalOpen(true)} className="bg-sky-600 hover:bg-sky-700"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
@@ -227,6 +211,7 @@ export default function Plantoes() {
         </div>
       </div>
 
+      {/* --- FILTROS CORRIGIDOS --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
         <div>
           <Label htmlFor="data_inicio">Data Início</Label>
@@ -237,12 +222,13 @@ export default function Plantoes() {
           <Input id="data_fim" type="date" value={filters.data_fim} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({...prev, data_fim: e.target.value}))} />
         </div>
         <div className="flex items-end">
-          <Button onClick={() => setFilters({ data_inicio: '', data_fim: '' })} className="!w-full bg-gray-600 hover:bg-gray-700">Limpar Filtros</Button>
+          <Button onClick={() => setFilters({ data_inicio: '', data_fim: '' })} className="w-full bg-gray-600 hover:bg-gray-700">Limpar Filtros</Button>
         </div>
       </div>
 
       <div>
-        <div className="border-b border-gray-200">
+        {/* --- NAVEGAÇÃO DE ABAS CORRIGIDA --- */}
+        <div className="border-b border-gray-200 overflow-x-auto">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button onClick={() => setActiveTab('plantoes')} className={`${activeTab === 'plantoes' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Plantões de Viaturas</button>
             <button onClick={() => setActiveTab('escalaMedicos')} className={`${activeTab === 'escalaMedicos' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Escala de Médicos</button>
@@ -251,6 +237,7 @@ export default function Plantoes() {
           </nav>
         </div>
 
+        {/* --- CONTEÚDO DAS ABAS (JÁ RESPONSIVO) --- */}
         {activeTab === 'plantoes' && (
           <div className="bg-white shadow-md rounded-b-lg overflow-hidden">
             {isLoadingPlantoes ? <div className="text-center py-10"><Spinner /></div> : (
@@ -313,6 +300,7 @@ export default function Plantoes() {
         )}
       </div>
 
+      {/* --- Modais --- */}
       <Modal isOpen={isPlantaoModalOpen} onClose={() => setIsPlantaoModalOpen(false)} title="Lançar Plantão de Viatura">
         <PlantaoForm plantaoToEdit={plantaoToEdit} viaturas={viaturas} onSave={handleSavePlantao} onCancel={() => setIsPlantaoModalOpen(false)} isLoading={isSavingPlantao} />
       </Modal>
