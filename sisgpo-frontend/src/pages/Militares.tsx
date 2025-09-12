@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Militares.tsx (VERSÃO FINAL COM CARDS CORRIGIDOS)
+// Arquivo: frontend/src/pages/Militares.tsx (VERSÃO FINAL COM BOTÕES DE AÇÃO CORRIGIDOS)
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -14,7 +14,7 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
 
-// Interfaces (sem alteração)
+// Interfaces
 interface Militar {
   id: number;
   matricula: string;
@@ -34,7 +34,6 @@ interface ApiResponse<T> {
 }
 
 export default function Militares() {
-  // ... (todo o código de hooks e handlers permanece o mesmo) ...
   const [militares, setMilitares] = useState<Militar[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });
@@ -163,7 +162,7 @@ export default function Militares() {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="min-w-full table-fixed">
             <thead className="bg-gray-50 hidden md:table-header-group">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[30%]">Nome Completo</th>
@@ -180,9 +179,7 @@ export default function Militares() {
                 <tr><td colSpan={7} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
               ) : militares.length > 0 ? (
                 militares.map((militar) => (
-                  // --- INÍCIO DA MUDANÇA PRINCIPAL ---
                   <tr key={militar.id} className="flex flex-col p-4 border-b md:table-row md:p-0 md:border-none">
-                    {/* Células da tabela que se transformam em linhas do card */}
                     <td className="py-1 md:px-6 md:py-4 md:font-medium md:text-gray-900 truncate" title={militar.nome_completo}>
                       <span className="font-bold md:hidden">Nome: </span>{militar.nome_completo}
                     </td>
@@ -202,12 +199,13 @@ export default function Militares() {
                       <span className="font-bold md:hidden">Status: </span>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{militar.ativo ? 'Ativo' : 'Inativo'}</span>
                     </td>
-                    <td className="py-2 md:px-6 md:py-4 text-sm font-medium space-x-4 text-right md:text-center">
-                      <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
-                      <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
+                    {/* --- INÍCIO DA CORREÇÃO DOS BOTÕES --- */}
+                    <td className="py-2 md:px-6 md:py-4 whitespace-nowrap text-sm font-medium text-right md:text-center">
+                      <button onClick={() => handleOpenFormModal(militar)} className="text-indigo-600 hover:text-indigo-900 inline-block mr-4" title="Editar"><Edit className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteClick(militar.id)} className="text-red-600 hover:text-red-900 inline-block" title="Excluir"><Trash2 className="w-5 h-5" /></button>
                     </td>
+                    {/* --- FIM DA CORREÇÃO DOS BOTÕES --- */}
                   </tr>
-                  // --- FIM DA MUDANÇA PRINCIPAL ---
                 ))
               ) : (
                 <tr><td colSpan={7} className="text-center py-10 text-gray-500">Nenhum militar encontrado.</td></tr>

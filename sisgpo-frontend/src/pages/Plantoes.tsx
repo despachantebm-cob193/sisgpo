@@ -12,7 +12,7 @@ import Label from '@/components/ui/Label';
 import Spinner from '@/components/ui/Spinner';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
-import { Edit, Trash2, CalendarPlus, Plane, Shield, Stethoscope } from 'lucide-react';
+import { Edit, Trash2, CalendarPlus, Plane, Shield, Stethoscope, Car, User, Briefcase } from 'lucide-react';
 
 // --- Formulários ---
 import PlantaoForm from '@/components/forms/PlantaoForm';
@@ -32,8 +32,23 @@ interface EscalaCodec { id: number; data: string; turno: 'Diurno' | 'Noturno'; o
 
 type ActiveTab = 'plantoes' | 'escalaMedicos' | 'escalaAeronaves' | 'escalaCodec';
 
+// Componente para os botões das abas
+const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: React.ElementType; label: string }) => (
+  <button
+    onClick={onClick}
+    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+      active
+        ? 'bg-indigo-600 text-white shadow-md'
+        : 'bg-white text-gray-600 hover:bg-gray-100'
+    }`}
+  >
+    <Icon size={16} />
+    <span className="hidden sm:inline">{label}</span>
+  </button>
+);
+
+
 export default function Plantoes() {
-  // ... (todo o código de hooks e handlers permanece o mesmo) ...
   const [activeTab, setActiveTab] = useState<ActiveTab>('plantoes');
   const [filters, setFilters] = useState({ data_inicio: '', data_fim: '' });
   const [plantoes, setPlantoes] = useState<Plantao[]>([]);
@@ -66,7 +81,7 @@ export default function Plantoes() {
       const params = new URLSearchParams({ page: String(currentPlantaoPage), limit: '15', ...filters });
       const [plantoesRes, viaturasRes] = await Promise.all([
         api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`),
-        api.get<ApiResponse<Viatura>>('/api/admin/viaturas?all=true'),
+        api.get<ApiResponse<Viatura>>('/api/admin/viaturas/simple'),
       ]);
       setPlantoes(plantoesRes.data.data);
       setPlantaoPagination(plantoesRes.data.pagination);
@@ -196,13 +211,11 @@ export default function Plantoes() {
 
   return (
     <div>
-      {/* --- CABEÇALHO CORRIGIDO --- */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Gerenciamento de Escalas</h2>
           <p className="text-gray-600 mt-2">Gerencie as escalas de viaturas, médicos, pilotos e plantonistas.</p>
         </div>
-        {/* Adicionado flex-wrap para quebrar a linha em telas pequenas */}
         <div className="flex flex-wrap gap-2 justify-center md:justify-end">
           <Button onClick={() => setIsPlantaoModalOpen(true)}><CalendarPlus className="w-4 h-4 mr-2" />Lançar Plantão VTR</Button>
           <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="bg-teal-600 hover:bg-teal-700"><Stethoscope className="w-4 h-4 mr-2" />Escala Médicos</Button>
@@ -211,7 +224,6 @@ export default function Plantoes() {
         </div>
       </div>
 
-      {/* --- FILTROS CORRIGIDOS --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg border">
         <div>
           <Label htmlFor="data_inicio">Data Início</Label>
@@ -227,25 +239,42 @@ export default function Plantoes() {
       </div>
 
       <div>
-        {/* --- NAVEGAÇÃO DE ABAS CORRIGIDA --- */}
-        <div className="border-b border-gray-200 overflow-x-auto">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            <button onClick={() => setActiveTab('plantoes')} className={`${activeTab === 'plantoes' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Plantões de Viaturas</button>
-            <button onClick={() => setActiveTab('escalaMedicos')} className={`${activeTab === 'escalaMedicos' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Escala de Médicos</button>
-            <button onClick={() => setActiveTab('escalaAeronaves')} className={`${activeTab === 'escalaAeronaves' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Escala de Aeronaves</button>
-            <button onClick={() => setActiveTab('escalaCodec')} className={`${activeTab === 'escalaCodec' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Escala do CODEC</button>
-          </nav>
+        {/* --- NAVEGAÇÃO DE ABAS COM BOTÕES --- */}
+        <div className="p-2 bg-gray-100 rounded-lg mb-4">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <TabButton active={activeTab === 'plantoes'} onClick={() => setActiveTab('plantoes')} icon={Car} label="Plantões VTR" />
+            <TabButton active={activeTab === 'escalaMedicos'} onClick={() => setActiveTab('escalaMedicos')} icon={Stethoscope} label="Escala Médicos" />
+            <TabButton active={activeTab === 'escalaAeronaves'} onClick={() => setActiveTab('escalaAeronaves')} icon={Plane} label="Escala Aeronaves" />
+            <TabButton active={activeTab === 'escalaCodec'} onClick={() => setActiveTab('escalaCodec')} icon={Shield} label="Escala CODEC" />
+          </div>
         </div>
 
-        {/* --- CONTEÚDO DAS ABAS (JÁ RESPONSIVO) --- */}
+        {/* --- CONTEÚDO DAS ABAS COM TABELAS RESPONSIVAS --- */}
         {activeTab === 'plantoes' && (
-          <div className="bg-white shadow-md rounded-b-lg overflow-hidden">
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
             {isLoadingPlantoes ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Viatura</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th></tr></thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {plantoes.map(p => (<tr key={p.id}><td className="px-6 py-4">{formatDate(p.data_plantao)}</td><td className="px-6 py-4">{p.viatura_prefixo}</td><td className="px-6 py-4">{p.obm_abreviatura}</td><td className="px-6 py-4 space-x-4"><button onClick={() => {}} className="text-indigo-600"><Edit size={18}/></button><button onClick={() => handleDeleteClick(p.id, 'plantoes')} className="text-red-600"><Trash2 size={18}/></button></td></tr>))}
+                  <thead className="bg-gray-50 hidden md:table-header-group">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Viatura</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 md:divide-y-0">
+                    {plantoes.map(p => (
+                      <tr key={p.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(p.data_plantao)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Viatura:">{p.viatura_prefixo}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center space-x-4">
+                          <button onClick={() => {}} className="text-indigo-600 hover:text-indigo-800"><Edit size={18}/></button>
+                          <button onClick={() => handleDeleteClick(p.id, 'plantoes')} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -255,13 +284,29 @@ export default function Plantoes() {
         )}
 
         {activeTab === 'escalaMedicos' && (
-          <div className="bg-white shadow-md rounded-b-lg overflow-hidden">
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
             {isLoadingEscalaMedicos ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entrada</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saída</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th></tr></thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {escalaMedicos.map(e => (<tr key={e.id}><td className="px-6 py-4">{e.nome_completo}</td><td className="px-6 py-4">{formatDateTime(e.entrada_servico)}</td><td className="px-6 py-4">{formatDateTime(e.saida_servico)}</td><td className="px-6 py-4"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{e.status_servico}</span></td><td className="px-6 py-4"><button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-red-600"><Trash2 size={18}/></button></td></tr>))}
+                  <thead className="bg-gray-50 hidden md:table-header-group">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entrada</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saída</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 md:divide-y-0">
+                    {escalaMedicos.map(e => (
+                      <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_completo}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Entrada:">{formatDateTime(e.entrada_servico)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Saída:">{formatDateTime(e.saida_servico)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{e.status_servico}</span></td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -270,13 +315,31 @@ export default function Plantoes() {
         )}
 
         {activeTab === 'escalaAeronaves' && (
-          <div className="bg-white shadow-md rounded-b-lg overflow-hidden">
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
             {isLoadingAeronaves ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aeronave</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">1º Piloto</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">2º Piloto</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th></tr></thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {escalaAeronaves.map(e => (<tr key={e.id}><td className="px-6 py-4">{formatDate(e.data)}</td><td className="px-6 py-4">{e.aeronave_prefixo}</td><td className="px-6 py-4">{e.primeiro_piloto}</td><td className="px-6 py-4">{e.segundo_piloto}</td><td className="px-6 py-4">{e.status}</td><td className="px-6 py-4"><button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-red-600"><Trash2 size={18}/></button></td></tr>))}
+                  <thead className="bg-gray-50 hidden md:table-header-group">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aeronave</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">1º Piloto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">2º Piloto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 md:divide-y-0">
+                    {escalaAeronaves.map(e => (
+                      <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(e.data)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Aeronave:">{e.aeronave_prefixo}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="1º Piloto:">{e.primeiro_piloto}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="2º Piloto:">{e.segundo_piloto}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:">{e.status}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -285,13 +348,29 @@ export default function Plantoes() {
         )}
 
         {activeTab === 'escalaCodec' && (
-          <div className="bg-white shadow-md rounded-b-lg overflow-hidden">
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
             {isLoadingCodec ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Turno</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plantonista</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th></tr></thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {escalaCodec.map(e => (<tr key={e.id}><td className="px-6 py-4">{formatDate(e.data)}</td><td className="px-6 py-4">{e.turno}</td><td className="px-6 py-4">Plantonista {e.ordem_plantonista}</td><td className="px-6 py-4">{e.nome_plantonista}</td><td className="px-6 py-4"><button onClick={() => handleDeleteClick(e.id, 'escalaCodec')} className="text-red-600"><Trash2 size={18}/></button></td></tr>))}
+                  <thead className="bg-gray-50 hidden md:table-header-group">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Turno</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plantonista</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 md:divide-y-0">
+                    {escalaCodec.map(e => (
+                      <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(e.data)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Turno:">{e.turno}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Plantonista:">Plantonista {e.ordem_plantonista}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_plantonista}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaCodec')} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
