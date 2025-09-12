@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx (Completo)
+// Arquivo: frontend/src/pages/Viaturas.tsx (VERSÃO CORRIGIDA)
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -126,8 +126,16 @@ export default function Viaturas() {
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) setSelectedFile(event.target.files[0]); };
+  
+  // --- CORREÇÃO APLICADA AQUI ---
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    // Garante que a função só executa se um ficheiro estiver selecionado
+    if (!selectedFile) {
+      toast.error("Por favor, selecione um arquivo primeiro.");
+      return;
+    }
+    // --- FIM DA CORREÇÃO ---
+
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -151,8 +159,8 @@ export default function Viaturas() {
     try {
       await api.delete('/api/admin/viaturas/clear-all');
       toast.success('Tabela de viaturas limpa com sucesso!');
-      fetchData(); // Recarrega os dados (que agora estarão vazios)
-      fetchLastUpload(); // Limpa a data de último upload
+      fetchData();
+      fetchLastUpload();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao limpar a tabela de viaturas.');
     } finally {

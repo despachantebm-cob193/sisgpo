@@ -1,3 +1,5 @@
+// Arquivo: src/pages/Dashboard.tsx (COM REORDENAÇÃO DE LAYOUT)
+
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
@@ -11,52 +13,22 @@ import toast from 'react-hot-toast';
 import Button from '@/components/ui/Button';
 import ShareModal from '@/components/ui/ShareModal';
 import { Share2 } from 'lucide-react';
+import AeronavesCard from '@/components/dashboard/AeronavesCard';
+import CodecCard from '@/components/dashboard/CodecCard';
 
-// --- INTERFACES DEFINIDAS AQUI ---
-interface DashboardStats {
-  total_militares_ativos: number;
-  total_viaturas_disponiveis: number;
-  total_obms: number;
-  total_plantoes_mes: number;
-}
-
-interface ChartStat {
-  name: string;
-  value: number;
-}
-
-interface Obm {
-  id: number;
-  abreviatura: string;
-  nome: string;
-}
-
-interface ObmGrupo {
-  nome: string;
-  prefixos: string[];
-}
-
-interface ViaturaStatAgrupada {
-  tipo: string;
-  quantidade: number;
-  obms: ObmGrupo[];
-}
-
-interface ViaturaPorObmStat {
-  id: number;
-  nome: string;
-  quantidade: number;
-  prefixos: string[];
-}
-
-interface ServicoInfo {
-  funcao: string;
-  nome_guerra: string | null;
-  posto_graduacao: string | null;
-}
-// --- FIM DAS INTERFACES ---
+// --- Interfaces (sem alterações) ---
+interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_plantoes_mes: number; }
+interface ChartStat { name: string; value: number; }
+interface Obm { id: number; abreviatura: string; nome: string; }
+interface ObmGrupo { nome: string; prefixos: string[]; }
+interface ViaturaStatAgrupada { tipo: string; quantidade: number; obms: ObmGrupo[]; }
+interface ViaturaPorObmStat { id: number; nome: string; quantidade: number; prefixos: string[]; }
+interface ServicoInfo { funcao: string; nome_guerra: string | null; posto_graduacao: string | null; }
+interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: string; primeiro_piloto: string; segundo_piloto: string; }
+interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
 
 export default function Dashboard() {
+  // --- Lógica de estados e busca de dados (sem alterações) ---
   const location = useLocation();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const isLoggedInArea = location.pathname.startsWith('/app');
@@ -67,6 +39,8 @@ export default function Dashboard() {
   const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
   const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
   const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
+  const [escalaAeronaves, setEscalaAeronaves] = useState<Aeronave[]>([]);
+  const [escalaCodec, setEscalaCodec] = useState<PlantonistaCodec[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [obms, setObms] = useState<Obm[]>([]);
@@ -88,7 +62,7 @@ export default function Dashboard() {
       const response = await api.get('/api/admin/obms?limit=500');
       setObms(response.data.data);
     } catch (err) {
-      if (isLoggedInArea) { // Só mostra o toast se estiver na área logada
+      if (isLoggedInArea) {
         toast.error('Não foi possível carregar a lista de OBMs para o filtro.');
       }
     }
@@ -105,14 +79,16 @@ export default function Dashboard() {
 
       const [
         statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes,
-        viaturaPorObmRes, servicoDiaRes
+        viaturaPorObmRes, servicoDiaRes, escalaAeronavesRes, escalaCodecRes
       ] = await Promise.all([
         api.get<DashboardStats>(`/api/public/dashboard/stats?${queryString}`),
         api.get<ChartStat[]>(`/api/public/dashboard/viatura-stats-por-tipo?${queryString}`),
         api.get<ChartStat[]>(`/api/public/dashboard/militar-stats?${queryString}`),
         api.get<ViaturaStatAgrupada[]>(`/api/public/dashboard/viatura-stats-detalhado?${queryString}`),
         api.get<ViaturaPorObmStat[]>(`/api/public/dashboard/viatura-stats-por-obm`),
-        api.get<ServicoInfo[]>(`/api/public/dashboard/servico-dia`)
+        api.get<ServicoInfo[]>(`/api/public/dashboard/servico-dia`),
+        api.get<Aeronave[]>(`/api/public/dashboard/escala-aeronaves`),
+        api.get<PlantonistaCodec[]>(`/api/public/dashboard/escala-codec`)
       ]);
       
       setStats(statsRes.data);
@@ -121,6 +97,8 @@ export default function Dashboard() {
       setViaturaDetailStats(viaturaDetailRes.data);
       setViaturaPorObmStats(viaturaPorObmRes.data);
       setServicoDia(servicoDiaRes.data);
+      setEscalaAeronaves(escalaAeronavesRes.data);
+      setEscalaCodec(escalaCodecRes.data);
       setError(null);
     } catch (err) {
       setError('Não foi possível carregar os dados do dashboard.');
@@ -147,6 +125,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Bloco de Cabeçalho e Filtros (sem alteração) */}
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
@@ -176,7 +155,17 @@ export default function Dashboard() {
       </div>
 
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
+        <CodecCard data={escalaCodec} isLoading={isLoading} />
+      </div>
+
+      {/* --- CORREÇÃO DE ORDEM APLICADA AQUI --- */}
+      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
+      {/* --- FIM DA CORREÇÃO --- */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ViaturaTypeChart 
           data={viaturaTipoStats} 
@@ -185,7 +174,6 @@ export default function Dashboard() {
         />
         <MilitarRankChart data={militarStats} isLoading={isLoading} />
       </div>
-      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
 
       <ShareModal
         isOpen={isShareModalOpen}

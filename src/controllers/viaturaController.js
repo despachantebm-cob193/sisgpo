@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/viaturaController.js (Completo e Corrigido)
+// Arquivo: src/controllers/viaturaController.js (VERSÃO COMPLETA E ATUALIZADA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -97,20 +97,29 @@ const viaturaController = {
 
   clearAll: async (req, res) => {
     try {
-      // --- CORREÇÃO APLICADA AQUI ---
-      // A sintaxe correta para o Knex com PostgreSQL é usar .toSQL() e depois .raw()
-      // ou, de forma mais simples e direta, usar o .raw() diretamente.
-      // O Knex não suporta as opções RESTART IDENTITY e CASCADE diretamente no .truncate()
-      // de uma forma que seja compatível com todos os bancos.
       await db.raw('TRUNCATE TABLE viaturas RESTART IDENTITY CASCADE');
-      
-      // Também é uma boa prática limpar os metadados relacionados.
       await db('metadata').where({ key: 'viaturas_last_upload' }).del();
-
       res.status(200).json({ message: 'Tabela de viaturas limpa com sucesso!' });
     } catch (error) {
       console.error("ERRO AO LIMPAR TABELA DE VIATURAS:", error);
       throw new AppError("Não foi possível limpar a tabela de viaturas.", 500);
+    }
+  },
+
+  // --- FUNÇÃO ADICIONADA ---
+  getAeronaves: async (req, res) => {
+    try {
+      const aeronaves = await db('viaturas')
+        .where('obm', 'ilike', '%CENTRO DE OPERAÇÕES AÉREAS%')
+        .orWhere('obm', 'ilike', '%COA%')
+        .andWhere('ativa', true)
+        .select('id', 'prefixo')
+        .orderBy('prefixo', 'asc');
+
+      res.status(200).json({ data: aeronaves });
+    } catch (error) {
+      console.error("Erro ao buscar aeronaves na tabela de viaturas:", error);
+      throw new AppError("Não foi possível carregar a lista de aeronaves.", 500);
     }
   },
 };

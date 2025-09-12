@@ -1,4 +1,4 @@
-// Arquivo: backend/src/controllers/viaturaFileController.js (Otimizado)
+// Arquivo: backend/src/controllers/viaturaFileController.js (VERSÃO CORRIGIDA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
@@ -7,35 +7,36 @@ const fs = require('fs');
 
 const viaturaFileController = {
   upload: async (req, res) => {
-    if (!req.file) {
-      throw new AppError('Nenhum arquivo foi enviado.', 400);
+    // A verificação agora é mais robusta
+    if (!req.file || !req.file.path) {
+      throw new AppError('Nenhum arquivo foi enviado ou o caminho do arquivo está ausente.', 400);
     }
 
     const filePath = req.file.path;
-    let rows = [];
-
+    
     try {
       const workbook = xlsx.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      rows = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+      const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+      if (rows.length <= 1) {
+        throw new AppError('A planilha está vazia ou contém apenas o cabeçalho.', 400);
+      }
 
       let insertedCount = 0;
       let updatedCount = 0;
       const processingErrors = [];
       let ignoredCount = 0;
 
-      // 1. Busca todas as viaturas existentes de uma só vez
       const allViaturas = await db('viaturas').select('id', 'prefixo');
-      const viaturaMap = new Map(allViaturas.map(v => [v.prefixo.toUpperCase().trim(), v.id]));
+      const viaturaMap = new Map(allViaturas.map(v => [String(v.prefixo).toUpperCase().trim(), v.id]));
 
-      // 2. Inicia a transação
       await db.transaction(async trx => {
-        for (let i = 1; i < rows.length; i++) { // Começa da segunda linha para ignorar o cabeçalho
+        for (let i = 1; i < rows.length; i++) {
           const rowData = rows[i];
           const tipoEscala = rowData[2] ? String(rowData[2]).trim().toUpperCase() : '';
 
-          // Ignora linhas que não são de viaturas
           if (!tipoEscala.includes('VIATURA')) {
             ignoredCount++;
             continue;
@@ -51,21 +52,11 @@ const viaturaFileController = {
             continue;
           }
 
-          const viaturaData = {
-            prefixo: prefixo,
-            ativa: true,
-            cidade: cidade,
-            obm: nomeObm,
-          };
-
-          // 3. Verifica a existência usando o mapa em memória
+          const viaturaData = { prefixo, ativa: true, cidade, obm: nomeObm };
           const existingViaturaId = viaturaMap.get(prefixo.toUpperCase().trim());
 
           if (existingViaturaId) {
-            await trx('viaturas').where({ id: existingViaturaId }).update({
-              ...viaturaData,
-              updated_at: db.fn.now(),
-            });
+            await trx('viaturas').where({ id: existingViaturaId }).update({ ...viaturaData, updated_at: db.fn.now() });
             updatedCount++;
           } else {
             await trx('viaturas').insert(viaturaData);
@@ -73,7 +64,6 @@ const viaturaFileController = {
           }
         }
 
-        // 4. Atualiza o metadado com a data/hora do último upload
         const lastUploadTime = new Date().toISOString();
         await trx('metadata')
           .insert({ key: 'viaturas_last_upload', value: lastUploadTime })
@@ -92,7 +82,8 @@ const viaturaFileController = {
       console.error("Erro durante a importação de viaturas:", error);
       throw new AppError(error.message || "Ocorreu um erro inesperado durante a importação.", 500);
     } finally {
-      if (req.file && req.file.path) {
+      // Garante que o arquivo temporário seja sempre excluído
+      if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
     }

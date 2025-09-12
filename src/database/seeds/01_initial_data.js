@@ -1,3 +1,5 @@
+// Arquivo: backend/src/database/seeds/01_initial_data.js (VERSÃO CORRIGIDA)
+
 const bcrypt = require('bcryptjs');
 
 /**
@@ -5,7 +7,11 @@ const bcrypt = require('bcryptjs');
  * @returns { Promise<void> }
  */
 exports.seed = async function(knex) {
-  // 1. Limpa os dados existentes em ordem de dependência
+  // 1. Limpa os dados existentes em ordem de dependência para evitar conflitos
+  await knex('escala_codec').del();
+  await knex('escala_aeronaves').del();
+  await knex('aeronaves').del();
+  await knex('servico_dia').del();
   await knex('plantoes_militares').del();
   await knex('plantoes').del();
   await knex('civis').del();
@@ -22,14 +28,13 @@ exports.seed = async function(knex) {
     { login: 'admin', senha_hash: senhaHash, perfil: 'Admin' }
   ]);
 
-  // 3. Insere OBMs de exemplo, incluindo as novas para a escala médica
+  // 3. Insere OBMs de exemplo
   const [obmPrincipal] = await knex('obms').insert([
     { nome: '1º Batalhão Bombeiro Militar', abreviatura: '1º BBM', cidade: 'Goiânia', telefone: '6232012030' },
     { nome: 'Comando de Apoio Logístico', abreviatura: 'CAL', cidade: 'Goiânia', telefone: '6232012040' },
     { nome: 'Academia Bombeiro Militar', abreviatura: 'ABM', cidade: 'Goiânia', telefone: '6232012050' },
-    { nome: 'Central de Operações Bombeiro', abreviatura: 'COB', cidade: 'Goiânia', telefone: '193' },
-    { nome: 'Batalhão de Salvamento em Emergência', abreviatura: 'BSE', cidade: 'Goiânia', telefone: '6232012000' }
-  ]).returning('id');
+    { nome: 'CENTRO DE OPERAÇÕES AÉREAS', abreviatura: 'COA', cidade: 'Goiânia', telefone: '6232012060' }
+  ]).returning('*'); // Retorna o objeto completo para pegar o nome
 
   // 4. Insere uma viatura de exemplo
   await knex('viaturas').insert([
@@ -37,12 +42,13 @@ exports.seed = async function(knex) {
       prefixo: 'UR-150',
       ativa: true,
       cidade: 'Goiânia',
-      obm: '1º Batalhão Bombeiro Militar',
+      obm: '1º Batalhão Bombeiro Militar', // Usa o nome da OBM
       telefone: '6232012030'
     }
   ]);
 
-  // 5. Insere um MILITAR de exemplo
+  // --- CORREÇÃO APLICADA AQUI ---
+  // 5. Insere um MILITAR de exemplo usando a nova estrutura com 'obm_nome'
   await knex('militares').insert([
     {
       matricula: '123456',
@@ -50,23 +56,20 @@ exports.seed = async function(knex) {
       nome_guerra: 'Fulano',
       posto_graduacao: 'Soldado',
       ativo: true,
-      obm_id: obmPrincipal.id
+      obm_nome: obmPrincipal.nome // <-- USA A COLUNA 'obm_nome' EM VEZ DE 'obm_id'
     }
   ]);
+  // --- FIM DA CORREÇÃO ---
 
-  // --- CORREÇÃO APLICADA AQUI ---
-  // 6. Insere um registro de exemplo na tabela 'civis' com a NOVA ESTRUTURA
+  // 6. Insere um registro de exemplo na tabela 'civis' (médicos)
   await knex('civis').insert([
     {
       nome_completo: 'Dr. Beltrano de Souza',
       funcao: 'Médico Regulador',
-      entrada_servico: new Date('2025-09-06T07:00:00Z'), // Exemplo de data/hora
-      saida_servico: new Date('2025-09-06T19:00:00Z'),
-      status_servico: 'Presente',
-      observacoes: 'Serviço normal.',
+      telefone: '62987654321',
       ativo: true
     }
   ]);
 
-  console.log('Seed de dados (com nova estrutura de escala) executado com sucesso!');
+  console.log('Seed de dados iniciais (corrigido) executado com sucesso!');
 };
