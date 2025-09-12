@@ -1,7 +1,10 @@
+// Arquivo: backend/src/controllers/viaturaController.js
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const viaturaController = {
+  // ... (as outras funções como getAll, create, update, etc., permanecem as mesmas) ...
   getAll: async (req, res) => {
     const { page = 1, limit = 15, prefixo } = req.query;
     const offset = (page - 1) * limit;
@@ -30,15 +33,20 @@ const viaturaController = {
     });
   },
 
-  // --- NOVA FUNÇÃO PARA LISTAS SIMPLES ---
+
+  // --- CORREÇÃO APLICADA AQUI ---
   getAllSimple: async (req, res) => {
-    const viaturas = await db('viaturas')
-      .select('id', 'prefixo', 'obm_id')
-      .where('ativa', true)
-      .orderBy('prefixo', 'asc');
+    // 1. Faz um JOIN com a tabela 'obms' para conseguir o ID da OBM.
+    // 2. Seleciona 'v.id' (ID da viatura), 'v.prefixo', e 'o.id' como 'obm_id'.
+    const viaturas = await db('viaturas as v')
+      .leftJoin('obms as o', 'v.obm', 'o.nome')
+      .select('v.id', 'v.prefixo', 'o.id as obm_id')
+      .where('v.ativa', true)
+      .orderBy('v.prefixo', 'asc');
+      
     res.status(200).json({ data: viaturas });
   },
-  // --- FIM DA NOVA FUNÇÃO ---
+  // --- FIM DA CORREÇÃO ---
 
   create: async (req, res) => {
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
@@ -111,7 +119,7 @@ const viaturaController = {
 
   getAeronaves: async (req, res) => {
     try {
-      const aeronaves = await db('aeronaves') // Alterado para buscar da tabela correta
+      const aeronaves = await db('aeronaves')
         .where('ativa', true)
         .select('id', 'prefixo')
         .orderBy('prefixo', 'asc');

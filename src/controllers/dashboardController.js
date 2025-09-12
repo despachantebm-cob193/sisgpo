@@ -1,4 +1,5 @@
-// Arquivo: src/controllers/dashboardController.js
+// Arquivo: backend/src/controllers/dashboardController.js
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -119,27 +120,52 @@ const dashboardController = {
     }
   },
 
+  // --- FUNÇÃO CORRIGIDA ---
   getServicoDia: async (req, res) => {
-    const dataBusca = new Date().toISOString().split('T')[0];
+    const dataBusca = new Date().toISOString(); // Pega a data e hora atuais
+
     try {
-      const servicoMilitares = await db('servico_dia as sd')
-        .join('militares as m', 'sd.pessoa_id', 'm.id')
-        .select('sd.funcao', 'm.posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_guerra"))
-        .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'militar' });
+      // Busca os registros de serviço onde a data atual está entre o início e o fim do plantão
+      const servicosAtivos = await db('servico_dia as sd')
+        .where('sd.data_inicio', '<=', dataBusca)
+        .andWhere('sd.data_fim', '>=', dataBusca);
+
+      const militarIds = servicosAtivos.filter(s => s.pessoa_type === 'militar').map(s => s.pessoa_id);
+      const civilIds = servicosAtivos.filter(s => s.pessoa_type === 'civil').map(s => s.pessoa_id);
+
+      let militaresData = [];
+      if (militarIds.length > 0) {
+        militaresData = await db('militares as m')
+          .select('m.id', 'm.posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_guerra"))
+          .whereIn('m.id', militarIds);
+      }
       
-      const servicoCivis = await db('servico_dia as sd')
-        .join('civis as c', 'sd.pessoa_id', 'c.id')
-        .select('sd.funcao', 'c.nome_completo as nome_guerra', db.raw("'' as posto_graduacao"))
-        .where({ 'sd.data': dataBusca, 'sd.pessoa_type': 'civil' });
+      let civisData = [];
+      if (civilIds.length > 0) {
+        civisData = await db('civis as c')
+          .select('c.id', 'c.nome_completo as nome_guerra', db.raw("'' as posto_graduacao"))
+          .whereIn('c.id', civilIds);
+      }
       
-      res.status(200).json([...servicoMilitares, ...servicoCivis]);
+      const resultadoFinal = servicosAtivos.map(servico => {
+        const pessoaData = servico.pessoa_type === 'militar'
+          ? militaresData.find(m => m.id === servico.pessoa_id)
+          : civisData.find(c => c.id === servico.pessoa_id);
+        
+        return {
+          funcao: servico.funcao,
+          nome_guerra: pessoaData?.nome_guerra || null,
+          posto_graduacao: pessoaData?.posto_graduacao || null,
+        };
+      });
+      
+      res.status(200).json(resultadoFinal);
     } catch (error) {
       console.error("ERRO AO BUSCAR SERVIÇO DO DIA:", error);
       throw new AppError("Não foi possível carregar os dados do serviço de dia.", 500);
     }
   },
 
-  // --- LÓGICA MOVIDA PARA CÁ ---
   getEscalaAeronaves: async (req, res) => {
     try {
       const dataBusca = new Date().toISOString().split('T')[0];
@@ -163,7 +189,6 @@ const dashboardController = {
     }
   },
 
-  // --- LÓGICA MOVIDA PARA CÁ ---
   getEscalaCodec: async (req, res) => {
     try {
       const dataBusca = new Date().toISOString().split('T')[0];

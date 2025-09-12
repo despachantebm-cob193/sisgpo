@@ -42,10 +42,8 @@ router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
 router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
 router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
 router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
-// --- CORREÇÃO APLICADA AQUI: Adicionando as rotas que faltavam ---
 router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
 router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
-// --- FIM DA CORREÇÃO ---
 
 // --- ROTAS DE METADADOS ---
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
@@ -85,24 +83,26 @@ router.post('/plantoes', validationMiddleware(plantaoSchema), plantaoController.
 router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
 
-// --- ROTAS DE CIVIS (CADASTRO DE MÉDICOS) ---
+// --- ROTAS DE CIVIS (CADASTRO DE MÉDICOS E ESCALAS) ---
+// A rota principal '/civis' agora lida com o cadastro e a listagem de escalas
 router.get('/civis', escalaMedicoController.getAllCivis);
 router.get('/civis/search', escalaMedicoController.searchCivis);
-router.post('/civis', escalaMedicoController.createCivil);
-router.put('/civis/:id', escalaMedicoController.updateCivil);
+router.post('/civis', validationMiddleware(createEscalaSchema), escalaMedicoController.createCivil);
+router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaMedicoController.updateCivil);
 router.delete('/civis/:id', escalaMedicoController.deleteCivil);
 
-// --- ROTAS DE ESCALA DE MÉDICOS ---
+// --- ROTAS DE ESCALA DE MÉDICOS (APONTANDO PARA AS FUNÇÕES CORRETAS) ---
+// Mantemos as rotas para compatibilidade, mas elas operam na tabela 'civis'
 router.get('/escala-medicos', escalaMedicoController.getAllEscalas);
 router.post('/escala-medicos', validationMiddleware(createEscalaSchema), escalaMedicoController.createEscala);
 router.delete('/escala-medicos/:id', escalaMedicoController.deleteEscala);
 
-// --- ROTAS DE ESCALA DE AERONAVES (AÇÕES DE MODIFICAÇÃO) ---
+// --- ROTAS DE ESCALA DE AERONAVES ---
 router.get('/escala-aeronaves', escalaAeronaveController.getAll);
 router.post('/escala-aeronaves', validationMiddleware(createEscalaAeronaveSchema), escalaAeronaveController.create);
 router.delete('/escala-aeronaves/:id', escalaAeronaveController.delete);
 
-// --- ROTAS DE ESCALA DO CODEC (AÇÕES DE MODIFICAÇÃO) ---
+// --- ROTAS DE ESCALA DO CODEC ---
 router.get('/escala-codec', escalaCodecController.getAll);
 router.post('/escala-codec', validationMiddleware(createEscalaCodecSchema), escalaCodecController.create);
 router.delete('/escala-codec/:id', escalaCodecController.delete);
