@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/components/layout/AppLayout.tsx (VERSÃO FINAL COMPLETA)
+// Arquivo: src/components/layout/AppLayout.tsx
 
 import { useState } from 'react';
 import { Outlet, Navigate, NavLink } from 'react-router-dom';
@@ -13,15 +13,16 @@ import {
   UserCircle,
   Menu,
   X,
-  Stethoscope, // Ícone para médicos
+  Stethoscope,
   Clipboard,
+  FileText, // Ícone para o relatório
 } from 'lucide-react';
 
 // Componente para os itens de navegação
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
   <NavLink
     to={to}
-    end={to === '/app/dashboard'} // Garante correspondência exata apenas para o dashboard
+    end={to === '/app/dashboard'}
     onClick={onClick}
     className={({ isActive }) =>
       `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
@@ -48,7 +49,6 @@ export default function AppLayout() {
 
   return (
     <div className="relative md:flex h-screen bg-gray-100 font-sans">
-      {/* Overlay para fechar a sidebar em telas pequenas */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
@@ -56,7 +56,6 @@ export default function AppLayout() {
         ></div>
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex flex-col
@@ -72,7 +71,6 @@ export default function AppLayout() {
           </button>
         </div>
 
-        {/* --- ITENS DE NAVEGAÇÃO ATUALIZADOS --- */}
         <nav className="flex-1 px-4 py-4 space-y-2">
           <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
           <NavItem to="/app/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
@@ -81,6 +79,7 @@ export default function AppLayout() {
           <NavItem to="/app/medicos" icon={Stethoscope} label="Cadastro de Médicos" onClick={closeSidebar} />
           <NavItem to="/app/plantoes" icon={Calendar} label="Escalas" onClick={closeSidebar} />
           <NavItem to="/app/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
+          <NavItem to="/app/relatorio" icon={FileText} label="Relatório Diário" onClick={closeSidebar} />
           <NavItem to="/app/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
         </nav>
 
@@ -95,7 +94,6 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col relative">
         <header
           className="

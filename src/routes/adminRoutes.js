@@ -1,4 +1,5 @@
 // Arquivo: src/routes/adminRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -31,6 +32,7 @@ const militarFileController = require('../controllers/militarFileController');
 const servicoDiaController = require('../controllers/servicoDiaController');
 const escalaAeronaveController = require('../controllers/escalaAeronaveController');
 const escalaCodecController = require('../controllers/escalaCodecController');
+const relatorioController = require('../controllers/relatorioController'); // Importa o novo controller
 
 // --- Instância do Multer para Upload ---
 const upload = multer(uploadConfig);
@@ -45,7 +47,10 @@ router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
 router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
 router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
 
-// --- ROTAS DE METADADOS ---
+// --- ROTA DE RELATÓRIO ---
+router.get('/relatorio-diario', relatorioController.getRelatorioDiario);
+
+// --- ROTAS DE METADATOS ---
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
 // --- ROTAS DE OBMs ---
@@ -84,7 +89,6 @@ router.put('/plantoes/:id', validationMiddleware(plantaoSchema), plantaoControll
 router.delete('/plantoes/:id', plantaoController.delete);
 
 // --- ROTAS DE CIVIS (CADASTRO DE MÉDICOS E ESCALAS) ---
-// A rota principal '/civis' agora lida com o cadastro e a listagem de escalas
 router.get('/civis', escalaMedicoController.getAllCivis);
 router.get('/civis/search', escalaMedicoController.searchCivis);
 router.post('/civis', validationMiddleware(createEscalaSchema), escalaMedicoController.createCivil);
@@ -92,7 +96,6 @@ router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaMedicoC
 router.delete('/civis/:id', escalaMedicoController.deleteCivil);
 
 // --- ROTAS DE ESCALA DE MÉDICOS (APONTANDO PARA AS FUNÇÕES CORRETAS) ---
-// Mantemos as rotas para compatibilidade, mas elas operam na tabela 'civis'
 router.get('/escala-medicos', escalaMedicoController.getAllEscalas);
 router.post('/escala-medicos', validationMiddleware(createEscalaSchema), escalaMedicoController.createEscala);
 router.delete('/escala-medicos/:id', escalaMedicoController.deleteEscala);

@@ -1,3 +1,5 @@
+// Arquivo: src/router/index.tsx
+
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
@@ -17,6 +19,7 @@ const Medicos = lazy(() => import('../pages/Medicos'));
 const Plantoes = lazy(() => import('../pages/Plantoes'));
 const ServicoDia = lazy(() => import('../pages/ServicoDia'));
 const Profile = lazy(() => import('../pages/Profile'));
+const Relatorio = lazy(() => import('../pages/Relatorio')); // Nova página importada
 
 // --- 2. Componente wrapper para o Suspense ---
 // Isso evita repetição de código e centraliza o estilo do fallback.
@@ -71,7 +74,8 @@ export const router = createBrowserRouter([
       { path: 'medicos', element: <Suspended><Medicos /></Suspended> },
       { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
       { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
-      { path: 'perfil', element: <Suspended><Profile /></Suspended> },
+      { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> }, // Rota do relatório
+      { path: 'perfil', element: <Suspended><Profile /></Suspended> }, // Rota de perfil (agora completa)
     ],
   },
 

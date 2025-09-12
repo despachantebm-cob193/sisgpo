@@ -1,4 +1,4 @@
-// Arquivo: tests/escala.spec.ts
+// Arquivo: tests/escala.spec.ts (VERSÃO CORRIGIDA)
 
 import { test, expect, Page } from '@playwright/test';
 
@@ -8,6 +8,7 @@ async function login(page: Page) {
   await page.locator('input[id="login"]').fill('admin');
   await page.locator('input[id="senha"]').fill('cbmgo@2025');
   await page.locator('button[type="submit"]').click();
+  // Espera por um elemento do layout principal para garantir que a página carregou
   await expect(page.getByText('Bem-vindo, admin')).toBeVisible({ timeout: 15000 });
 }
 
@@ -20,7 +21,6 @@ test.describe('Fluxo de CRUD para Cadastro de Médicos', () => {
   test('deve criar, ler, atualizar e deletar um médico', async ({ page }) => {
     await login(page);
     
-    // CORREÇÃO: O nome do link no menu é "Cadastro de Médicos"
     await page.getByRole('link', { name: 'Cadastro de Médicos' }).click();
     await expect(page.locator('h2:has-text("Cadastro de Médicos")')).toBeVisible();
 
@@ -31,7 +31,17 @@ test.describe('Fluxo de CRUD para Cadastro de Médicos', () => {
     await page.locator('input[name="funcao"]').fill(funcao);
     await page.locator('input[name="telefone"]').fill('62123456789');
 
+    // --- CORREÇÃO APLICADA AQUI ---
+    // Prepara para "escutar" a resposta da API ANTES de clicar no botão
+    const createResponsePromise = page.waitForResponse(
+      response => response.url().includes('/api/admin/civis') && response.status() === 201
+    );
     await page.getByRole('button', { name: 'Salvar' }).click();
+    // Agora, espera a resposta da API ter chegado com sucesso
+    await createResponsePromise;
+    // --- FIM DA CORREÇÃO ---
+
+    // A mensagem de toast agora deve estar visível
     await expect(page.getByText('Médico criado com sucesso!')).toBeVisible();
     
     await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeMedico);
