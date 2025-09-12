@@ -1,5 +1,4 @@
-// Arquivo: frontend/src/services/api.ts (VERSÃO FINAL CORRIGIDA)
-
+// Arquivo: frontend/src/services/api.ts
 import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast'; // <-- ADICIONE ESTA LINHA
@@ -10,7 +9,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3333';
 // Cria a instância do Axios.
 const api = axios.create({
   baseURL: baseURL,
-} );
+}  );
 
 // INTERCEPTOR DE REQUISIÇÃO: Adiciona o token de autenticação em cada chamada.
 api.interceptors.request.use(

@@ -1,5 +1,4 @@
-// Arquivo: backend/__tests__/globalSetup.js (Corrigido e Aprimorado)
-
+// Arquivo: backend/__tests__/globalSetup.js
 require('dotenv').config({ path: './.env.test' });
 const db = require('../src/config/database');
 const bcrypt = require('bcryptjs');

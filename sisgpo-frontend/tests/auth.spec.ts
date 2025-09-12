@@ -1,4 +1,4 @@
-// Arquivo: frontend/tests/auth.spec.ts (Corrigido)
+// Arquivo: tests/auth.spec.ts
 
 import { test, expect } from '@playwright/test';
 
@@ -9,30 +9,31 @@ test.describe('Fluxo de Autenticação', () => {
     await page.locator('input[id="login"]').fill('admin');
     await page.locator('input[id="senha"]').fill('cbmgo@2025');
     
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Evita que o Playwright espere por uma navegação que não ocorre,
-    // tornando o teste mais rápido e estável em SPAs.
-    await page.locator('button[type="submit"]').click({ noWaitAfter: true });
+    // Ação do usuário
+    await page.locator('button[type="submit"]').click();
 
-    // A asserção seguinte já aguarda o resultado da ação.
+    // Afirmação: Após o login, a URL deve ser a do dashboard protegido.
+    await expect(page).toHaveURL('/app/dashboard');
+    // E o texto de boas-vindas deve estar visível.
     await expect(page.getByText('Bem-vindo, admin')).toBeVisible();
-    await expect(page).toHaveURL('/');
   });
 
   test('deve exibir uma mensagem de erro para credenciais inválidas', async ({ page }) => {
     await page.goto('/login');
     await page.locator('input[id="login"]').fill('admin');
     await page.locator('input[id="senha"]').fill('senha_incorreta');
+    await page.locator('button[type="submit"]').click();
 
-    // --- CORREÇÃO APLICADA AQUI ---
-    await page.locator('button[type="submit"]').click({ noWaitAfter: true });
-
+    // Afirmação: Permanece na página de login e mostra a mensagem de erro.
     await expect(page).toHaveURL('/login');
     await expect(page.getByText('Credenciais inválidas.')).toBeVisible();
   });
 
   test('deve redirecionar para a página de login ao tentar acessar uma rota protegida', async ({ page }) => {
-    await page.goto('/');
+    // Organizar: Tenta acessar uma rota protegida diretamente.
+    await page.goto('/app/dashboard');
+    
+    // Afirmação: Deve ser redirecionado para a página de login.
     await expect(page).toHaveURL('/login');
     await expect(page.locator('input[id="login"]')).toBeVisible();
   });

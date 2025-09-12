@@ -1,3 +1,64 @@
+/* Arquivo: src/index.css */
+
+/* 
+  Importa as diretivas base do Tailwind CSS.
+  Isso injeta as classes de utilitários fundamentais, componentes pré-construídos
+  e um reset de CSS (preflight) para garantir consistência entre navegadores.
+*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 
+  --- OTIMIZAÇÃO PARA TABELAS RESPONSIVAS ---
+  Este bloco de código só é aplicado em telas com largura máxima de 767px (telas pequenas, como celulares).
+*/
+@media (max-width: 767px) {
+  /* 
+    Seleciona todas as células de tabela (td) que possuem o atributo 'data-label'.
+    O pseudo-elemento '::before' insere um conteúdo ANTES do conteúdo real da célula.
+  */
+  td[data-label]::before {
+    /* Pega o valor do atributo 'data-label' e o exibe como conteúdo. Ex: "OBM:" */
+    content: attr(data-label);
+    /* Deixa o label em negrito para se destacar. */
+    font-weight: 600; /* Corresponde a 'font-semibold' do Tailwind */
+    /* Adiciona um pequeno espaço entre o label e o valor. */
+    margin-right: 0.5rem; /* Corresponde a 'mr-2' do Tailwind */
+    /* Garante que o label e o valor fiquem na mesma linha dentro do card. */
+    display: inline-block;
+  }
+  
+  /* 
+    Para a primeira célula de cada linha (geralmente o nome principal),
+    escondemos o label para um visual mais limpo e direto no card.
+    O nome principal já é autoexplicativo.
+  */
+  tr td:first-child::before {
+    display: none;
+  }
+
+  /* 
+    Para a última célula, que geralmente contém os botões de ação (Editar/Excluir),
+    centralizamos o conteúdo para um melhor alinhamento visual no layout de card.
+  */
+  tr td:last-child {
+    text-align: center;
+  }
+
+  /* 
+    Na página de Militares, que usa um grid de divs, o seletor é um pouco diferente,
+    mas a lógica é a mesma para os labels.
+  */
+  div[data-label]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 0.5rem;
+    display: inline-block;
+    width: 100px; /* Alinha os valores verticalmente */
+  }
+
+  div[data-label] {
+    padding-left: 0; /* Remove o padding extra para alinhar com o título */
+  }
+}

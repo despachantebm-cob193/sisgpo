@@ -1,4 +1,4 @@
-// Arquivo: src/components/dashboard/CodecCard.tsx (NOVO LAYOUT)
+// Arquivo: src/components/dashboard/CodecCard.tsx (CORRIGIDO)
 
 import React from 'react';
 import Spinner from '@/components/ui/Spinner';
@@ -39,10 +39,17 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
       <div className="space-y-2">
         {plantonistas.length > 0 ? (
           plantonistas.map(p => (
-            <div key={p.ordem_plantonista} className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Plantonista {p.ordem_plantonista}:</span>
-              <span className="font-semibold text-gray-800 text-right">{p.nome_plantonista}</span>
+            // --- INÍCIO DA CORREÇÃO DE LAYOUT ---
+            <div key={p.ordem_plantonista} className="flex justify-between items-center text-sm gap-2">
+              <span className="text-gray-500 whitespace-nowrap">Plantonista {p.ordem_plantonista}:</span>
+              <span 
+                className="font-semibold text-gray-800 text-right truncate"
+                title={p.nome_plantonista} // Adiciona um tooltip para ver o nome completo
+              >
+                {p.nome_plantonista}
+              </span>
             </div>
+            // --- FIM DA CORREÇÃO DE LAYOUT ---
           ))
         ) : (
           <p className="text-sm text-gray-400 italic text-center py-4">

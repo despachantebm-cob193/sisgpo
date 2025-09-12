@@ -1,5 +1,4 @@
-// Arquivo: __tests__/teardown.js
-
+// Arquivo: backend/__tests__/teardown.js
 const db = require('../src/config/database');
 
 module.exports = async () => {

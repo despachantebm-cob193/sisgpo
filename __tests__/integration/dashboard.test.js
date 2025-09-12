@@ -1,5 +1,4 @@
-// Arquivo: backend/__tests__/integration/dashboard.test.js (Corrigido)
-
+// Arquivo: backend/__tests__/integration/dashboard.test.js
 const request = require("supertest");
 const app = require("../../src/app");
 const db = require("../../src/config/database");

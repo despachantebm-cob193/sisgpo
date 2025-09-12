@@ -1,3 +1,5 @@
+// Arquivo: frontend/src/pages/Dashboard.tsx (CORRIGIDO)
+
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
@@ -18,7 +20,7 @@ import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import AeronavesCard from '@/components/dashboard/AeronavesCard';
 import CodecCard from '@/components/dashboard/CodecCard';
 
-// Interfaces
+// Interfaces (sem alteração)
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_plantoes_mes: number; }
@@ -35,7 +37,7 @@ export default function Dashboard() {
   const location = useLocation();
   const isLoggedInArea = location.pathname.startsWith('/app');
 
-  // Estados
+  // Estados (sem alteração)
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
@@ -46,28 +48,20 @@ export default function Dashboard() {
   const [escalaCodec, setEscalaCodec] = useState<PlantonistaCodec[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
   const [obms, setObms] = useState<Obm[]>([]);
   const [selectedObm, setSelectedObm] = useState<string>('');
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+  // Funções de busca de dados (sem alteração)
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
-    // --- SIMPLIFICAÇÃO: Usa o mesmo prefixo para ambos os casos ---
     const apiPrefix = isLoggedInArea ? '/api/admin' : '/api/public';
-    
     try {
       const params = new URLSearchParams();
-      if (isLoggedInArea && selectedObm) {
-        params.append('obm_id', selectedObm);
-      }
+      if (isLoggedInArea && selectedObm) params.append('obm_id', selectedObm);
       const queryString = params.toString();
-
-      const [
-        statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes,
-        viaturaPorObmRes, servicoDiaRes, escalaAeronavesRes, escalaCodecRes
-      ] = await Promise.all([
+      const [ statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes, viaturaPorObmRes, servicoDiaRes, escalaAeronavesRes, escalaCodecRes ] = await Promise.all([
         api.get<DashboardStats>(`${apiPrefix}/dashboard/stats?${queryString}`),
         api.get<ChartStat[]>(`${apiPrefix}/dashboard/viatura-stats-por-tipo?${queryString}`),
         api.get<ChartStat[]>(`${apiPrefix}/dashboard/militar-stats?${queryString}`),
@@ -77,7 +71,6 @@ export default function Dashboard() {
         api.get<Aeronave[]>(`${apiPrefix}/dashboard/escala-aeronaves`),
         api.get<PlantonistaCodec[]>(`${apiPrefix}/dashboard/escala-codec`)
       ]);
-      
       setStats(statsRes.data);
       setViaturaTipoStats(viaturaTipoRes.data);
       setMilitarStats(militarStatsRes.data);
@@ -105,9 +98,7 @@ export default function Dashboard() {
           ]);
           setObms(obmsRes.data.data);
           setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
-        } catch (err) {
-          // Não mostra toast de erro para dados opcionais
-        }
+        } catch (err) { /* Não mostra erro para dados opcionais */ }
       };
       fetchAdminData();
     }
@@ -117,9 +108,7 @@ export default function Dashboard() {
   const publicUrl = `${window.location.origin}`;
   const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
 
-  if (error) {
-    return <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">{error}</div>;
-  }
+  if (error) return <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">{error}</div>;
 
   return (
     <div className="space-y-8">
@@ -129,7 +118,6 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard Operacional</h2>
             <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
           </div>
-          
           {isLoggedInArea && (
             <div className="flex items-center gap-4 w-full md:w-auto">
               <select id="obm-filter" value={selectedObm} onChange={(e) => setSelectedObm(e.target.value)} className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
@@ -152,10 +140,14 @@ export default function Dashboard() {
       </div>
 
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      {/* --- INÍCIO DA CORREÇÃO DE ALINHAMENTO --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
         <CodecCard data={escalaCodec} isLoading={isLoading} />
       </div>
+      {/* --- FIM DA CORREÇÃO DE ALINHAMENTO --- */}
+
       <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -174,4 +166,3 @@ export default function Dashboard() {
     </div>
   );
 }
-  

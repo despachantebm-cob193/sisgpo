@@ -1,3 +1,4 @@
+// Arquivo: src/controllers/dashboardController.js
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 

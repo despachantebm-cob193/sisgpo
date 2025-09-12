@@ -1,5 +1,4 @@
 // Arquivo: src/components/dashboard/AeronavesCard.tsx
-
 import React from 'react';
 import Spinner from '@/components/ui/Spinner';
 // --- CORREÇÃO APLICADA AQUI ---
