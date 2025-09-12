@@ -1,22 +1,26 @@
-// Arquivo: src/pages/Dashboard.tsx (COM REORDENAÇÃO DE LAYOUT)
-
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
+import toast from 'react-hot-toast';
+
+// Componentes de UI
 import StatCard from '@/components/ui/StatCard';
+import Button from '@/components/ui/Button';
+import ShareModal from '@/components/ui/ShareModal';
+import { Share2 } from 'lucide-react';
+
+// Componentes de Gráficos e Tabelas
 import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
 import ViaturaDetailTable from '@/components/dashboard/ViaturaDetailTable';
 import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
-import toast from 'react-hot-toast';
-import Button from '@/components/ui/Button';
-import ShareModal from '@/components/ui/ShareModal';
-import { Share2 } from 'lucide-react';
 import AeronavesCard from '@/components/dashboard/AeronavesCard';
 import CodecCard from '@/components/dashboard/CodecCard';
 
-// --- Interfaces (sem alterações) ---
+// Interfaces
+interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
+interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_plantoes_mes: number; }
 interface ChartStat { name: string; value: number; }
 interface Obm { id: number; abreviatura: string; nome: string; }
@@ -28,11 +32,10 @@ interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: str
 interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
 
 export default function Dashboard() {
-  // --- Lógica de estados e busca de dados (sem alterações) ---
   const location = useLocation();
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const isLoggedInArea = location.pathname.startsWith('/app');
 
+  // Estados
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
@@ -43,36 +46,20 @@ export default function Dashboard() {
   const [escalaCodec, setEscalaCodec] = useState<PlantonistaCodec[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
   const [obms, setObms] = useState<Obm[]>([]);
   const [selectedObm, setSelectedObm] = useState<string>('');
   const [lastUpload, setLastUpload] = useState<string | null>(null);
-
-  const fetchLastUpload = useCallback(async () => {
-    try {
-      const response = await api.get('/api/admin/metadata/viaturas_last_upload');
-      setLastUpload(new Date(response.data.value).toLocaleString('pt-BR'));
-    } catch (error) {
-      console.error("Não foi possível buscar a data da última atualização.");
-      setLastUpload(null);
-    }
-  }, []);
-
-  const fetchObms = useCallback(async () => {
-    try {
-      const response = await api.get('/api/admin/obms?limit=500');
-      setObms(response.data.data);
-    } catch (err) {
-      if (isLoggedInArea) {
-        toast.error('Não foi possível carregar a lista de OBMs para o filtro.');
-      }
-    }
-  }, [isLoggedInArea]);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
+    // --- SIMPLIFICAÇÃO: Usa o mesmo prefixo para ambos os casos ---
+    const apiPrefix = isLoggedInArea ? '/api/admin' : '/api/public';
+    
     try {
       const params = new URLSearchParams();
-      if (selectedObm) {
+      if (isLoggedInArea && selectedObm) {
         params.append('obm_id', selectedObm);
       }
       const queryString = params.toString();
@@ -81,14 +68,14 @@ export default function Dashboard() {
         statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes,
         viaturaPorObmRes, servicoDiaRes, escalaAeronavesRes, escalaCodecRes
       ] = await Promise.all([
-        api.get<DashboardStats>(`/api/public/dashboard/stats?${queryString}`),
-        api.get<ChartStat[]>(`/api/public/dashboard/viatura-stats-por-tipo?${queryString}`),
-        api.get<ChartStat[]>(`/api/public/dashboard/militar-stats?${queryString}`),
-        api.get<ViaturaStatAgrupada[]>(`/api/public/dashboard/viatura-stats-detalhado?${queryString}`),
-        api.get<ViaturaPorObmStat[]>(`/api/public/dashboard/viatura-stats-por-obm`),
-        api.get<ServicoInfo[]>(`/api/public/dashboard/servico-dia`),
-        api.get<Aeronave[]>(`/api/public/dashboard/escala-aeronaves`),
-        api.get<PlantonistaCodec[]>(`/api/public/dashboard/escala-codec`)
+        api.get<DashboardStats>(`${apiPrefix}/dashboard/stats?${queryString}`),
+        api.get<ChartStat[]>(`${apiPrefix}/dashboard/viatura-stats-por-tipo?${queryString}`),
+        api.get<ChartStat[]>(`${apiPrefix}/dashboard/militar-stats?${queryString}`),
+        api.get<ViaturaStatAgrupada[]>(`${apiPrefix}/dashboard/viatura-stats-detalhado?${queryString}`),
+        api.get<ViaturaPorObmStat[]>(`${apiPrefix}/dashboard/viatura-stats-por-obm`),
+        api.get<ServicoInfo[]>(`${apiPrefix}/dashboard/servico-dia`),
+        api.get<Aeronave[]>(`${apiPrefix}/dashboard/escala-aeronaves`),
+        api.get<PlantonistaCodec[]>(`${apiPrefix}/dashboard/escala-codec`)
       ]);
       
       setStats(statsRes.data);
@@ -106,15 +93,26 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedObm]);
+  }, [selectedObm, isLoggedInArea]);
 
   useEffect(() => {
     if (isLoggedInArea) {
-      fetchObms();
-      fetchLastUpload();
+      const fetchAdminData = async () => {
+        try {
+          const [obmsRes, metadataRes] = await Promise.all([
+            api.get<ApiResponse<Obm>>('/api/admin/obms?limit=500'),
+            api.get('/api/admin/metadata/viaturas_last_upload')
+          ]);
+          setObms(obmsRes.data.data);
+          setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
+        } catch (err) {
+          // Não mostra toast de erro para dados opcionais
+        }
+      };
+      fetchAdminData();
     }
     fetchDashboardData();
-  }, [fetchDashboardData, fetchObms, fetchLastUpload, isLoggedInArea]);
+  }, [fetchDashboardData, isLoggedInArea]);
 
   const publicUrl = `${window.location.origin}`;
   const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
@@ -125,12 +123,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Bloco de Cabeçalho e Filtros (sem alteração) */}
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h2>
-            <p className="text-gray-600 mt-2">Visão geral do poder operacional.</p>
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard Operacional</h2>
+            <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
           </div>
           
           {isLoggedInArea && (
@@ -155,32 +152,26 @@ export default function Dashboard() {
       </div>
 
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
         <CodecCard data={escalaCodec} isLoading={isLoading} />
       </div>
-
-      {/* --- CORREÇÃO DE ORDEM APLICADA AQUI --- */}
       <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
-      {/* --- FIM DA CORREÇÃO --- */}
-      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ViaturaTypeChart 
-          data={viaturaTipoStats} 
-          isLoading={isLoading} 
-          lastUpdated={lastUpload}
-        />
+        <ViaturaTypeChart data={viaturaTipoStats} isLoading={isLoading} lastUpdated={lastUpload} />
         <MilitarRankChart data={militarStats} isLoading={isLoading} />
       </div>
 
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        publicUrl={publicUrl}
-        shareMessage={shareMessage}
-      />
+      {isLoggedInArea && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          publicUrl={publicUrl}
+          shareMessage={shareMessage}
+        />
+      )}
     </div>
   );
 }
+  

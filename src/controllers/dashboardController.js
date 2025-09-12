@@ -1,5 +1,3 @@
-// Arquivo: src/controllers/dashboardController.js (VERSÃO FINAL E COMPLETA)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -140,6 +138,7 @@ const dashboardController = {
     }
   },
 
+  // --- LÓGICA MOVIDA PARA CÁ ---
   getEscalaAeronaves: async (req, res) => {
     try {
       const dataBusca = new Date().toISOString().split('T')[0];
@@ -163,6 +162,7 @@ const dashboardController = {
     }
   },
 
+  // --- LÓGICA MOVIDA PARA CÁ ---
   getEscalaCodec: async (req, res) => {
     try {
       const dataBusca = new Date().toISOString().split('T')[0];
@@ -172,7 +172,6 @@ const dashboardController = {
         .select(
           'ec.turno', 
           'ec.ordem_plantonista', 
-          // Lógica COALESCE robusta que também trata strings vazias
           db.raw("m.posto_graduacao || ' ' || COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_plantonista")
         )
         .orderBy('ec.turno', 'asc')

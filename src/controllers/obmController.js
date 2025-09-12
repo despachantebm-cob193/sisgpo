@@ -3,12 +3,11 @@ const AppError = require('../utils/AppError');
 
 const obmController = {
   /**
-   * Lista todas as OBMs com suporte a filtros e paginação.
+   * Lista todas as OBMs com suporte a filtros e paginação obrigatória.
    */
   getAll: async (req, res) => {
-    const { nome, abreviatura, cidade, all } = req.query;
+    const { nome, abreviatura, cidade } = req.query;
 
-    // Query base sem ordenação inicial para permitir a contagem correta
     const query = db('obms').select('*');
 
     // Aplica filtros
@@ -16,25 +15,14 @@ const obmController = {
     if (abreviatura) query.where('abreviatura', 'ilike', `%${abreviatura}%`);
     if (cidade) query.where('cidade', 'ilike', `%${cidade}%`);
 
-    // Se 'all=true' for solicitado, retorna todos os registros sem paginar
-    if (all === 'true') {
-      const obms = await query.orderBy('nome', 'asc'); // Ordenação aplicada apenas aqui
-      return res.status(200).json({ data: obms, pagination: null });
-    }
-
-    // Lógica de paginação padrão
+    // Lógica de paginação padrão e obrigatória
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
 
-    // --- CORREÇÃO APLICADA ---
-    // Clona a query com os filtros, mas limpa a ordenação antes de contar.
     const countQuery = query.clone().clearSelect().clearOrder().count({ count: '*' }).first();
-    
-    // A ordenação é aplicada apenas na query que busca os dados paginados.
     const dataQuery = query.clone().orderBy('nome', 'asc').limit(limit).offset(offset);
 
-    // Executa as duas queries em paralelo
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
     
     const totalRecords = parseInt(totalResult.count, 10);

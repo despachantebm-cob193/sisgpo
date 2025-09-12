@@ -1,5 +1,3 @@
-// Arquivo: src/routes/publicRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
@@ -11,8 +9,6 @@ router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
 router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
 router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
 router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
-
-// --- ROTAS QUE ESTÃO CAUSANDO O ERRO ---
 router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
 router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
 

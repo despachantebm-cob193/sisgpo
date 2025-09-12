@@ -1,11 +1,9 @@
-// Arquivo: src/controllers/viaturaController.js (VERSÃO COMPLETA E ATUALIZADA)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const viaturaController = {
   getAll: async (req, res) => {
-    const { page = 1, limit = 15, prefixo, all } = req.query;
+    const { page = 1, limit = 15, prefixo } = req.query;
     const offset = (page - 1) * limit;
 
     const query = db('viaturas as v')
@@ -17,11 +15,6 @@ const viaturaController = {
 
     if (prefixo) {
       query.where('v.prefixo', 'ilike', `%${prefixo}%`);
-    }
-
-    if (all === 'true') {
-        const viaturas = await query.orderBy('v.prefixo', 'asc');
-        return res.status(200).json({ data: viaturas, pagination: null });
     }
 
     const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'v.id' }).first();
@@ -36,6 +29,16 @@ const viaturaController = {
       pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
     });
   },
+
+  // --- NOVA FUNÇÃO PARA LISTAS SIMPLES ---
+  getAllSimple: async (req, res) => {
+    const viaturas = await db('viaturas')
+      .select('id', 'prefixo', 'obm_id')
+      .where('ativa', true)
+      .orderBy('prefixo', 'asc');
+    res.status(200).json({ data: viaturas });
+  },
+  // --- FIM DA NOVA FUNÇÃO ---
 
   create: async (req, res) => {
     const { prefixo, ativa, cidade, obm, telefone } = req.body;
@@ -106,19 +109,16 @@ const viaturaController = {
     }
   },
 
-  // --- FUNÇÃO ADICIONADA ---
   getAeronaves: async (req, res) => {
     try {
-      const aeronaves = await db('viaturas')
-        .where('obm', 'ilike', '%CENTRO DE OPERAÇÕES AÉREAS%')
-        .orWhere('obm', 'ilike', '%COA%')
-        .andWhere('ativa', true)
+      const aeronaves = await db('aeronaves') // Alterado para buscar da tabela correta
+        .where('ativa', true)
         .select('id', 'prefixo')
         .orderBy('prefixo', 'asc');
 
       res.status(200).json({ data: aeronaves });
     } catch (error) {
-      console.error("Erro ao buscar aeronaves na tabela de viaturas:", error);
+      console.error("Erro ao buscar aeronaves:", error);
       throw new AppError("Não foi possível carregar a lista de aeronaves.", 500);
     }
   },

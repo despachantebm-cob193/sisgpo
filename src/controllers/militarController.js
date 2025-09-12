@@ -1,29 +1,22 @@
-// Arquivo: backend/src/controllers/militarController.js (VERSÃO ATUALIZADA)
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const militarController = {
   /**
-   * Lista todos os militares com suporte a filtros e paginação.
+   * Lista todos os militares com suporte a filtros e paginação obrigatória.
    */
   getAll: async (req, res) => {
-    const { nome_completo, matricula, posto_graduacao, ativo, all } = req.query;
+    const { nome_completo, matricula, posto_graduacao, ativo } = req.query;
 
     const query = db('militares').select(
       'id', 'matricula', 'nome_completo', 'nome_guerra',
-      'posto_graduacao', 'ativo', 'obm_nome', 'telefone' // Adicionado 'telefone'
+      'posto_graduacao', 'ativo', 'obm_nome', 'telefone'
     );
 
     if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
     if (matricula) query.where('matricula', 'ilike', `%${matricula}%`);
     if (posto_graduacao) query.where('posto_graduacao', 'ilike', `%${posto_graduacao}%`);
     if (ativo) query.where('ativo', '=', ativo);
-
-    if (all === 'true') {
-      const militares = await query.orderBy('nome_completo', 'asc');
-      return res.status(200).json({ data: militares, pagination: null });
-    }
 
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;
@@ -58,13 +51,13 @@ const militarController = {
         .orWhere('nome_guerra', 'ilike', `%${term}%`)
         .orWhere('matricula', 'ilike', `%${term}%`)
         .andWhere('ativo', true)
-        .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra', 'telefone') // Adicionado 'telefone'
+        .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra', 'telefone')
         .limit(15);
 
       const options = militares.map(m => ({
         value: m.id,
         label: `${m.posto_graduacao} ${m.nome_guerra || m.nome_completo} (${m.matricula})`,
-        militar: m, // O objeto completo do militar, incluindo o telefone, é enviado aqui
+        militar: m,
       }));
 
       res.status(200).json(options);
@@ -83,7 +76,7 @@ const militarController = {
       throw new AppError('Matrícula não fornecida.', 400);
     }
     const militar = await db('militares')
-      .select('id', 'nome_completo', 'posto_graduacao', 'telefone') // Adicionado 'telefone'
+      .select('id', 'nome_completo', 'posto_graduacao', 'telefone')
       .where({ matricula: matricula, ativo: true })
       .first();
       
@@ -111,7 +104,6 @@ const militarController = {
    */
   update: async (req, res) => {
     const { id } = req.params;
-    // Adicionado 'telefone' à desestruturação
     const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } = req.body;
     
     const militarParaAtualizar = await db('militares').where({ id }).first();
@@ -124,7 +116,6 @@ const militarController = {
         throw new AppError('A nova matrícula já está em uso por outro militar.', 409);
       }
     }
-    // Adicionado 'telefone' ao objeto de atualização
     const dadosAtualizacao = { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone, updated_at: db.fn.now() };
     const [militarAtualizado] = await db('militares').where({ id }).update(dadosAtualizacao).returning('*');
     res.status(200).json(militarAtualizado);
