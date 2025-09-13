@@ -67,12 +67,12 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
       </h3>
       <div className="flex flex-col lg:flex-row gap-6 justify-center">
         <Turno 
-          titulo="Turno Diurno (7h-19h)" 
+          titulo="Diurno (7h-19h)" 
           icone={<Sun className="text-yellow-500" size={24} />} 
           plantonistas={diurno} 
         />
         <Turno 
-          titulo="Turno Noturno (19h-7h)" 
+          titulo="Noturno (19h-7h)" 
           icone={<Moon className="text-indigo-500" size={24} />} 
           plantonistas={noturno} 
         />
