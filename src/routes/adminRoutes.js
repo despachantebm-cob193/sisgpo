@@ -14,7 +14,7 @@ const { createObmSchema, updateObmSchema } = require('../validators/obmValidator
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
 const { createEscalaSchema, updateEscalaSchema } = require('../validators/escalaMedicoValidator');
-const { changePasswordSchema } = require('../validators/userValidator');
+const { changePasswordSchema, createUserSchema } = require('../validators/userValidator');
 const { createEscalaAeronaveSchema } = require('../validators/escalaAeronaveValidator');
 const { createEscalaCodecSchema } = require('../validators/escalaCodecValidator');
 
@@ -25,6 +25,7 @@ const viaturaController = require('../controllers/viaturaController');
 const plantaoController = require('../controllers/plantaoController');
 const escalaMedicoController = require('../controllers/escalaMedicoController');
 const userController = require('../controllers/userController');
+const ensureAdmin = require('../middlewares/ensureAdmin');
 const dashboardController = require('../controllers/dashboardController');
 const viaturaFileController = require('../controllers/viaturaFileController');
 const obmFileController = require('../controllers/obmFileController');
@@ -119,7 +120,9 @@ router.delete('/escala-codec/:id', escalaCodecController.delete);
 router.get('/servico-dia', servicoDiaController.getByDate);
 router.post('/servico-dia', servicoDiaController.save);
 
-// --- ROTAS DE USUÁRIO ---
+// --- ROTAS DE USUARIO ---
+router.get('/users', ensureAdmin, userController.list);
+router.post('/users', ensureAdmin, validationMiddleware(createUserSchema), userController.create);
 router.put('/user/change-password', validationMiddleware(changePasswordSchema), userController.changePassword);
 
 module.exports = router;

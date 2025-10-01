@@ -25,7 +25,7 @@ exports.seed = async function(knex) {
   const salt = await bcrypt.genSalt(10);
   const senhaHash = await bcrypt.hash(senhaPlana, salt);
   await knex('usuarios').insert([
-    { login: 'admin', senha_hash: senhaHash, perfil: 'Admin' }
+    { login: 'admin', senha_hash: senhaHash, perfil: 'admin' }
   ]);
 
   // 3. Insere OBMs de exemplo

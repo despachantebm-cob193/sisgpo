@@ -9,7 +9,7 @@ async function createAdminUser() {
   const login = 'admin';
   // ALTERE A SENHA AQUI para corresponder ao ambiente de teste/produção
   const senhaPlana = 'cbmgo@2025'; 
-  const perfil = 'Admin';
+  const perfil = 'admin';
 
   try {
     // Primeiro, vamos remover o usuário admin antigo para garantir a atualização

@@ -15,10 +15,10 @@ import {
   X,
   Stethoscope,
   Clipboard,
-  FileText, // Ícone para o relatório
+  FileText,
+  Shield,
 } from 'lucide-react';
 
-// Componente para os itens de navegação
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
   <NavLink
     to={to}
@@ -40,6 +40,7 @@ const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.E
 export default function AppLayout() {
   const { token, logout, user } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isAdmin = user?.perfil === 'admin';
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -76,15 +77,18 @@ export default function AppLayout() {
           <NavItem to="/app/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
           <NavItem to="/app/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
           <NavItem to="/app/militares" icon={Users} label="Militares" onClick={closeSidebar} />
-          <NavItem to="/app/medicos" icon={Stethoscope} label="Cadastro de Médicos" onClick={closeSidebar} />
+          <NavItem to="/app/medicos" icon={Stethoscope} label="Cadastro de Medicos" onClick={closeSidebar} />
           <NavItem to="/app/plantoes" icon={Calendar} label="Escalas" onClick={closeSidebar} />
-          <NavItem to="/app/servico-dia" icon={Clipboard} label="Serviço de Dia" onClick={closeSidebar} />
-          <NavItem to="/app/relatorio" icon={FileText} label="Relatório Diário" onClick={closeSidebar} />
+          <NavItem to="/app/servico-dia" icon={Clipboard} label="Servico de Dia" onClick={closeSidebar} />
+          <NavItem to="/app/relatorio" icon={FileText} label="Relatorio Diario" onClick={closeSidebar} />
+          {isAdmin && (
+            <NavItem to="/app/usuarios" icon={Shield} label="Usuarios" onClick={closeSidebar} />
+          )}
           <NavItem to="/app/perfil" icon={UserCircle} label="Meu Perfil" onClick={closeSidebar} />
         </nav>
 
         <div className="px-4 py-4 border-t border-gray-700">
-           <button
+          <button
             onClick={() => { closeSidebar(); logout(); }}
             className="flex items-center w-full px-4 py-2.5 text-sm font-medium rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
           >

@@ -29,7 +29,7 @@ async function bootstrapDatabase() {
     await db('usuarios').insert({ 
       login: 'admin', 
       senha_hash: senhaHash, 
-      perfil: 'Admin' 
+      perfil: 'admin' 
     });
     console.log('-> Usuário "admin" criado com sucesso.');
 

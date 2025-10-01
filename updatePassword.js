@@ -6,7 +6,7 @@ const pool = require('./src/config/database');
 async function setupAdminUser() {
   const login = 'admin';
   const senhaPlana = 'cbmgo@2025'; // A senha que usaremos
-  const perfil = 'Admin';
+  const perfil = 'admin';
 
   const client = await pool.connect();
   console.log('Conectado ao banco de dados de produção...');

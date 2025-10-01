@@ -25,7 +25,7 @@ module.exports = async () => {
     await db('usuarios').insert({
       login: 'admin',
       senha_hash: senhaHash,
-      perfil: 'Admin'
+      perfil: 'admin'
     });
     console.log('[Global Setup] Usuário "admin" criado.');
 

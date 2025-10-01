@@ -12,7 +12,7 @@ import Label from '../components/ui/Label';
 interface User {
   id: number;
   login: string;
-  perfil: 'Admin' | 'Usuario';
+  perfil: 'admin' | 'user';
 }
 
 interface LoginResponse {
