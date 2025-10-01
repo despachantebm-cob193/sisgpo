@@ -1,4 +1,4 @@
-// Arquivo: src/routes/adminRoutes.js
+// Arquivo: src/routes/adminRoutes.js (VERSÃO CORRIGIDA)
 
 const express = require('express');
 const router = express.Router();
@@ -32,7 +32,7 @@ const militarFileController = require('../controllers/militarFileController');
 const servicoDiaController = require('../controllers/servicoDiaController');
 const escalaAeronaveController = require('../controllers/escalaAeronaveController');
 const escalaCodecController = require('../controllers/escalaCodecController');
-const relatorioController = require('../controllers/relatorioController'); // Importa o novo controller
+const relatorioController = require('../controllers/relatorioController');
 
 // --- Instância do Multer para Upload ---
 const upload = multer(uploadConfig);
@@ -67,9 +67,14 @@ router.get('/viaturas/simple', viaturaController.getAllSimple);
 router.get('/viaturas/aeronaves', viaturaController.getAeronaves);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
 router.post('/viaturas', validationMiddleware(createViaturaSchema), viaturaController.create);
+
+// --- INÍCIO DA CORREÇÃO ---
+// A rota mais específica ('/clear-all') deve vir ANTES da rota com parâmetro ('/:id').
+router.delete('/viaturas/clear-all', viaturaController.clearAll);
 router.put('/viaturas/:id', validationMiddleware(updateViaturaSchema), viaturaController.update);
 router.delete('/viaturas/:id', viaturaController.delete);
-router.delete('/viaturas/clear-all', viaturaController.clearAll);
+// --- FIM DA CORREÇÃO ---
+
 router.post('/viaturas/upload-csv', upload.single('file'), viaturaFileController.upload);
 
 // --- ROTAS DE MILITARES ---

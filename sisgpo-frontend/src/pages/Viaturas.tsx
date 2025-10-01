@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx
+﻿// Arquivo: frontend/src/pages/Viaturas.tsx (VERSÃƒO CORRIGIDA)
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -12,7 +12,7 @@ import Modal from '../components/ui/Modal';
 import ViaturaForm from '../components/forms/ViaturaForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
-import FileUpload from '../components/ui/FileUpload'; // Usando o novo componente
+import FileUpload from '../components/ui/FileUpload';
 
 interface Viatura { id: number; prefixo: string; cidade: string | null; obm: string | null; ativa: boolean; }
 interface PaginationState { currentPage: number; totalPages: number; }
@@ -43,16 +43,38 @@ export default function Viaturas() {
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
       setPagination(response.data.pagination);
-    } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
+    } catch (err) { toast.error('NÃ£o foi possÃ­vel carregar as viaturas.'); }
     finally { setIsLoading(false); }
   }, [filters, currentPage]);
 
+  // --- INÃCIO DA CORREÃ‡ÃƒO ---
   const fetchLastUpload = useCallback(async () => {
     try {
       const response = await api.get('/api/admin/metadata/viaturas_last_upload');
-      setLastUpload(new Date(response.data.value).toLocaleString('pt-BR'));
-    } catch (error) { setLastUpload(null); }
+      const value = response?.data?.value;
+      if (!value) {
+        setLastUpload(null);
+        return;
+      }
+      const parsedDate = new Date(value);
+      if (Number.isNaN(parsedDate.getTime())) {
+        console.warn('Valor de upload invalido recebido:', value);
+        setLastUpload(null);
+        return;
+      }
+      setLastUpload(parsedDate.toLocaleString('pt-BR'));
+    } catch (error: any) {
+      // Se o erro for 404 (NÃ£o Encontrado), Ã© um cenÃ¡rio esperado.
+      // Apenas definimos como nulo e nÃ£o mostramos um toast de erro.
+      if (error.response && error.response.status === 404) {
+        setLastUpload(null);
+      } else {
+        // Para outros erros (como falha de rede), podemos opcionalmente logar.
+        console.error("Falha ao buscar metadados de upload:", error);
+      }
+    }
   }, []);
+  // --- FIM DA CORREÃ‡ÃƒO ---
 
   useEffect(() => { fetchData(); fetchLastUpload(); }, [fetchData, fetchLastUpload]);
 
@@ -89,7 +111,7 @@ export default function Viaturas() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/viaturas/${itemToDeleteId}`);
-      toast.success('Viatura excluída com sucesso!');
+      toast.success('Viatura excluÃ­da com sucesso!');
       fetchData();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir a viatura.'); }
     finally { setIsDeleting(false); handleCloseConfirmModal(); }
@@ -140,7 +162,6 @@ export default function Viaturas() {
 
       <Input type="text" placeholder="Filtrar por prefixo..." value={filters.prefixo} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
 
-      {/* --- INÍCIO DA OTIMIZAÇÃO RESPONSIVA --- */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50 hidden md:table-header-group">
@@ -149,7 +170,7 @@ export default function Viaturas() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">AÃ§Ãµes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -179,13 +200,13 @@ export default function Viaturas() {
         </table>
         {pagination && <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />}
       </div>
-      {/* --- FIM DA OTIMIZAÇÃO RESPONSIVA --- */}
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
-      <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÇÃO: Esta ação é irreversível e irá apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar ExclusÃ£o" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
+      <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÃ‡ÃƒO: Esta aÃ§Ã£o Ã© irreversÃ­vel e irÃ¡ apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
     </div>
   );
 }
+

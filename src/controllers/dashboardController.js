@@ -1,5 +1,3 @@
-// Arquivo: backend/src/controllers/dashboardController.js
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -17,12 +15,20 @@ const getTipoViatura = (prefixo) => {
 };
 
 const dashboardController = {
+  /**
+   * Busca um metadado pela chave.
+   * CORREÇÃO: Retorna null com status 200 se a chave não for encontrada,
+   * em vez de lançar um erro 404.
+   */
   getMetadataByKey: async (req, res) => {
     const { key } = req.params;
     const metadata = await db('metadata').where({ key }).first();
+    
+    // Se não encontrar, retorna uma resposta de sucesso com dados nulos.
     if (!metadata) {
-      throw new AppError('Metadado não encontrado.', 404);
+      return res.status(200).json(null);
     }
+    
     res.status(200).json(metadata);
   },
 
@@ -120,12 +126,10 @@ const dashboardController = {
     }
   },
 
-  // --- FUNÇÃO CORRIGIDA ---
   getServicoDia: async (req, res) => {
-    const dataBusca = new Date().toISOString(); // Pega a data e hora atuais
+    const dataBusca = new Date().toISOString(); 
 
     try {
-      // Busca os registros de serviço onde a data atual está entre o início e o fim do plantão
       const servicosAtivos = await db('servico_dia as sd')
         .where('sd.data_inicio', '<=', dataBusca)
         .andWhere('sd.data_fim', '>=', dataBusca);
