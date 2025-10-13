@@ -3,12 +3,12 @@ const express = require('express');
 require('express-async-errors');
 const cors = require('cors');
 const knex = require('./config/database');
-const path = require('path'); // [SPA FIX] 1. Importa o módulo 'path'
+const path = require('path'); // Importa o módulo 'path'
 
 // Importa os arquivos de rota
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const publicRoutes = require('./routes/publicRoutes');
+const publicRoutes = require('./routes/publicRoutes'); 
 
 // Importa os middlewares
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -16,8 +16,8 @@ const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
 
-// [SPA FIX] 2. Define o caminho para a pasta de build do frontend (assumindo 'sisgpo-frontend/dist')
-// O caminho é resolvido a partir de 'src' (diretório atual) para a pasta 'dist' dentro de 'sisgpo-frontend'.
+// DEFINE O CAMINHO CORRETO DA PASTA DE BUILD DO FRONTEND
+// Caminho absoluto para: .../sisgpo-e51d44be7dd9fc159c9ca447544b40224c715148/sisgpo-frontend/dist
 const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
 
 
@@ -41,10 +41,12 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
+  // Nesta rota, se o sistema estiver em produção, você pode querer redirecionar para o frontend.
+  // Por agora, manteremos a resposta JSON da API.
   res.json({ message: 'API do SISGPO está funcionando!' });
 });
 
-// --- REGISTRO DAS ROTAS DA API ---
+// --- REGISTRO DAS ROTAS DA API (DEVE SER FEITO ANTES DO SERVIÇO DE ARQUIVOS ESTÁTICOS) ---
 
 // Rotas de Autenticação (PÚBLICAS)
 app.use('/api/auth', authRoutes);
@@ -55,13 +57,16 @@ app.use('/api/public', publicRoutes);
 // Rotas de Administração (PROTEGIDAS)
 app.use('/api/admin', authMiddleware, adminRoutes);
 
+// ------------------------------------------------------------------------------------------
 // --- SERVINDO O FRONTEND (SPA HISTORY FALLBACK) ---
+// ESSA SEÇÃO DEVE ESTAR DEPOIS DE TODAS AS ROTAS DA API (/api/*)
+// ------------------------------------------------------------------------------------------
 
-// [SPA FIX] 3. Serve os arquivos estáticos da pasta de build do frontend.
+// 1. Serve os arquivos estáticos (CSS, JS, imagens)
 app.use(express.static(frontendPath));
 
-// [SPA FIX] 4. Rota catch-all: Para qualquer rota não tratada pelas APIs acima,
-// envia o arquivo principal do frontend (index.html).
+// 2. Rota Catch-All para o SPA (fallback)
+// Qualquer rota que não seja /health, / ou /api/* será redirecionada para index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
