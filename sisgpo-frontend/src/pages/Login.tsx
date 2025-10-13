@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Login.tsx (VERSÃO REVISADA)
+// Arquivo: frontend/src/pages/Login.tsx (VERSAO REVISADA)
 
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ interface User {
   id: number;
   login: string;
   perfil: 'admin' | 'user';
+  ativo: boolean;
 }
 
 interface LoginResponse {
@@ -28,7 +29,6 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Se já existir um token, redireciona para a área logada.
   if (authToken) {
     return <Navigate to="/app/dashboard" replace />;
   }
@@ -39,20 +39,17 @@ export default function Login() {
 
     try {
       const response = await api.post<LoginResponse>('/api/auth/login', { login, senha });
-      
-      // Salva o token e os dados do usuário no store global
+
       setToken(response.data.token);
       setUser(response.data.user);
 
       toast.success('Login bem-sucedido!');
-      
-      // Navega para o dashboard da área restrita
-      navigate('/app/dashboard');
 
+      navigate('/app/dashboard');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erro ao tentar fazer login.';
       toast.error(errorMessage);
-      console.error("Falha no login:", err.response?.data || err.message);
+      console.error('Falha no login:', err.response?.data || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +60,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white">SISGPO</h1>
-          <p className="text-gray-400">Sistema de Gestão do Poder Operacional</p>
+          <p className="text-gray-400">Sistema de Gestao do Poder Operacional</p>
         </div>
 
         <div className="bg-gray-800 p-8 rounded-xl shadow-2xl">
@@ -72,14 +69,14 @@ export default function Login() {
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="login" className="text-gray-300">Usuário</Label>
+              <Label htmlFor="login" className="text-gray-300">Usuario</Label>
               <Input
                 id="login"
                 type="text"
                 value={login}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
-                placeholder="Digite seu usuário"
+                placeholder="Digite seu usuario"
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -95,7 +92,7 @@ export default function Login() {
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-            
+
             <div>
               <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading ? 'Entrando...' : 'Entrar'}

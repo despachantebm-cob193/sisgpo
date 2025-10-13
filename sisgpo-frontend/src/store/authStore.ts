@@ -5,6 +5,7 @@ interface User {
   id: number;
   login: string;
   perfil: 'admin' | 'user';
+  ativo: boolean;
 }
 
 interface AuthState {

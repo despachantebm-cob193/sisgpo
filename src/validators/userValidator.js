@@ -27,6 +27,38 @@ const createUserSchema = Joi.object({
   }),
 });
 
+const updateUserSchema = Joi.object({
+  login: Joi.string().min(3).max(50).messages({
+    'string.min': 'O login deve ter ao menos {#limit} caracteres.',
+    'string.max': 'O login deve ter no maximo {#limit} caracteres.',
+  }),
+  perfil: Joi.string().valid('admin', 'user').messages({
+    'any.only': 'O perfil deve ser admin ou user.',
+  }),
+  senha: Joi.string().min(6).messages({
+    'string.min': 'A senha deve ter ao menos {#limit} caracteres.',
+  }),
+  confirmarSenha: Joi.when('senha', {
+    is: Joi.exist(),
+    then: Joi.string().valid(Joi.ref('senha')).required().messages({
+      'any.only': 'A confirmacao de senha deve ser igual a nova senha.',
+      'any.required': 'Confirme a nova senha para atualizar.',
+      'string.empty': 'Confirme a nova senha para atualizar.',
+    }),
+    otherwise: Joi.forbidden(),
+  }),
+})
+  .min(1)
+  .messages({
+    'object.min': 'Informe ao menos um campo para atualizar.',
+  });
+
+const updateUserStatusSchema = Joi.object({
+  ativo: Joi.boolean().required().messages({
+    'any.required': 'O status do usuario e obrigatorio.',
+  }),
+});
+
 const changePasswordSchema = Joi.object({
   senhaAtual: Joi.string().required().messages({
     'string.empty': 'A senha atual e obrigatoria.',
@@ -46,5 +78,7 @@ const changePasswordSchema = Joi.object({
 
 module.exports = {
   createUserSchema,
+  updateUserSchema,
+  updateUserStatusSchema,
   changePasswordSchema,
 };

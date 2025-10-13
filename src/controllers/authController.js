@@ -22,6 +22,11 @@ const authController = {
       throw new AppError('Credenciais invalidas.', 401);
     }
 
+    if (!user.ativo) {
+      console.log(`[AuthController] Conta desativada para o utilizador '${login}'.`);
+      throw new AppError('Conta desativada. Procure um administrador.', 403);
+    }
+
     const isPasswordValid = await bcrypt.compare(senha, user.senha_hash);
 
     if (!isPasswordValid) {
@@ -41,6 +46,7 @@ const authController = {
 
     delete user.senha_hash;
     user.perfil = perfil;
+    user.ativo = Boolean(user.ativo);
 
     res.status(200).json({
       message: 'Login bem-sucedido!',

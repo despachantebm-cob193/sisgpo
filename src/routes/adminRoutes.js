@@ -14,7 +14,7 @@ const { createObmSchema, updateObmSchema } = require('../validators/obmValidator
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
 const { createEscalaSchema, updateEscalaSchema } = require('../validators/escalaMedicoValidator');
-const { changePasswordSchema, createUserSchema } = require('../validators/userValidator');
+const { changePasswordSchema, createUserSchema, updateUserSchema, updateUserStatusSchema } = require('../validators/userValidator');
 const { createEscalaAeronaveSchema } = require('../validators/escalaAeronaveValidator');
 const { createEscalaCodecSchema } = require('../validators/escalaCodecValidator');
 
@@ -123,6 +123,9 @@ router.post('/servico-dia', servicoDiaController.save);
 // --- ROTAS DE USUARIO ---
 router.get('/users', ensureAdmin, userController.list);
 router.post('/users', ensureAdmin, validationMiddleware(createUserSchema), userController.create);
+router.put('/users/:id', ensureAdmin, validationMiddleware(updateUserSchema), userController.update);
+router.patch('/users/:id/status', ensureAdmin, validationMiddleware(updateUserStatusSchema), userController.updateStatus);
+router.delete('/users/:id', ensureAdmin, userController.delete);
 router.put('/user/change-password', validationMiddleware(changePasswordSchema), userController.changePassword);
 
 module.exports = router;
