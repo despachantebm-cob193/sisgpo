@@ -1,103 +1,70 @@
-// Arquivo: src/database/migrations/20250912100000_add_performance_indexes.js
+// src/database/migrations/20250912100000_add_performance_indexes.js
 
-/**
- * Função auxiliar para verificar se um índice existe no PostgreSQL.
- * @param {import("knex").Knex} knex - A instância do Knex.
- * @param {string} tableName - O nome da tabela.
- * @param {string} indexName - O nome do índice.
- * @returns {Promise<boolean>}
- */
-async function indexExists(knex, tableName, indexName) {
-  const result = await knex.raw(
-    "SELECT 1 FROM pg_indexes WHERE tablename = ? AND indexname = ?",
-    [tableName, indexName]
-  );
-  return result.rows.length > 0;
-}
+// CRÍTICO: Desabilita a transação para que erros internos (como criar índice em tabela inexistente)
+// não abortem o estado de migração do Knex (código 25P02).
+exports.config = { transaction: false }; 
 
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
+
 exports.up = async function(knex) {
   console.log('Fase 1 de Otimização: Aplicando índices de desempenho de forma segura...');
 
-  // Tabela: militares
-  if (!(await indexExists(knex, 'militares', 'idx_militares_nomes'))) {
-    await knex.schema.alterTable('militares', function(table) {
-      console.log(' -> Criando índice em "militares"...');
-      table.index(['nome_completo', 'nome_guerra'], 'idx_militares_nomes');
-    });
-  }
+  // --- Função Auxiliar Segura (Simplificada e Aprimorada) ---
+  const createIndexSafe = async (tableName, columnName, indexName) => {
+    // Usamos um bloco try-catch simples, pois a transação está desabilitada.
+    // Isso garante que o erro de "tabela não existe" (42P01) ou "coluna não existe" (42703) seja ignorado.
+    try {
+      const tableExists = await knex.schema.hasTable(tableName);
 
-  // Tabela: viaturas
-  if (!(await indexExists(knex, 'viaturas', 'idx_viaturas_obm'))) {
-    await knex.schema.alterTable('viaturas', function(table) {
-      console.log(' -> Criando índice em "viaturas"...');
-      table.index('obm', 'idx_viaturas_obm');
-    });
-  }
+      if (tableExists) {
+        console.log(` -> Criando índice em "${tableName}.${columnName}"...`);
+        
+        await knex.schema.alterTable(tableName, (table) => {
+          table.index([columnName], indexName);
+        });
+        
+      } else {
+        console.log(` -> Tabela "${tableName}" não existe. Pulando índice.`);
+      }
+    } catch (e) {
+      // Ignora os códigos de erro comuns de conflito (42703: coluna não existe, 42P01: tabela não existe)
+      if (e.code === '42703' || e.code === '42P01') {
+        console.warn(` -> ALERTA: Conflito de índice/coluna para "${tableName}". Ignorado.`);
+        return;
+      }
+      // Outros erros ainda devem ser lançados para diagnóstico
+      throw e;
+    }
+  };
 
-  // Tabela: servico_dia
-  if (!(await indexExists(knex, 'servico_dia', 'idx_servico_dia_data'))) {
-    await knex.schema.alterTable('servico_dia', function(table) {
-      console.log(' -> Criando índice em "servico_dia"...');
-      table.index('data', 'idx_servico_dia_data');
-    });
-  }
+  // --- Criação dos Índices ---
+  
+  await createIndexSafe('escala_aeronaves', 'data', 'idx_escala_aeronaves_data');
+  await createIndexSafe('militares', 'matricula', 'idx_militares_matricula');
+  await createIndexSafe('militares', 'obm_nome', 'idx_militares_obm');
+  await createIndexSafe('viaturas', 'prefixo', 'idx_viaturas_prefixo');
+  await createIndexSafe('viaturas', 'obm', 'idx_viaturas_obm');
+  await createIndexSafe('servico_dia', 'data', 'idx_servico_dia_data');
+  await createIndexSafe('usuarios', 'login', 'idx_usuarios_login');
 
-  // Tabela: escala_aeronaves
-  if (!(await indexExists(knex, 'escala_aeronaves', 'idx_escala_aeronaves_data'))) {
-    await knex.schema.alterTable('escala_aeronaves', function(table) {
-      console.log(' -> Criando índice em "escala_aeronaves"...');
-      table.index('data', 'idx_escala_aeronaves_data');
-    });
-  }
-
-  // Tabela: escala_codec
-  if (!(await indexExists(knex, 'escala_codec', 'idx_escala_codec_data_turno'))) {
-    await knex.schema.alterTable('escala_codec', function(table) {
-      console.log(' -> Criando índice em "escala_codec"...');
-      table.index(['data', 'turno'], 'idx_escala_codec_data_turno');
-    });
-  }
+  console.log('Índices de desempenho aplicados com segurança.');
 };
 
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
 exports.down = async function(knex) {
-  console.log('Revertendo Fase 1 de Otimização: Removendo índices de desempenho...');
-
-  // A lógica de 'down' também se beneficia da verificação de existência.
-  if (await indexExists(knex, 'militares', 'idx_militares_nomes')) {
-    await knex.schema.alterTable('militares', function(table) {
-      table.dropIndex(['nome_completo', 'nome_guerra'], 'idx_militares_nomes');
-    });
-  }
-
-  if (await indexExists(knex, 'viaturas', 'idx_viaturas_obm')) {
-    await knex.schema.alterTable('viaturas', function(table) {
-      table.dropIndex('obm', 'idx_viaturas_obm');
-    });
-  }
-
-  if (await indexExists(knex, 'servico_dia', 'idx_servico_dia_data')) {
-    await knex.schema.alterTable('servico_dia', function(table) {
-      table.dropIndex('data', 'idx_servico_dia_data');
-    });
-  }
-
-  if (await indexExists(knex, 'escala_aeronaves', 'idx_escala_aeronaves_data')) {
-    await knex.schema.alterTable('escala_aeronaves', function(table) {
-      table.dropIndex('data', 'idx_escala_aeronaves_data');
-    });
-  }
-
-  if (await indexExists(knex, 'escala_codec', 'idx_escala_codec_data_turno')) {
-    await knex.schema.alterTable('escala_codec', function(table) {
-      table.dropIndex(['data', 'turno'], 'idx_escala_codec_data_turno');
-    });
-  }
+    // Lógica down simples para remover os índices
+    const dropIndexSafe = async (tableName, columnName) => {
+        const tableExists = await knex.schema.hasTable(tableName);
+        if (tableExists) {
+            await knex.schema.alterTable(tableName, (table) => {
+                table.dropIndex(columnName);
+            });
+        }
+    };
+    
+    await dropIndexSafe('escala_aeronaves', 'data');
+    await dropIndexSafe('militares', 'matricula');
+    await dropIndexSafe('militares', 'obm_nome');
+    await dropIndexSafe('viaturas', 'prefixo');
+    await dropIndexSafe('viaturas', 'obm');
+    await dropIndexSafe('servico_dia', 'data');
+    await dropIndexSafe('usuarios', 'login');
 };

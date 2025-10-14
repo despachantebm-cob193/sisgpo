@@ -1,21 +1,21 @@
 import React from 'react';
 
 // Define as propriedades que o componente Card pode receber.
-// `children` é o conteúdo que será renderizado dentro do card.
-// `className` permite adicionar classes CSS customizadas de fora.
 interface CardProps {
   children: React.ReactNode;
   className?: string;
+  title?: string; // NOVO: Adiciona a propriedade opcional title
 }
 
-const Card: React.FC<CardProps> = ({ children, className = '' }) => {
+const Card: React.FC<CardProps> = ({ children, className = '', title }) => {
   return (
     // Concatena as classes padrão com quaisquer classes customizadas passadas via props.
-    // bg-white: fundo branco
-    // shadow-md: sombra média para dar profundidade
-    // rounded-lg: bordas arredondadas
-    // p-8: preenchimento (padding) interno
     <div className={`bg-white shadow-md rounded-lg p-8 ${className}`}>
+      {title && ( // NOVO: Renderiza o título se ele for fornecido
+        <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+          {title}
+        </h2>
+      )}
       {children}
     </div>
   );

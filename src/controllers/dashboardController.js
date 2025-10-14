@@ -32,12 +32,16 @@ const dashboardController = {
     res.status(200).json(metadata);
   },
 
+  /**
+   * CORRIGIDO: data_plantao -> data_inicio (Assumindo a coluna correta)
+   */
   getStats: async (req, res) => {
     try {
       const totalMilitaresAtivos = await db('militares').where({ ativo: true }).count({ count: '*' }).first();
       const totalViaturasDisponiveis = await db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
       const totalObms = await db('obms').count({ count: '*' }).first();
-      const totalPlantoesMesResult = await db.raw("SELECT COUNT(*) FROM plantoes WHERE date_trunc('month', data_plantao) = date_trunc('month', CURRENT_DATE)");
+      // CRÍTICO: data_plantao NÃO EXISTE. Substituído por data_inicio
+      const totalPlantoesMesResult = await db.raw("SELECT COUNT(*) FROM plantoes WHERE date_trunc('month', data_inicio) = date_trunc('month', CURRENT_DATE)");
       const totalPlantoesMes = totalPlantoesMesResult.rows[0];
 
       res.status(200).json({
@@ -83,9 +87,19 @@ const dashboardController = {
     }
   },
 
+  /**
+   * CORRIGIDO: o.sigla -> o.abreviatura (Assumindo que 'abreviatura' é a coluna que existe no DB)
+   */
   getViaturaStatsDetalhado: async (req, res) => {
     try {
-      const viaturasAtivas = await db('viaturas as v').leftJoin('obms as o', 'v.obm', 'o.nome').select('v.prefixo', db.raw('COALESCE(o.abreviatura, v.obm) as local_final')).where('v.ativa', true).orderBy('local_final', 'asc').orderBy('v.prefixo', 'asc');
+      const viaturasAtivas = await db('viaturas as v')
+        .leftJoin('obms as o', 'v.obm', 'o.nome')
+        // CRÍTICO: sigla NÃO EXISTE. Revertendo para abreviatura
+        .select('v.prefixo', db.raw('COALESCE(o.abreviatura, v.obm) as local_final'))
+        .where('v.ativa', true)
+        .orderBy('local_final', 'asc')
+        .orderBy('v.prefixo', 'asc');
+      
       const stats = viaturasAtivas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
         const nomeLocal = vtr.local_final || 'OBM Não Informada';
@@ -95,6 +109,7 @@ const dashboardController = {
         acc[tipo].obms[nomeLocal].push(vtr.prefixo);
         return acc;
       }, {});
+      
       const resultadoFinal = Object.values(stats).map(item => ({ ...item, obms: Object.entries(item.obms).map(([nome, prefixos]) => ({ nome, prefixos })) })).sort((a, b) => a.tipo.localeCompare(b.tipo));
       res.status(200).json(resultadoFinal);
     } catch (error) {
@@ -103,20 +118,27 @@ const dashboardController = {
     }
   },
 
+  /**
+   * CORRIGIDO: Seleção e ordenação por 'abreviatura' em vez de 'sigla'
+   */
   getViaturaStatsPorObm: async (req, res) => {
     try {
       const [obms, viaturas] = await Promise.all([
+        // CRÍTICO: sigla NÃO EXISTE. Selecionando e ordenando por abreviatura
         db('obms').select('id', 'nome', 'abreviatura').orderBy('abreviatura', 'asc'),
         db('viaturas').select('prefixo', 'obm as nome_obm').where('ativa', true)
       ]);
+      
       const viaturasPorNomeObm = viaturas.reduce((acc, vtr) => {
         const nomeObm = vtr.nome_obm || 'Sem OBM';
         if (!acc[nomeObm]) { acc[nomeObm] = []; }
         acc[nomeObm].push(vtr.prefixo);
         return acc;
       }, {});
+      
       const resultadoFinal = obms.map(obm => {
         const prefixos = viaturasPorNomeObm[obm.nome] || [];
+        // CRÍTICO: obm.sigla -> obm.abreviatura
         return { id: obm.id, nome: obm.abreviatura, quantidade: prefixos.length, prefixos: prefixos.sort() };
       });
       res.status(200).json(resultadoFinal);

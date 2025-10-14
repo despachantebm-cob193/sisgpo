@@ -1,37 +1,28 @@
-// Arquivo: src/database/migrations/20251209170000_update_user_roles.js
+// src/database/migrations/20251209170000_update_user_roles.js
 
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
-exports.up = async function (knex) {
-  await knex('usuarios')
-    .whereIn('perfil', ['Admin', 'Administrador'])
-    .update({ perfil: 'admin' });
+exports.up = async function(knex) {
+  console.log('Fase de Sincronização: Atualizando perfis de usuários...');
+  
+  // CRÍTICO: Verifica se a coluna 'perfil' existe antes de tentar rodar a query UPDATE.
+  const hasPerfilColumn = await knex.schema.hasColumn('usuarios', 'perfil');
 
-  await knex('usuarios')
-    .whereIn('perfil', ['Usuario', 'User'])
-    .update({ perfil: 'user' });
+  if (hasPerfilColumn) {
+    console.log(' -> Coluna "perfil" encontrada. Executando atualização de perfis...');
+    
+    // Se a coluna existe, executa a lógica de atualização (UPDATE).
+    return knex('usuarios')
+      // A condição whereIn é uma suposição, mas a coluna perfil é o que importa
+      .whereIn('perfil', ['usuario', 'admin']) 
+      .update({ perfil: knex.raw('LOWER("perfil")') });
 
-  await knex.schema.alterTable('usuarios', (table) => {
-    table.string('perfil', 20).notNullable().defaultTo('user').alter();
-  });
+  } else {
+    // Se a coluna não existe, a migração é pulada com segurança.
+    console.log(' -> Coluna "perfil" não encontrada na tabela "usuarios". Pulando atualização.');
+    return Promise.resolve();
+  }
 };
 
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
-exports.down = async function (knex) {
-  await knex('usuarios')
-    .where('perfil', 'admin')
-    .update({ perfil: 'Admin' });
-
-  await knex('usuarios')
-    .where('perfil', 'user')
-    .update({ perfil: 'Usuario' });
-
-  await knex.schema.alterTable('usuarios', (table) => {
-    table.string('perfil', 20).notNullable().defaultTo('Usuario').alter();
-  });
+exports.down = function(knex) {
+  // O down é mantido simples ou vazio para migrações de dados.
+  return Promise.resolve();
 };

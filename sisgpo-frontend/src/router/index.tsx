@@ -20,6 +20,10 @@ const Profile = lazy(() => import('../pages/Profile'));
 const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
 
+// [INÍCIO DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
+const EstatisticasExternas = lazy(() => import('../pages/EstatisticasExternas'));
+// [FIM DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
+
 const Suspended = ({ children }: { children: React.ReactNode }) => (
   <Suspense
     fallback={
@@ -61,6 +65,12 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: <Suspended><Dashboard /></Suspended>,
       },
+      // [INÍCIO DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
+      { 
+          path: 'estatisticas-externas', 
+          element: <Suspended><EstatisticasExternas /></Suspended> 
+      }, 
+      // [FIM DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
       { path: 'obms', element: <Suspended><Obms /></Suspended> },
       { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
       { path: 'militares', element: <Suspended><Militares /></Suspended> },
