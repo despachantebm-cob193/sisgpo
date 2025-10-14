@@ -4,5 +4,14 @@
       "source": "/app/:path*",
       "destination": "/app/index.html"
     }
+  ],
+  "builds": [
+    {
+      "src": "sisgpo-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "outputDirectory": "sisgpo-frontend/dist"
+      }
+    }
   ]
 }
