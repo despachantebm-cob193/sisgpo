@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/app/:path*",
-      "destination": "/index.html"
+      "destination": "/sisgpo-frontend/dist/index.html"
     }
   ],
   "builds": [
