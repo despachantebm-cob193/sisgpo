@@ -3,48 +3,135 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
-// Desestrutura a instância de conexão externa
-const knexExterno = db.knexExterno; 
+const pickFirstValue = (row, keys) => {
+  if (!row) return null;
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key) && row[key] !== null && row[key] !== undefined) {
+      return row[key];
+    }
+  }
+  return null;
+};
+
+const resolveFirstExistingTable = async (knexInstance, candidates) => {
+  for (const tableName of candidates) {
+    // eslint-disable-next-line no-await-in-loop
+    const exists = await knexInstance.schema.hasTable(tableName);
+    if (exists) return tableName;
+  }
+  return null;
+};
 
 const estatisticasExternasController = {
-    getDashboardData: async (req, res) => {
-        try {
-            // 1. Contagem total de Plantões e data do último plantão (Tabela: plantao)
-            const totais = await knexExterno('plantao')
-                .select(
-                    knexExterno.raw('COUNT(DISTINCT id) as total_plantoes'),
-                    knexExterno.raw('MAX(data_inicio) as ultimo_plantao_inicio')
-                )
-                .first();
+  getDashboardData: async (req, res) => {
+    try {
+      const knexExterno = db.knexExterno;
 
-            // 2. Detalhe de Escalas Recentes (Tabela: escalas)
-            const escalaDetalhe = await knexExterno('escalas')
-                .select('nome', 'turno')
-                .orderBy('id', 'desc') 
-                .limit(5);
+      if (!knexExterno) {
+        throw new AppError(
+          'Fonte de dados externa nao configurada. Defina as variaveis EXTERNAL_DB_* no .env.',
+          503
+        );
+      }
 
-            // 3. Contagem de militares em plantão (Tabela: militar_plantao)
-            const totalMilitaresPlantao = await knexExterno('militar_plantao')
-                .count('militar_matricula as count')
-                .first();
+      const tabelaPlantoes = await resolveFirstExistingTable(knexExterno, [
+        'plantao',
+        'plantoes',
+        'plantao_servico',
+      ]);
 
-            // Combina os resultados e garante que os números são inteiros
-            const dados = {
-                totais: {
-                    total_plantoes: totais ? parseInt(totais.total_plantoes, 10) : 0,
-                    ultimo_plantao_inicio: totais ? totais.ultimo_plantao_inicio : null,
-                    total_militares_plantao: totalMilitaresPlantao ? parseInt(totalMilitaresPlantao.count, 10) : 0,
-                },
-                escalas_recentes: escalaDetalhe
-            };
+      let totais = {
+        total_plantoes: '0',
+        ultimo_plantao_inicio: null,
+        total_militares_plantao: '0',
+      };
 
-            res.status(200).json(dados);
+      if (tabelaPlantoes) {
+        const totaisRow = await knexExterno(tabelaPlantoes)
+          .countDistinct({ total_plantoes: 'id' })
+          .max({ ultimo_plantao_inicio: 'data_inicio' })
+          .first();
 
-        } catch (error) {
-            console.error('[EstatisticasExternasController] Erro ao buscar dados externos:', error);
-            throw new AppError('Não foi possível conectar ou buscar dados do sistema externo. Verifique a string de conexão externa.', 500);
-        }
-    },
+        totais = {
+          total_plantoes: totaisRow?.total_plantoes ? String(totaisRow.total_plantoes) : '0',
+          ultimo_plantao_inicio: totaisRow?.ultimo_plantao_inicio
+            ? new Date(totaisRow.ultimo_plantao_inicio).toISOString()
+            : null,
+          total_militares_plantao: '0',
+        };
+      }
+
+      const tabelaMilitarPlantao = await resolveFirstExistingTable(knexExterno, [
+        'militar_plantao',
+        'plantao_militar',
+      ]);
+
+      if (tabelaMilitarPlantao) {
+        const totalMilitaresPlantao = await knexExterno(tabelaMilitarPlantao)
+          .count({ count: 'id' })
+          .first();
+
+        const totalValue =
+          totalMilitaresPlantao?.count ??
+          totalMilitaresPlantao?.total ??
+          totalMilitaresPlantao?.total_militares ??
+          '0';
+
+        totais.total_militares_plantao = String(totalValue);
+      }
+
+      const tabelaEscalas = await resolveFirstExistingTable(knexExterno, [
+        'escalas',
+        'escala_aeronaves',
+        'escala_codec',
+        'servico_dia',
+      ]);
+
+      let escalaDetalhe = [];
+
+      if (tabelaEscalas) {
+        const escalaRows = await knexExterno(tabelaEscalas)
+          .select('*')
+          .orderBy('id', 'desc')
+          .limit(5);
+
+        escalaDetalhe = escalaRows.map((row) => {
+          const nome =
+            pickFirstValue(row, ['nome', 'descricao', 'titulo', 'prefixo']) ??
+            `Registro ${row.id}`;
+
+          const turnoRaw =
+            pickFirstValue(row, ['turno', 'periodo', 'status', 'escala']) ??
+            (row.data ? new Date(row.data).toISOString().split('T')[0] : 'N/D');
+
+          return {
+            nome: String(nome),
+            turno: String(turnoRaw),
+          };
+        });
+      }
+
+      const dados = {
+        totais,
+        escalas_recentes: escalaDetalhe,
+      };
+
+      res.status(200).json(dados);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      console.error(
+        '[EstatisticasExternasController] Erro ao buscar dados externos:',
+        error
+      );
+      throw new AppError(
+        'Nao foi possivel conectar ou buscar dados do sistema externo. Verifique a string de conexao externa.',
+        500
+      );
+    }
+  },
 };
 
 module.exports = estatisticasExternasController;

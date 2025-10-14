@@ -1,53 +1,100 @@
 // src/database/migrations/20251014100000_add_missing_columns_to_usuarios.js
 
-exports.up = async function(knex) {
+exports.config = { transaction: false };
+
+exports.up = async function up(knex) {
   const tableExists = await knex.schema.hasTable('usuarios');
 
-  if (tableExists) {
-    console.log(' -> Corrigindo colunas faltantes na tabela "usuarios"...');
+  if (!tableExists) {
+    console.warn(' -> ALERTA: Tabela "usuarios" nao existe. Nenhuma alteracao aplicada.');
+    return;
+  }
 
-    // 1. Adicionar colunas essenciais para o Bootstrap e Autenticação
-    await knex.schema.table('usuarios', async (table) => {
-      // Verifica e adiciona a coluna 'login'
-      if (!(await knex.schema.hasColumn('usuarios', 'login'))) {
-        table.string('login', 50).notNullable().unique().defaultTo(knex.raw('LOWER(COALESCE(nome_completo, \'usuario\') || id)')); 
-        // Usa nome ou ID temporário para preencher o default
-        console.log(' -> Coluna "login" adicionada.');
-      }
+  console.log(' -> Ajustando colunas obrigatorias da tabela "usuarios"...');
 
-      // Verifica e adiciona a coluna 'senha_hash'
-      if (!(await knex.schema.hasColumn('usuarios', 'senha_hash'))) {
-        table.string('senha_hash', 255).notNullable().defaultTo('');
-        console.log(' -> Coluna "senha_hash" adicionada.');
-      }
-      
-      // Verifica e adiciona a coluna 'perfil' (causou erro anterior)
-      if (!(await knex.schema.hasColumn('usuarios', 'perfil'))) {
-        table.string('perfil', 20).notNullable().defaultTo('Usuario');
-        console.log(' -> Coluna "perfil" adicionada.');
-      }
-      
-      // Verifica e adiciona a coluna 'ativo' (causou erro anterior)
-      if (!(await knex.schema.hasColumn('usuarios', 'ativo'))) {
-        table.boolean('ativo').defaultTo(true);
-        console.log(' -> Coluna "ativo" adicionada.');
-      }
+  const [hasLogin, hasSenhaHash, hasPerfil, hasAtivo] = await Promise.all([
+    knex.schema.hasColumn('usuarios', 'login'),
+    knex.schema.hasColumn('usuarios', 'senha_hash'),
+    knex.schema.hasColumn('usuarios', 'perfil'),
+    knex.schema.hasColumn('usuarios', 'ativo'),
+  ]);
+
+  if (hasLogin && hasSenhaHash && hasPerfil && hasAtivo) {
+    console.log(' -> Todas as colunas ja existem. Nenhuma alteracao necessaria.');
+    return;
+  }
+
+  await knex.schema.alterTable('usuarios', (table) => {
+    if (!hasLogin) table.string('login', 50);
+    if (!hasSenhaHash) table.string('senha_hash', 255);
+    if (!hasPerfil) table.string('perfil', 20);
+    if (!hasAtivo) table.boolean('ativo');
+  });
+
+  if (!hasLogin) {
+    await knex('usuarios')
+      .whereNull('login')
+      .update({ login: knex.raw("'usuario_' || id::text") });
+
+    await knex.schema.alterTable('usuarios', (table) => {
+      table.string('login', 50).notNullable().alter();
     });
 
-    console.log(' -> Corrigido com sucesso. Tabela "usuarios" pronta para bootstrap.');
-
-  } else {
-    // Se a tabela nem existir, algo muito errado aconteceu na migração inicial.
-    console.log(' -> ALERTA: Tabela "usuarios" não existe. Bootstrap irá falhar.');
+    await knex.raw('ALTER TABLE "usuarios" ADD CONSTRAINT "usuarios_login_unique" UNIQUE ("login")');
   }
+
+  if (!hasSenhaHash) {
+    await knex('usuarios')
+      .whereNull('senha_hash')
+      .update({ senha_hash: '' });
+
+    await knex.schema.alterTable('usuarios', (table) => {
+      table.string('senha_hash', 255).notNullable().defaultTo('').alter();
+    });
+  }
+
+  if (!hasPerfil) {
+    await knex('usuarios')
+      .whereNull('perfil')
+      .update({ perfil: 'Usuario' });
+
+    await knex.schema.alterTable('usuarios', (table) => {
+      table.string('perfil', 20).notNullable().defaultTo('Usuario').alter();
+    });
+  }
+
+  if (!hasAtivo) {
+    await knex('usuarios')
+      .whereNull('ativo')
+      .update({ ativo: true });
+
+    await knex.schema.alterTable('usuarios', (table) => {
+      table.boolean('ativo').notNullable().defaultTo(true).alter();
+    });
+  }
+
+  console.log(' -> Colunas da tabela "usuarios" ajustadas com sucesso.');
 };
 
-exports.down = function(knex) {
-  // O down remove as colunas adicionadas nesta migração
-  return knex.schema.table('usuarios', (table) => {
-    table.dropColumn('login');
-    table.dropColumn('senha_hash');
-    table.dropColumn('perfil');
-    table.dropColumn('ativo');
+exports.down = async function down(knex) {
+  const tableExists = await knex.schema.hasTable('usuarios');
+  if (!tableExists) return;
+
+  const [hasLogin, hasSenhaHash, hasPerfil, hasAtivo] = await Promise.all([
+    knex.schema.hasColumn('usuarios', 'login'),
+    knex.schema.hasColumn('usuarios', 'senha_hash'),
+    knex.schema.hasColumn('usuarios', 'perfil'),
+    knex.schema.hasColumn('usuarios', 'ativo'),
+  ]);
+
+  if (hasLogin) {
+    await knex.raw('ALTER TABLE "usuarios" DROP CONSTRAINT IF EXISTS "usuarios_login_unique"');
+  }
+
+  await knex.schema.alterTable('usuarios', (table) => {
+    if (hasLogin) table.dropColumn('login');
+    if (hasSenhaHash) table.dropColumn('senha_hash');
+    if (hasPerfil) table.dropColumn('perfil');
+    if (hasAtivo) table.dropColumn('ativo');
   });
 };
