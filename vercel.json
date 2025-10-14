@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/app/:path*",
-      "destination": "/app/index.html"
+      "destination": "/index.html"
     }
   ],
   "builds": [
@@ -12,6 +12,10 @@
       "config": {
         "outputDirectory": "sisgpo-frontend/dist"
       }
+    },
+    {
+      "src": "src/server.js",
+      "use": "@vercel/node"
     }
   ]
 }
