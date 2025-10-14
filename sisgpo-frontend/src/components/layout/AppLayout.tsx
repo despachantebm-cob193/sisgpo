@@ -17,6 +17,7 @@ import {
   Clipboard,
   FileText,
   Shield,
+  BarChart2, // Ícone BarChart2 adicionado para as Estatísticas Externas
 } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string; icon: React.ElementType; label: string; onClick?: () => void; }) => (
@@ -74,6 +75,10 @@ export default function AppLayout() {
 
         <nav className="flex-1 px-4 py-4 space-y-2">
           <NavItem to="/app/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeSidebar} />
+          
+          {/* INSERÇÃO DO NOVO ITEM DE MENU: ESTATÍSTICAS EXTERNAS */}
+          <NavItem to="/app/estatisticas-externas" icon={BarChart2} label="Estatísticas Externas" onClick={closeSidebar} />
+          
           <NavItem to="/app/obms" icon={Building} label="OBMs" onClick={closeSidebar} />
           <NavItem to="/app/viaturas" icon={Car} label="Viaturas" onClick={closeSidebar} />
           <NavItem to="/app/militares" icon={Users} label="Militares" onClick={closeSidebar} />

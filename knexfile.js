@@ -1,4 +1,4 @@
-// Arquivo: knexfile.js (Corrigido para carregar o .env correto)
+// Arquivo: knexfile.js (Corrigido para carregar o .env correto e desativar SSL)
 
 const path = require('path');
 
@@ -16,6 +16,8 @@ module.exports = {
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
+      // CORREÇÃO CRÍTICA: Desativa SSL para conexões PostgreSQL locais
+      ssl: false,
     },
     migrations: {
       directory: './src/database/migrations'
@@ -27,13 +29,15 @@ module.exports = {
 
   // --- SEÇÃO DE TESTE CORRIGIDA E COMPLETA ---
   test: {
-    client: 'pg', // <-- Propriedade 'client' que estava faltando
+    client: 'pg', 
     connection: {
       host: process.env.DB_HOST,
       port: process.env.DB_PORT,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
+      // CORREÇÃO: Desativa SSL para conexões de teste locais
+      ssl: false,
     },
     migrations: {
       directory: './src/database/migrations'
@@ -48,6 +52,7 @@ module.exports = {
     client: 'pg',
     connection: {
       connectionString: process.env.DATABASE_URL,
+      // A produção geralmente requer SSL ativo
       ssl: { rejectUnauthorized: false }
     },
     migrations: {

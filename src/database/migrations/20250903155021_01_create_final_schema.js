@@ -37,7 +37,8 @@ exports.up = async function(knex) {
     await knex.schema.createTable('obms', (table) => {
       table.increments('id').primary();
       table.string('nome', 100).notNullable().unique();
-      table.string('sigla', 10).notNullable().unique();
+      // CORREÇÃO: Usar 'abreviatura' para o nome da coluna
+      table.string('abreviatura', 10).notNullable().unique();
       table.string('cidade', 50);
       table.string('telefone', 20);
       table.timestamp('created_at').defaultTo(knex.fn.now());

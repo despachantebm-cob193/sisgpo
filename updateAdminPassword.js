@@ -36,7 +36,8 @@ async function updateAdminPassword() {
       .where({ id: adminUser.id })
       .update({
         senha_hash: novaSenhaHash,
-        updated_at: db.fn.now(),
+        // A coluna updated_at está faltando no schema atual, por isso a removemos temporariamente.
+        // updated_at: db.fn.now(), 
       });
 
     if (updatedRows > 0) {
