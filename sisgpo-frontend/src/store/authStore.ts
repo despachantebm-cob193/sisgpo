@@ -6,6 +6,7 @@ interface User {
   login: string;
   perfil: 'admin' | 'user';
   ativo: boolean;
+  nome_guerra?: string; // opcional, utilizado no Sidebar
 }
 
 interface AuthState {

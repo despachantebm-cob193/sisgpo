@@ -3,24 +3,24 @@ const express = require('express');
 require('express-async-errors');
 const cors = require('cors');
 const knex = require('./config/database');
-const path = require('path'); // Importa o módulo 'path'
+const path = require('path');
 
-// Importa os arquivos de rota
+// --- Importação das Rotas ---
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const publicRoutes = require('./routes/publicRoutes');
-const externalRoutes = require('./routes/externalRoutes'); 
+// REMOVIDO: A rota externa antiga, que estava incorreta
+// const externalRoutes = require('./routes/externalRoutes'); 
+// ADICIONADO: A nova rota para buscar dados do sistema de ocorrências
+const estatisticasExternasRoutes = require('./routes/estatisticasExternasRoutes'); 
 
-// Importa os middlewares
+// --- Importação dos Middlewares ---
 const authMiddleware = require('./middlewares/authMiddleware');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
 
-app.use('/api/external', externalRoutes);
-
 // DEFINE O CAMINHO CORRETO DA PASTA DE BUILD DO FRONTEND
-// Caminho absoluto para: .../sisgpo-e51d44be7dd9fc159c9ca447544b40224c715148/sisgpo-frontend/dist
 const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
 
 
@@ -44,12 +44,10 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  // Nesta rota, se o sistema estiver em produção, você pode querer redirecionar para o frontend.
-  // Por agora, manteremos a resposta JSON da API.
   res.json({ message: 'API do SISGPO está funcionando!' });
 });
 
-// --- REGISTRO DAS ROTAS DA API (DEVE SER FEITO ANTES DO SERVIÇO DE ARQUIVOS ESTÁTICOS) ---
+// --- REGISTRO DAS ROTAS DA API ---
 
 // Rotas de Autenticação (PÚBLICAS)
 app.use('/api/auth', authRoutes);
@@ -57,19 +55,23 @@ app.use('/api/auth', authRoutes);
 // Rotas do Dashboard (PÚBLICAS)
 app.use('/api/public', publicRoutes);
 
+// ADICIONADO: Nova rota para a integração, protegida pelo login do SISGPO
+app.use('/api', estatisticasExternasRoutes);
+
 // Rotas de Administração (PROTEGIDAS)
 app.use('/api/admin', authMiddleware, adminRoutes);
 
+// A linha abaixo foi removida pois a rota estava errada
+// app.use('/api/external', externalRoutes);
+
 // ------------------------------------------------------------------------------------------
 // --- SERVINDO O FRONTEND (SPA HISTORY FALLBACK) ---
-// ESSA SEÇÃO DEVE ESTAR DEPOIS DE TODAS AS ROTAS DA API (/api/*)
 // ------------------------------------------------------------------------------------------
 
 // 1. Serve os arquivos estáticos (CSS, JS, imagens)
 app.use(express.static(frontendPath));
 
 // 2. Rota Catch-All para o SPA (fallback)
-// Qualquer rota que não seja /health, / ou /api/* será redirecionada para index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });

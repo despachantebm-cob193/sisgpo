@@ -1,111 +1,45 @@
-// src/controllers/estatisticasExternasController.js (REVISADO)
+// sisgpo/src/controllers/estatisticasExternasController.js
 
-const { knexExterno } = require('../config/database');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const AppError = require('../utils/AppError');
 
-// Função utilitária para verificar qual tabela existe (mantida do código anterior)
-const resolveFirstExistingTable = async (knex, tableNames) => {
-  for (const tableName of tableNames) {
-    try {
-      const exists = await knex.schema.hasTable(tableName);
-      if (exists) {
-        return tableName;
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-  return null;
-};
+// Busque estas variáveis do seu ambiente (.env) em produção
+const SSO_SHARED_SECRET = process.env.SSO_SHARED_SECRET || 'seu-segredo-compartilhado';
+const OCORRENCIAS_API_URL = process.env.OCORRENCIAS_API_URL || 'http://localhost:3001';
 
 const estatisticasExternasController = {
   /**
-   * Obtém dados estatísticos do banco de dados externo (COCB)
-   * para preencher a página EstatisticasExternas do SISGPO.
+   * Atua como um proxy para buscar dados do sistema de ocorrências.
    */
-  getDashboardData: async (req, res) => {
-    if (!knexExterno) {
-      return res.status(503).json({
-        message: 'Conexão com o banco de dados externo não configurada. Verifique as variáveis de ambiente EXTERNAL_DB_*.'
-      });
-    }
-
-    // Nomes das tabelas do sistema COCB (sistema_ocorrencias_dev)
-    const TABELA_OCORRENCIAS = 'ocorrencias_detalhadas';
-    const TABELA_OBITOS = 'obitos_registros';
-    const TABELA_NATUREZAS = 'naturezas_ocorrencia';
-
+  getDashboardOcorrencias: async (request, response) => {
     try {
-      let totais = {
-        total_plantoes: '0', // Será usado para 'Total de Ocorrências'
-        ultimo_plantao_inicio: null, // Será usado para 'Data da Última Ocorrência'
-        total_militares_plantao: '0', // Será usado para 'Total de Óbitos'
-      };
-      let escalaDetalhe = [];
+      // 1. Gera um token JWT de curta duração para autenticar a requisição
+      const token = jwt.sign({ system: 'sisgpo' }, SSO_SHARED_SECRET, { expiresIn: '1m' });
 
-      // 1. Contar Total de Ocorrências e Data da Última Ocorrência
-      if (await resolveFirstExistingTable(knexExterno, [TABELA_OCORRENCIAS])) {
-        const ocorrenciasRow = await knexExterno(TABELA_OCORRENCIAS)
-          .countDistinct({ count: 'id' })
-          .max({ max_data: 'data_ocorrencia' }) 
-          .first();
-
-        totais.total_plantoes = String(ocorrenciasRow?.count ?? '0');
-        totais.ultimo_plantao_inicio = ocorrenciasRow?.max_data 
-          ? new Date(ocorrenciasRow.max_data).toISOString() 
-          : null;
-      }
-
-      // 2. Contar Total de Óbitos
-      if (await resolveFirstExistingTable(knexExterno, [TABELA_OBITOS])) {
-        const obitosRow = await knexExterno(TABELA_OBITOS)
-          .count({ count: 'id' })
-          .first();
-          
-        totais.total_militares_plantao = String(obitosRow?.count ?? '0');
-      }
-
-      // 3. Buscar Detalhes Recentes (Para a tabela 'Escalas Recentes')
-      const tabelaOcorrenciasExiste = await resolveFirstExistingTable(knexExterno, [TABELA_OCORRENCIAS]);
-      const tabelaNaturezasExiste = await resolveFirstExistingTable(knexExterno, [TABELA_NATUREZAS]);
-
-      if (tabelaOcorrenciasExiste && tabelaNaturezasExiste) {
-        // CORREÇÃO: Removida a coluna 'ocorrencias_detalhadas.local_ocorrencia' que causou o erro.
-        // Se a coluna de localização for, na verdade, 'endereco', ajuste a linha abaixo.
-        // Tentativa de usar apenas colunas essenciais para evitar erros de schema:
-        const ocorrenciasRows = await knexExterno(TABELA_OCORRENCIAS)
-          .select(
-            `${TABELA_OCORRENCIAS}.id`,
-            `${TABELA_OCORRENCIAS}.data_ocorrencia`,
-            `${TABELA_NATUREZAS}.nome as natureza_nome`
-          )
-          .innerJoin(TABELA_NATUREZAS, `${TABELA_NATUREZAS}.id`, `${TABELA_OCORRENCIAS}.natureza_id`)
-          .orderBy(`${TABELA_OCORRENCIAS}.data_ocorrencia`, 'desc')
-          .limit(5);
-
-        escalaDetalhe = ocorrenciasRows.map((row) => ({
-          // Mapeamento para o formato esperado pelo frontend SISGPO
-          nome: row.natureza_nome || `Ocorrência #${row.id}`,
-          // Formatação da data para o 'turno' (dia do plantão no SISGPO)
-          turno: new Date(row.data_ocorrencia).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
-          // O campo de localização (local_ocorrencia) não está mais disponível aqui.
-        }));
-      }
-
-      return res.status(200).json({
-        totais,
-        escalas_recentes: escalaDetalhe,
+      // 2. Faz a requisição para a API do sistema de ocorrências
+      const { data } = await axios.get(`${OCORRENCIAS_API_URL}/api/external/dashboard`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
+
+      // 3. Retorna os dados obtidos para o frontend do sisgpo
+      return response.json(data);
 
     } catch (error) {
-      console.error('Erro ao buscar dados do banco de dados externo (COCB):', error);
-      // Retorna erro 500 se a consulta falhar (mas a conexão existia)
-      return res.status(500).json({
-        message: 'Erro ao processar dados do sistema externo.',
-        details: error.message
-      });
+      console.error('Falha ao buscar dados do sistema de ocorrências:', error.message);
+      // Se a conexão for recusada, o outro servidor pode estar offline
+      if (error.code === 'ECONNREFUSED') {
+        throw new AppError('Não foi possível conectar ao sistema de ocorrências. O serviço pode estar offline.', 503); // Service Unavailable
+      }
+      // Repassa o erro que a outra API pode ter retornado (ex: 401 Unauthorized)
+      if (error.response) {
+        throw new AppError(`Erro no sistema de ocorrências: ${error.response.data.message || error.response.statusText}`, error.response.status);
+      }
+      throw new AppError('Erro interno ao buscar dados externos.', 500);
     }
-  }
+  },
 };
 
 module.exports = estatisticasExternasController;

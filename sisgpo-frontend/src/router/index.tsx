@@ -8,6 +8,7 @@ import PublicLayout from '../components/layout/PublicLayout';
 import NotFound from '../pages/NotFound';
 import Spinner from '../components/ui/Spinner';
 
+// Páginas existentes
 const Login = lazy(() => import('../pages/Login'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Obms = lazy(() => import('../pages/Obms'));
@@ -20,9 +21,12 @@ const Profile = lazy(() => import('../pages/Profile'));
 const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
 
-// [INÍCIO DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
-const EstatisticasExternas = lazy(() => import('../pages/EstatisticasExternas'));
-// [FIM DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
+// 1. Remova a importação da página antiga e incorreta
+// const EstatisticasExternas = lazy(() => import('../pages/EstatisticasExternas'));
+
+// 2. Adicione a importação da NOVA página correta
+const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
+
 
 const Suspended = ({ children }: { children: React.ReactNode }) => (
   <Suspense
@@ -65,12 +69,19 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: <Suspended><Dashboard /></Suspended>,
       },
-      // [INÍCIO DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
+      
+      // 3. Remova a rota antiga e incorreta
+      // { 
+      //    path: 'estatisticas-externas', 
+      //    element: <Suspended><EstatisticasExternas /></Suspended> 
+      // },
+      
+      // 4. Adicione a NOVA rota correta aqui
       { 
-          path: 'estatisticas-externas', 
-          element: <Suspended><EstatisticasExternas /></Suspended> 
-      }, 
-      // [FIM DA CORREÇÃO DE INTEGRAÇÃO DE DADOS EXTERNOS]
+        path: 'dashboard-ocorrencias', 
+        element: <Suspended><DashboardOcorrencias /></Suspended> 
+      },
+      
       { path: 'obms', element: <Suspended><Obms /></Suspended> },
       { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
       { path: 'militares', element: <Suspended><Militares /></Suspended> },

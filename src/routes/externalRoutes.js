@@ -1,11 +1,12 @@
-// sisgpo/src/routes/externalRoutes.js
+// api/src/routes/externalRoutes.ts
 
-const { Router } = require('express');
-const { ssoAuthMiddleware } = require('../middlewares/ssoAuthMiddleware');
-const dashboardController = require('../controllers/dashboardController');
+import { Router } from 'express';
+import { getDashboardDataForSso } from '../controllers/dashboardController'; // Vamos criar esta função a seguir
+import { ssoAuthMiddleware } from '../middleware/ssoAuthMiddleware';
 
-const externalRoutes = Router();
+const router = Router();
 
-externalRoutes.get('/dashboard', ssoAuthMiddleware, dashboardController.getDashboardData);
+// Define a rota segura que o sisgpo irá consumir
+router.get('/external/dashboard', ssoAuthMiddleware, getDashboardDataForSso);
 
-module.exports = externalRoutes;
+export default router;

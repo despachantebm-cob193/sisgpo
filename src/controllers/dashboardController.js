@@ -1,3 +1,5 @@
+// sisgpo/src/controllers/dashboardController.js (VERSÃO COMBINADA)
+
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
@@ -17,14 +19,11 @@ const getTipoViatura = (prefixo) => {
 const dashboardController = {
   /**
    * Busca um metadado pela chave.
-   * CORREÇÃO: Retorna null com status 200 se a chave não for encontrada,
-   * em vez de lançar um erro 404.
    */
   getMetadataByKey: async (req, res) => {
     const { key } = req.params;
     const metadata = await db('metadata').where({ key }).first();
     
-    // Se não encontrar, retorna uma resposta de sucesso com dados nulos.
     if (!metadata) {
       return res.status(200).json(null);
     }
@@ -33,14 +32,13 @@ const dashboardController = {
   },
 
   /**
-   * CORRIGIDO: data_plantao -> data_inicio (Assumindo a coluna correta)
+   * Estatísticas gerais do dashboard.
    */
   getStats: async (req, res) => {
     try {
       const totalMilitaresAtivos = await db('militares').where({ ativo: true }).count({ count: '*' }).first();
       const totalViaturasDisponiveis = await db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
       const totalObms = await db('obms').count({ count: '*' }).first();
-      // CRÍTICO: data_plantao NÃO EXISTE. Substituído por data_inicio
       const totalPlantoesMesResult = await db.raw("SELECT COUNT(*) FROM plantoes WHERE date_trunc('month', data_inicio) = date_trunc('month', CURRENT_DATE)");
       const totalPlantoesMes = totalPlantoesMesResult.rows[0];
 
@@ -87,14 +85,10 @@ const dashboardController = {
     }
   },
 
-  /**
-   * CORRIGIDO: o.sigla -> o.abreviatura (Assumindo que 'abreviatura' é a coluna que existe no DB)
-   */
   getViaturaStatsDetalhado: async (req, res) => {
     try {
       const viaturasAtivas = await db('viaturas as v')
         .leftJoin('obms as o', 'v.obm', 'o.nome')
-        // CRÍTICO: sigla NÃO EXISTE. Revertendo para abreviatura
         .select('v.prefixo', db.raw('COALESCE(o.abreviatura, v.obm) as local_final'))
         .where('v.ativa', true)
         .orderBy('local_final', 'asc')
@@ -118,13 +112,9 @@ const dashboardController = {
     }
   },
 
-  /**
-   * CORRIGIDO: Seleção e ordenação por 'abreviatura' em vez de 'sigla'
-   */
   getViaturaStatsPorObm: async (req, res) => {
     try {
       const [obms, viaturas] = await Promise.all([
-        // CRÍTICO: sigla NÃO EXISTE. Selecionando e ordenando por abreviatura
         db('obms').select('id', 'nome', 'abreviatura').orderBy('abreviatura', 'asc'),
         db('viaturas').select('prefixo', 'obm as nome_obm').where('ativa', true)
       ]);
@@ -138,7 +128,6 @@ const dashboardController = {
       
       const resultadoFinal = obms.map(obm => {
         const prefixos = viaturasPorNomeObm[obm.nome] || [];
-        // CRÍTICO: obm.sigla -> obm.abreviatura
         return { id: obm.id, nome: obm.abreviatura, quantidade: prefixos.length, prefixos: prefixos.sort() };
       });
       res.status(200).json(resultadoFinal);
@@ -232,6 +221,54 @@ const dashboardController = {
     } catch (error) {
       console.error("ERRO AO BUSCAR ESCALA DO CODEC:", error);
       throw new AppError("Não foi possível carregar a escala do CODEC.", 500);
+    }
+  },
+
+  // ====================================================================
+  // == NOVA FUNÇÃO PARA A INTEGRAÇÃO ==
+  // ====================================================================
+  /**
+   * Fornece dados consolidados do dashboard para sistemas externos.
+   */
+  getDashboardData: async (req, res) => {
+    try {
+      // Usando 'db' que já foi importado no topo do arquivo
+      const [totalMilitares] = await db('militares').count('id as total');
+      const [totalViaturas] = await db('viaturas').count('id as total');
+      const [totalObms] = await db('obms').count('id as total');
+  
+      const viaturasPorObm = await db('viaturas')
+        .join('obms', 'viaturas.obm_id', 'obms.id')
+        .select('obms.abreviatura as obm')
+        .count('viaturas.id as total')
+        .groupBy('obms.abreviatura')
+        .orderBy('total', 'desc');
+  
+      // Usando a função auxiliar `getTipoViatura` já existente
+      const todasViaturas = await db('viaturas').select('prefixo');
+      const tiposDeViaturaAgregado = todasViaturas.reduce((acc, vtr) => {
+        const tipo = getTipoViatura(vtr.prefixo);
+        acc[tipo] = (acc[tipo] || 0) + 1;
+        return acc;
+      }, {});
+
+      const tiposDeViatura = Object.entries(tiposDeViaturaAgregado)
+        .map(([tipo, total]) => ({ tipo, total }))
+        .sort((a, b) => b.total - a.total);
+  
+      const dashboardData = {
+        totalMilitares: parseInt(totalMilitares.total, 10),
+        totalViaturas: parseInt(totalViaturas.total, 10),
+        totalObms: parseInt(totalObms.total, 10),
+        viaturasPorObm,
+        tiposDeViatura,
+      };
+  
+      return res.json(dashboardData);
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard para integração:', error);
+      // Usando o AppError já importado
+      throw new AppError("Erro interno ao buscar dados do dashboard para integração.", 500);
     }
   },
 };
