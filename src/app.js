@@ -8,13 +8,16 @@ const path = require('path'); // Importa o módulo 'path'
 // Importa os arquivos de rota
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const publicRoutes = require('./routes/publicRoutes'); 
+const publicRoutes = require('./routes/publicRoutes');
+const externalRoutes = require('./routes/externalRoutes'); 
 
 // Importa os middlewares
 const authMiddleware = require('./middlewares/authMiddleware');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 
 const app = express();
+
+app.use('/api/external', externalRoutes);
 
 // DEFINE O CAMINHO CORRETO DA PASTA DE BUILD DO FRONTEND
 // Caminho absoluto para: .../sisgpo-e51d44be7dd9fc159c9ca447544b40224c715148/sisgpo-frontend/dist
