@@ -1,105 +1,66 @@
 // sisgpo-frontend/src/pages/EstatisticasExternas.tsx
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
-import StatCard from '../components/ui/StatCard';
 
-interface EstatisticasData {
-  totais: {
-    total_plantoes: string;
-    ultimo_plantao_inicio: string | null;
-    total_militares_plantao?: string;
-  };
-  escalas_recentes: Array<{
-    nome: string;
-    turno: string;
-  }>;
-}
+// Lê a URL do dashboard externo via variável Vite
+const DASHBOARD_URL:
+  string = (import.meta as any).env.VITE_OCORRENCIAS_DASHBOARD_URL ||
+  'https://sistema-controle-ocorrencias-fronte.vercel.app/dashboard';
 
 const EstatisticasExternas: React.FC = () => {
-  const { data, isLoading, isError, error } = useQuery<EstatisticasData>({
-    queryKey: ['estatisticasExternas'],
-    queryFn: async () => {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
-      const response = await axios.get(`${API_BASE_URL}/api/public/estatisticas-externas`);
-      return response.data;
-    },
-  });
+  const isPlaceholder =
+    !DASHBOARD_URL || DASHBOARD_URL.includes('[SEU_DOMINIO_OU_IP]');
 
-  if (isLoading) {
+  if (isPlaceholder) {
     return (
-      <div className="p-4 flex justify-center">
-        <Spinner />
-      </div>
+      <Card className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
+        <h2 className="text-xl font-bold mb-2 text-yellow-800">
+          Configuração necessária
+        </h2>
+        <p className="text-yellow-700">
+          Defina a variável <code>VITE_OCORRENCIAS_DASHBOARD_URL</code> em
+          <code> sisgpo-frontend/.env.local</code> com a URL do dashboard externo
+          (ex.: https://seu-dominio/dashboard). Depois reinicie o servidor do Vite.
+        </p>
+      </Card>
     );
   }
-
-  if (isError) {
-    return (
-      <div className="p-4 text-red-600">
-        Erro ao carregar dados externos: {(error as Error).message}
-      </div>
-    );
-  }
-
-  const { totais, escalas_recentes } = data!;
-
-  const ultimoPlantaoTexto = totais.ultimo_plantao_inicio
-    ? new Date(totais.ultimo_plantao_inicio).toLocaleDateString()
-    : 'Sem registros';
-
-  const totalMilitares = totais.total_militares_plantao ?? '0';
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Espelho Estatistico (Sistema Externo)</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Total de Plantoes Registrados" value={totais.total_plantoes} icon="Calendar" />
-        <StatCard title="Ultimo Plantao Iniciado" value={ultimoPlantaoTexto} icon="Clock" />
-        <StatCard title="Militares em Plantao" value={totalMilitares} icon="Users" />
+    <Card className="p-4">
+      <h2 className="text-xl font-bold mb-4 text-gray-800">
+        Dashboard do Sistema de Controle de Ocorrências
+      </h2>
+      <p className="mb-4 text-gray-600">
+        Espelho em tempo real do dashboard principal do sistema de ocorrências.
+      </p>
+      <div
+        style={{
+          width: '100%',
+          height: '80vh',
+          minHeight: '600px',
+          overflow: 'hidden',
+          border: '1px solid #ccc',
+          borderRadius: '0.5rem',
+        }}
+      >
+        <iframe
+          src={DASHBOARD_URL}
+          title="Dashboard de Controle de Ocorrências"
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          style={{ border: 'none', width: '100%', height: '100%' }}
+        />
       </div>
-
-      <Card title="Escalas Recentes - Detalhe">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nome da Escala
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Turno
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {escalas_recentes.map((escala, index) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {escala.nome}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {escala.turno}
-                  </td>
-                </tr>
-              ))}
-              {escalas_recentes.length === 0 && (
-                <tr>
-                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={2}>
-                    Nenhum registro encontrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
+      <p className="mt-4 text-sm text-gray-500">
+        Observação: alguns servidores bloqueiam incorporação via iframe (CSP/X-Frame-Options).
+        Caso a tela fique vazia, abra a URL em nova aba ou ajuste as políticas no servidor de origem.
+      </p>
+    </Card>
   );
 };
 
 export default EstatisticasExternas;
+
