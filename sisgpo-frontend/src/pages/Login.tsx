@@ -1,5 +1,3 @@
-// Arquivo: frontend/src/pages/Login.tsx (VERSAO REVISADA)
-
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -23,7 +21,9 @@ interface LoginResponse {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setToken, setUser, token: authToken } = useAuthStore();
+  // --- CORREÇÃO APLICADA AQUI ---
+  // Obtemos a função 'login' e o 'token' do store
+  const { login: authLogin, token: authToken } = useAuthStore();
 
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
@@ -40,16 +40,15 @@ export default function Login() {
     try {
       const response = await api.post<LoginResponse>('/api/auth/login', { login, senha });
 
-      setToken(response.data.token);
-      setUser(response.data.user);
+      // --- CORREÇÃO APLICADA AQUI ---
+      // Chamamos a função 'authLogin' com os dados recebidos
+      authLogin(response.data.token, response.data.user);
 
       toast.success('Login bem-sucedido!');
-
       navigate('/app/dashboard');
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erro ao tentar fazer login.';
       toast.error(errorMessage);
-      console.error('Falha no login:', err.response?.data || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -62,16 +61,13 @@ export default function Login() {
           <h1 className="text-4xl font-bold text-white">SISGPO</h1>
           <p className="text-gray-400">Sistema de Gestao do Poder Operacional</p>
         </div>
-
         <div className="bg-gray-800 p-8 rounded-xl shadow-2xl">
-          <h2 className="text-center text-2xl font-bold text-white mb-6">
-            Acesso ao Sistema
-          </h2>
+          <h2 className="text-center text-2xl font-bold text-white mb-6">Acesso ao Sistema</h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="login" className="text-gray-300">Usuario</Label>
+              <Label htmlFor="login-field" className="text-gray-300">Usuario</Label>
               <Input
-                id="login"
+                id="login-field"
                 type="text"
                 value={login}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
@@ -92,7 +88,6 @@ export default function Login() {
                 className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-
             <div>
               <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading ? 'Entrando...' : 'Entrar'}

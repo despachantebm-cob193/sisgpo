@@ -1,14 +1,13 @@
-// Arquivo: src/router/index.tsx
-
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 
 import AppLayout from '../components/layout/AppLayout';
 import PublicLayout from '../components/layout/PublicLayout';
 import NotFound from '../pages/NotFound';
 import Spinner from '../components/ui/Spinner';
 
-// Páginas existentes
+// Importações das páginas
 const Login = lazy(() => import('../pages/Login'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Obms = lazy(() => import('../pages/Obms'));
@@ -21,8 +20,6 @@ const Profile = lazy(() => import('../pages/Profile'));
 const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
-const EstatisticasExternas = lazy(() => import('../pages/EstatisticasExternas'));
-
 
 const Suspended = ({ children }: { children: React.ReactNode }) => (
   <Suspense
@@ -36,7 +33,22 @@ const Suspended = ({ children }: { children: React.ReactNode }) => (
   </Suspense>
 );
 
-export const router = createBrowserRouter([
+// Componente para rotas privadas
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  // --- CORREÇÃO APLICADA AQUI ---
+  const isAuthenticated = useAuthStore.getState().isAuthenticated();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+// Componente para rotas de administrador
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuthStore.getState();
+  // --- CORREÇÃO APLICADA AQUI ---
+  const isAdmin = user?.perfil === 'admin';
+  return isAdmin ? <>{children}</> : <Navigate to="/app/dashboard" replace />;
+};
+
+const router = createBrowserRouter([
   {
     path: '/',
     element: <PublicLayout />,
@@ -54,7 +66,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/app',
-    element: <AppLayout />,
+    element: <PrivateRoute><AppLayout /></PrivateRoute>,
     errorElement: <NotFound />,
     children: [
       {
@@ -65,24 +77,21 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: <Suspended><Dashboard /></Suspended>,
       },
-      
       { 
         path: 'dashboard-ocorrencias', 
         element: <Suspended><DashboardOcorrencias /></Suspended> 
       },
-      {
-        path: 'estatisticas',
-        element: <Suspended><EstatisticasExternas /></Suspended>,
-      },
+      // Rotas de Administração protegidas com AdminRoute
+      { path: 'obms', element: <AdminRoute><Suspended><Obms /></Suspended></AdminRoute> },
+      { path: 'viaturas', element: <AdminRoute><Suspended><Viaturas /></Suspended></AdminRoute> },
+      { path: 'militares', element: <AdminRoute><Suspended><Militares /></Suspended></AdminRoute> },
+      { path: 'medicos', element: <AdminRoute><Suspended><Medicos /></Suspended></AdminRoute> },
+      { path: 'plantoes', element: <AdminRoute><Suspended><Plantoes /></Suspended></AdminRoute> },
+      { path: 'servico-dia', element: <AdminRoute><Suspended><ServicoDia /></Suspended></AdminRoute> },
+      { path: 'usuarios', element: <AdminRoute><Suspended><UsersManagement /></Suspended></AdminRoute> },
       
-      { path: 'obms', element: <Suspended><Obms /></Suspended> },
-      { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
-      { path: 'militares', element: <Suspended><Militares /></Suspended> },
-      { path: 'medicos', element: <Suspended><Medicos /></Suspended> },
-      { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
-      { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
+      // Rotas comuns
       { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> },
-      { path: 'usuarios', element: <Suspended><UsersManagement /></Suspended> },
       { path: 'perfil', element: <Suspended><Profile /></Suspended> },
     ],
   },
@@ -91,3 +100,5 @@ export const router = createBrowserRouter([
     element: <NotFound />,
   },
 ]);
+
+export default router;

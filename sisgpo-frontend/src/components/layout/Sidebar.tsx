@@ -1,131 +1,168 @@
-import { Link, NavLink } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
 import {
-  LayoutDashboard,
-  Users,
-  Building,
-  Calendar,
-  Car,
+  ClipboardList,
+  FileStack,
   FileText,
-  User,
+  Home,
   LogOut,
-  BarChart2,
-  Stethoscope,
-  Sun,
+  Pyramid,
+  Settings,
   Shield,
+  Ship,
+  Truck,
+  UserCheck,
+  UserPlus,
+  Users,
 } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 
-const Sidebar = () => {
-  const logout = useAuthStore(state => state.logout);
-  const user = useAuthStore(state => state.user);
+const navLinkClass =
+  'flex items-center p-2 text-gray-100 rounded-lg dark:text-white hover:bg-gray-700 dark:hover:bg-gray-700';
+const activeNavLinkClass = 'bg-gray-700 dark:bg-gray-700';
 
-  const navLinkClass =
-    'flex items-center px-4 py-2 text-gray-400 rounded-md hover:bg-gray-700 hover:text-white';
-  const activeNavLinkClass = 'bg-gray-700 text-white';
+function Sidebar() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
-    <aside className="w-64 bg-gray-800 text-white flex flex-col">
-      <div className="h-16 flex items-center justify-center text-2xl font-bold border-b border-gray-700 flex-shrink-0">
-        <Link to="/app/dashboard">SISGPO</Link>
-      </div>
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        <NavLink
-          to="/app/dashboard"
-          end
-          className={({ isActive }) =>
-            `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-          }
-        >
-          <LayoutDashboard className="mr-3" />
-          Dashboard
-        </NavLink>
+    <aside
+      id="logo-sidebar"
+      className="fixed top-0 left-0 z-40 w-64 h-screen pt-5 transition-transform -translate-x-full bg-gray-800 border-r sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
+      aria-label="Sidebar"
+    >
+      <div className="h-full px-3 pb-4 overflow-y-auto bg-gray-800 dark:bg-gray-800">
+        <div className="p-4 mb-5 border-b border-gray-700">
+          <h1 className="text-xl font-bold">SISGPO</h1>
+          <p className="text-sm text-gray-400">
+            Sistema de Gerenciamento de Pessoal Operacional
+          </p>
+        </div>
 
-        <NavLink
-          to="/app/dashboard-ocorrencias"
-          className={({ isActive }) =>
-            `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-          }
-        >
-          <Shield className="mr-3" />
-          Ocorrencias
-        </NavLink>
-
-        <NavLink
-          to="/app/servico-dia"
-          className={({ isActive }) =>
-            `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-          }
-        >
-          <Sun className="mr-3" />
-          Servico do Dia
-        </NavLink>
-
-        <NavLink
-          to="/app/estatisticas"
-          className={({ isActive }) =>
-            `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-          }
-        >
-          <BarChart2 className="mr-3" />
-          Estatisticas
-        </NavLink>
-
-        {user?.perfil === 'admin' && (
-          <>
-            <h3 className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Administracao
-            </h3>
-
+        <ul className="space-y-2 font-medium">
+          <li>
             <NavLink
-              to="/app/militares"
+              to="/app/dashboard"
               className={({ isActive }) =>
                 `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
               }
             >
-              <Users className="mr-3" />
-              Militares
+              <Home className="mr-3" />
+              Dashboard
             </NavLink>
-
+          </li>
+          <li>
             <NavLink
-              to="/app/medicos"
+              to="/app/dashboard-ocorrencias"
               className={({ isActive }) =>
                 `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
               }
             >
-              <Stethoscope className="mr-3" />
-              Medicos
+              <FileStack className="mr-3" />
+              Ocorrências
             </NavLink>
-
-            <NavLink
-              to="/app/obms"
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <Building className="mr-3" />
-              OBMs
-            </NavLink>
-
-            <NavLink
-              to="/app/viaturas"
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <Car className="mr-3" />
-              Viaturas
-            </NavLink>
-
-            <NavLink
-              to="/app/plantoes"
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <Calendar className="mr-3" />
-              Plantoes
-            </NavLink>
-
+          </li>
+          
+          {/* Agora 'user.perfil' será reconhecido pelo TypeScript */}
+          {user?.perfil === 'admin' && (
+            <>
+              <p className="px-2 pt-2 text-xs text-gray-400">ADMINISTRAÇÃO</p>
+              <li>
+                <NavLink
+                  to="/app/servico-dia"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <ClipboardList className="mr-3" />
+                  Serviço do Dia
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/militares"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <Users className="mr-3" />
+                  Militares
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/medicos"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <UserPlus className="mr-3" />
+                  Médicos
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/viaturas"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <Truck className="mr-3" />
+                  Viaturas
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/aeronaves"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <Ship className="mr-3" />
+                  Aeronaves
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/obms"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <Pyramid className="mr-3" />
+                  OBMs
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/plantoes"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <Shield className="mr-3" />
+                  Plantões
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/app/usuarios"
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <UserCheck className="mr-3" />
+                  Usuários
+                </NavLink>
+              </li>
+            </>
+          )}
+          <p className="px-2 pt-2 text-xs text-gray-400">RELATÓRIOS</p>
+          <li>
             <NavLink
               to="/app/relatorio"
               className={({ isActive }) =>
@@ -133,42 +170,32 @@ const Sidebar = () => {
               }
             >
               <FileText className="mr-3" />
-              Relatorio
+              Relatório de Escala
             </NavLink>
+          </li>
+        </ul>
 
+        <div className="absolute bottom-0 left-0 justify-center p-4 space-y-2 w-full bg-gray-800 dark:bg-gray-800 dark:border-gray-700">
+          <div className="p-2 border-t border-gray-700">
             <NavLink
-              to="/app/usuarios"
+              to="/app/perfil"
               className={({ isActive }) =>
                 `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
               }
             >
-              <Users className="mr-3" />
-              Usuarios
+              <Settings className="mr-3" />
+              {/* Agora 'user.login' será reconhecido pelo TypeScript */}
+              {user?.login}
             </NavLink>
-          </>
-        )}
-      </nav>
-
-      <div className="p-4 border-t border-gray-700">
-        <NavLink
-          to="/app/perfil"
-          className={({ isActive }) =>
-            `flex items-center px-4 py-2 text-gray-400 rounded-md hover:bg-gray-700 hover:text-white ${
-              isActive ? activeNavLinkClass : ''
-            }`
-          }
-        >
-          <User className="mr-3" />
-          {user?.nome_guerra || 'Meu Perfil'}
-        </NavLink>
-
-        <button onClick={logout} className={`${navLinkClass} w-full`}>
-          <LogOut className="mr-3" />
-          Sair
-        </button>
+            <button onClick={handleLogout} className={`${navLinkClass} w-full`}>
+              <LogOut className="mr-3" />
+              Sair
+            </button>
+          </div>
+        </div>
       </div>
     </aside>
   );
-};
+}
 
 export default Sidebar;
