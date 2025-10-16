@@ -1,16 +1,15 @@
 .oc-dashboard-wrapper {
-  background-color: #1a202c;
+  background-color: transparent;
   color: #e2e8f0;
   border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
 }
 
 .oc-dashboard-wrapper h1 {
   font-size: 1.75rem;
   font-weight: 600;
   margin-bottom: 24px;
-  color: #f8fafc;
+  color: #1f2937;
 }
 
 .oc-card-grid {

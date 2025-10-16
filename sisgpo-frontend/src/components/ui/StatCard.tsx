@@ -1,35 +1,28 @@
 import React from 'react';
-import Card from './Card';
-import { LucideIcon, icons } from 'lucide-react'; // Adicionado import para ícones Lucide (assumindo que "Calendar" e "Clock" são Lucide)
+import Spinner from '../ui/Spinner';
 
 interface StatCardProps {
   title: string;
-  value: number | string;
-  description?: string; // CORRIGIDO: Tornar opcional
-  isLoading?: boolean; // CORRIGIDO: Tornar opcional
-  icon?: string; // NOVO: Adiciona a propriedade opcional icon (nome do ícone Lucide)
+  value: string | number;
+  description?: string; // Tornar opcional
+  isLoading?: boolean; // Tornar opcional
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoading = false, icon }) => {
-  const IconComponent = icon ? (icons[icon as keyof typeof icons] as LucideIcon) : null;
-  
+const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoading }) => {
   return (
-    <Card className="text-center p-6 flex flex-col items-center">
-      <div className="flex items-center justify-center mb-3">
-          {IconComponent && (
-            // NOVO: Renderiza o ícone
-            <IconComponent className="h-6 w-6 text-indigo-500 mr-3" />
-          )}
-          <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+    <div className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        {isLoading ? (
+          <div className="mt-2">
+            <Spinner />
+          </div>
+        ) : (
+          <p className="mt-1 text-3xl font-semibold text-gray-900">{value}</p>
+        )}
       </div>
-      
-      {isLoading ? (
-        <div className="mt-2 h-10 w-24 mx-auto bg-gray-300 rounded-md animate-pulse"></div>
-      ) : (
-        <p className="mt-2 text-3xl font-bold text-indigo-600">{value}</p>
-      )}
-      {description && <p className="mt-1 text-xs text-gray-500">{description}</p>}
-    </Card>
+      {description && <p className="text-sm text-gray-500 mt-2">{description}</p>}
+    </div>
   );
 };
 

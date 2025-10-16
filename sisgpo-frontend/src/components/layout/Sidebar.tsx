@@ -25,10 +25,10 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 bg-gray-800 text-white flex flex-col">
-      <div className="h-16 flex items-center justify-center text-2xl font-bold border-b border-gray-700">
+      <div className="h-16 flex items-center justify-center text-2xl font-bold border-b border-gray-700 flex-shrink-0">
         <Link to="/app/dashboard">SISGPO</Link>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         <NavLink
           to="/app/dashboard"
           end

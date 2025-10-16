@@ -669,5 +669,3 @@ const DashboardOcorrencias: React.FC = () => {
 };
 
 export default DashboardOcorrencias;
-
-

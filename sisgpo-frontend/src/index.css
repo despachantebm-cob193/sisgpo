@@ -1,5 +1,40 @@
-/* Arquivo: src/index.css (VERSÃO CORRIGIDA E FINAL) */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Layout em Grid para a aplicação, com a sidebar e o header fixos.
+*/
+.app-grid {
+  display: grid;
+  /* Define as colunas: a primeira para a sidebar e a segunda para o conteúdo */
+  grid-template-columns: 256px 1fr; /* 256px é a largura da sua sidebar */
+  /* Define as linhas: a primeira para o header e a segunda para o conteúdo principal */
+  grid-template-rows: 64px 1fr; /* 64px é a altura do seu header */
+  height: 100vh; /* Ocupa a altura total da tela */
+}
+
+/* A sidebar ocupa a primeira coluna, da primeira à última linha */
+.app-grid > aside {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  /* Garante que a sidebar fique fixa no scroll */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+/* O header ocupa a segunda coluna e a primeira linha */
+.app-grid > header {
+  grid-column: 2;
+  grid-row: 1;
+  /* Garante que o header fique fixo no scroll */
+  position: sticky;
+  top: 0;
+  z-index: 10; /* Para que fique acima do conteúdo ao rolar */
+}
+
+/* O conteúdo principal ocupa a segunda coluna e a segunda linha */
+.app-grid > main {
+  grid-column: 2;
+  grid-row: 2;
+}
