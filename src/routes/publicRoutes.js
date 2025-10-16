@@ -22,7 +22,7 @@ router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
 
 // --- NOVA ROTA DE INTEGRAÇÃO ---
 // Esta é a rota que consome o novo controller
-router.get('/estatisticas-externas', estatisticasExternasController.getDashboardData);
+router.get('/estatisticas-externas', estatisticasExternasController.getDashboardOcorrencias);
 
 
 module.exports = router;

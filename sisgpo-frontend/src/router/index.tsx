@@ -20,12 +20,8 @@ const ServicoDia = lazy(() => import('../pages/ServicoDia'));
 const Profile = lazy(() => import('../pages/Profile'));
 const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
-
-// 1. Remova a importação da página antiga e incorreta
-// const EstatisticasExternas = lazy(() => import('../pages/EstatisticasExternas'));
-
-// 2. Adicione a importação da NOVA página correta
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
+const EstatisticasExternas = lazy(() => import('../pages/EstatisticasExternas'));
 
 
 const Suspended = ({ children }: { children: React.ReactNode }) => (
@@ -70,16 +66,13 @@ export const router = createBrowserRouter([
         element: <Suspended><Dashboard /></Suspended>,
       },
       
-      // 3. Remova a rota antiga e incorreta
-      // { 
-      //    path: 'estatisticas-externas', 
-      //    element: <Suspended><EstatisticasExternas /></Suspended> 
-      // },
-      
-      // 4. Adicione a NOVA rota correta aqui
       { 
         path: 'dashboard-ocorrencias', 
         element: <Suspended><DashboardOcorrencias /></Suspended> 
+      },
+      {
+        path: 'estatisticas',
+        element: <Suspended><EstatisticasExternas /></Suspended>,
       },
       
       { path: 'obms', element: <Suspended><Obms /></Suspended> },
