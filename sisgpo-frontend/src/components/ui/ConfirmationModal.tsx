@@ -1,10 +1,11 @@
 import React from 'react';
-import Modal from './Modal'; // Reutiliza nosso componente de Modal base
+import Modal from './Modal'; // Reutiliza o componente de Modal base
 import Button from './Button';
 
+// Define as propriedades para o modal de confirmação
 interface ConfirmationModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: () => void; // Renomeado de onCancel para onClose para consistência
   onConfirm: () => void;
   title: string;
   message: string;
@@ -19,6 +20,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   isLoading = false,
 }) => {
+  // Se não estiver aberto, não renderiza nada
   if (!isOpen) {
     return null;
   }
@@ -30,7 +32,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div className="flex justify-end gap-4">
           <Button
             type="button"
-            onClick={onClose}
+            onClick={onClose} // O botão "Cancelar" agora chama onClose
+            variant="default" // Usando a prop 'variant' que adicionamos ao Button
             className="bg-gray-500 hover:bg-gray-600"
             disabled={isLoading}
           >
@@ -39,10 +42,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <Button
             type="button"
             onClick={onConfirm}
-            className="bg-red-600 hover:bg-red-700" // Cor vermelha para ação destrutiva
+            variant="danger" // Usando a prop 'variant' para o estilo de perigo
             disabled={isLoading}
           >
-            {isLoading ? 'Excluindo...' : 'Confirmar Exclusão'}
+            {isLoading ? 'Excluindo...' : 'Confirmar'}
           </Button>
         </div>
       </div>

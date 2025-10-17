@@ -1,83 +1,98 @@
-import React, { useEffect, useState } from 'react';
-import api from '../services/api';
+import React from 'react';
+import { useCrud } from '../hooks/useCrud'; // CORREÇÃO: Importação nomeada
+import { Aeronave } from '../types/entities';
+import Modal from '../components/ui/Modal';
+import Button from '../components/ui/Button';
+import AeronaveForm from '../components/forms/AeronaveForm';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Spinner from '../components/ui/Spinner';
 
-interface Aeronave {
-  id: number;
-  prefixo: string;
-}
-
-interface AeronavesResponse {
-  data?: Aeronave[];
-}
-
 const Aeronaves: React.FC = () => {
-  const [aeronaves, setAeronaves] = useState<Aeronave[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: aeronaves,
+    isLoading,
+    isSaving,
+    isDeleting,
+    itemToEdit,
+    isFormModalOpen,
+    isConfirmModalOpen,
+    handleOpenFormModal,
+    handleCloseFormModal,
+    handleDeleteClick,
+    handleCloseConfirmModal,
+    handleSave,
+    handleConfirmDelete,
+  } = useCrud<Aeronave>({
+    entityName: 'Aeronave', // Nome da entidade para as mensagens
+    endpoint: '/api/admin/viaturas/aeronaves', // Endpoint customizado
+  });
 
-  useEffect(() => {
-    const fetchAeronaves = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await api.get<AeronavesResponse>('/api/admin/viaturas/aeronaves');
-        const data = response.data?.data ?? [];
-        setAeronaves(data);
-      } catch (err: any) {
-        const message = err.response?.data?.message || err.message || 'Falha ao carregar aeronaves.';
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleSubmit = async (data: Partial<Aeronave>) => {
+    // A função handleSave já tem a lógica de criar ou editar
+    await handleSave({ ...itemToEdit, ...data });
+  };
 
-    fetchAeronaves();
-  }, []);
+  if (isLoading && !aeronaves.length) return <Spinner />;
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Aeronaves</h2>
-          <p className="text-sm text-gray-500">
-            Relação de aeronaves ativas registradas no sistema.
-          </p>
-        </div>
-      </header>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Gerenciar Aeronaves</h1>
+      <Button onClick={() => handleOpenFormModal()}>Adicionar Aeronave</Button>
 
-      <section className="bg-white shadow-md rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Spinner className="h-10 w-10 text-indigo-600" />
-          </div>
-        ) : error ? (
-          <div className="p-6 text-center text-red-600 font-medium">{error}</div>
-        ) : aeronaves.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            Nenhuma aeronave cadastrada até o momento.
-          </div>
-        ) : (
-          <table className="min-w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Prefixo
-                </th>
+      {aeronaves.length > 0 ? (
+        <table className="min-w-full bg-white mt-4">
+          <thead>
+            <tr>
+              <th className="py-2 px-4 border-b">Prefixo</th>
+              <th className="py-2 px-4 border-b">Tipo de Asa</th>
+              <th className="py-2 px-4 border-b">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {aeronaves.map((aeronave: Aeronave) => ( // CORREÇÃO: Adicionado o tipo Aeronave
+              <tr key={aeronave.id}>
+                <td className="border px-4 py-2">{aeronave.prefixo}</td>
+                <td className="border px-4 py-2">{aeronave.tipo_asa}</td>
+                <td className="border px-4 py-2">
+                  <Button onClick={() => handleOpenFormModal(aeronave)} className="mr-2">
+                    Editar
+                  </Button>
+                  <Button onClick={() => handleDeleteClick(aeronave.id)} variant="danger">
+                    Excluir
+                  </Button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {aeronaves.map((aeronave) => (
-                <tr key={aeronave.id} className="transition hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {aeronave.prefixo}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="mt-4">Nenhuma aeronave cadastrada até o momento.</p>
+      )}
+
+      {isFormModalOpen && (
+        <Modal
+          isOpen={isFormModalOpen}
+          onClose={handleCloseFormModal}
+          title={itemToEdit ? 'Editar Aeronave' : 'Adicionar Aeronave'}
+        >
+          <AeronaveForm
+            onSubmit={handleSubmit}
+            initialData={itemToEdit as Aeronave}
+            isSubmitting={isSaving}
+          />
+        </Modal>
+      )}
+
+      {isConfirmModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmModalOpen}
+          onClose={handleCloseConfirmModal}
+          onConfirm={handleConfirmDelete}
+          title="Confirmar Exclusão"
+          message="Tem certeza que deseja excluir esta aeronave?"
+          isLoading={isDeleting}
+        />
+      )}
     </div>
   );
 };

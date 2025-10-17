@@ -20,3 +20,12 @@ export interface ValidationError {
   field: string;
   message: string;
 }
+
+export interface Aeronave {
+  id: number;
+  prefixo: string;
+  tipo_asa: 'fixa' | 'rotativa';
+  ativa: boolean;
+  created_at: string;
+  updated_at: string;
+}

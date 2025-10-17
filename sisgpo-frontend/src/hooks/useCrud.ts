@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
-// Interfaces genéricas
+// Interfaces
 interface Entity {
   id: number;
 }
@@ -16,21 +16,23 @@ interface PaginationState {
 
 interface ApiResponse<T> {
   data: T[];
-  pagination: PaginationState;
+  pagination?: PaginationState; // Paginação é opcional
 }
 
 interface UseCrudOptions {
   entityName: string;
   initialFilters?: Record<string, string>;
   itemsPerPage?: number;
+  endpoint?: string; // Endpoint customizado
 }
 
 export function useCrud<T extends Entity>({
   entityName,
   initialFilters = {},
   itemsPerPage = 15,
+  endpoint,
 }: UseCrudOptions) {
-  // Estados (sem alteração)
+  // Estados
   const [data, setData] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationState | null>(null);
@@ -44,7 +46,8 @@ export function useCrud<T extends Entity>({
   const [isDeleting, setIsDeleting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
-  // Funções de busca e controle de UI (sem alteração)
+  const apiEndpoint = endpoint || `/api/admin/${entityName}`;
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -54,21 +57,29 @@ export function useCrud<T extends Entity>({
         ...filters,
       });
       
-      const response = await api.get<ApiResponse<T>>(`/api/admin/${entityName}?${params.toString()}`);
+      const url = endpoint ? apiEndpoint : `${apiEndpoint}?${params.toString()}`;
       
-      setData(response.data.data);
-      setPagination(response.data.pagination);
+      const response = await api.get<ApiResponse<T> | T[]>(url);
+      
+      if (Array.isArray(response.data)) {
+        setData(response.data);
+        setPagination(null);
+      } else if (response.data && 'data' in response.data) {
+        setData(response.data.data);
+        setPagination(response.data.pagination || null);
+      }
     } catch (err) {
       toast.error(`Não foi possível carregar os dados de ${entityName}.`);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, itemsPerPage, entityName, filters]);
+  }, [currentPage, itemsPerPage, entityName, filters, apiEndpoint, endpoint]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Funções de UI
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFilterChange = (filterName: string, value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -93,29 +104,24 @@ export function useCrud<T extends Entity>({
   };
 
   // --- FUNÇÃO HANDLESAVE CORRIGIDA ---
-  const handleSave = async (itemData: Omit<T, 'id'> & { id?: number }) => {
+  // A tipagem do 'itemData' foi ajustada para Partial<T> para ser compatível
+  const handleSave = async (itemData: Partial<T> & { id?: number }) => {
     setIsSaving(true);
     setValidationErrors([]);
-    const action = itemData.id ? 'atualizado' : 'criado';
-    const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
-
-    // Cria uma cópia "limpa" do objeto de dados para enviar à API.
-    // Isso remove campos como 'id', 'created_at', 'updated_at' que não devem ser enviados no corpo da requisição PUT.
     const { id, ...payload } = itemData;
+    const action = id ? 'atualizado' : 'criado';
+    const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
 
     try {
       if (id) {
-        // Envia o payload limpo para a rota de atualização.
-        await api.put(`/api/admin/${entityName}/${id}`, payload);
+        await api.put(`${apiEndpoint}/${id}`, payload);
       } else {
-        // Para criação, o payload já está correto.
-        await api.post(`/api/admin/${entityName}`, payload);
+        await api.post(apiEndpoint, payload);
       }
       toast.success(`${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} ${action} com sucesso!`);
       handleCloseFormModal();
       fetchData();
     } catch (err: any) {
-      // O tratamento de erro já está correto para exibir as mensagens de validação.
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
         toast.error('Por favor, corrija os erros no formulário.');
@@ -134,7 +140,7 @@ export function useCrud<T extends Entity>({
     setIsDeleting(true);
     const entityLabel = entityName.endsWith('s') ? entityName.slice(0, -1) : entityName;
     try {
-      await api.delete(`/api/admin/${entityName}/${itemToDeleteId}`);
+      await api.delete(`${apiEndpoint}/${itemToDeleteId}`);
       toast.success(`${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)} excluído com sucesso!`);
       if (data.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);

@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Define as propriedades que o componente Modal aceita
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,7 +16,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
   return (
     // Fundo semi-transparente que cobre a tela inteira
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center">
       {/* Contêiner do modal */}
       <div className="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center pb-3 border-b">
@@ -29,7 +30,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
           </button>
         </div>
         <div className="mt-5">
-          {/* O conteúdo do formulário será renderizado aqui */}
+          {/* O conteúdo (children) do modal será renderizado aqui */}
           {children}
         </div>
       </div>
