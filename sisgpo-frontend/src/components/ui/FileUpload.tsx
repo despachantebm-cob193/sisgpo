@@ -5,7 +5,7 @@ import { Upload } from 'lucide-react';
 import Button from './Button';
 import Spinner from './Spinner';
 
-interface FileUploadProps {
+export interface FileUploadProps {
   onUpload: (file: File) => void;
   isLoading: boolean;
   acceptedFileTypes?: string;

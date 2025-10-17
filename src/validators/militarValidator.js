@@ -1,5 +1,7 @@
 const Joi = require('joi');
 
+const telefoneRegex = /^\(\d{2}\)\s?\d{4,5}-\d{4}$/;
+
 const militarSchema = {
   matricula: Joi.string().min(1).max(20).required().messages({
     'string.empty': 'A matrícula é obrigatória.',
@@ -14,6 +16,13 @@ const militarSchema = {
     'any.required': 'O nome completo é obrigatório.',
   }),
   obm_nome: Joi.string().max(150).optional().allow(null, ''),
+  telefone: Joi.string()
+    .pattern(telefoneRegex)
+    .allow(null, '')
+    .optional()
+    .messages({
+      'string.pattern.base': 'O telefone deve estar no formato (XX) XXXX-XXXX ou (XX) XXXXX-XXXX.',
+    }),
   ativo: Joi.boolean().required(),
   nome_guerra: Joi.string().max(50).optional().allow(null, ''),
 };

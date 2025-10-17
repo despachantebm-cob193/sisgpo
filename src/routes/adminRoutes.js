@@ -13,7 +13,12 @@ const { createMilitarSchema, updateMilitarSchema } = require('../validators/mili
 const { createObmSchema, updateObmSchema } = require('../validators/obmValidator');
 const { createViaturaSchema, updateViaturaSchema } = require('../validators/viaturaValidator');
 const { plantaoSchema } = require('../validators/plantaoValidator');
-const { createEscalaSchema, updateEscalaSchema } = require('../validators/escalaMedicoValidator');
+const {
+  createCivilSchema,
+  updateCivilSchema,
+  createEscalaSchema,
+  updateEscalaSchema,
+} = require('../validators/escalaMedicoValidator');
 const { changePasswordSchema, createUserSchema, updateUserSchema, updateUserStatusSchema } = require('../validators/userValidator');
 const { createEscalaAeronaveSchema } = require('../validators/escalaAeronaveValidator');
 const { createEscalaCodecSchema } = require('../validators/escalaCodecValidator');
@@ -97,8 +102,8 @@ router.delete('/plantoes/:id', plantaoController.delete);
 // --- ROTAS DE CIVIS (CADASTRO DE MÉDICOS E ESCALAS) ---
 router.get('/civis', escalaMedicoController.getAllCivis);
 router.get('/civis/search', escalaMedicoController.searchCivis);
-router.post('/civis', validationMiddleware(createEscalaSchema), escalaMedicoController.createCivil);
-router.put('/civis/:id', validationMiddleware(updateEscalaSchema), escalaMedicoController.updateCivil);
+router.post('/civis', validationMiddleware(createCivilSchema), escalaMedicoController.createCivil);
+router.put('/civis/:id', validationMiddleware(updateCivilSchema), escalaMedicoController.updateCivil);
 router.delete('/civis/:id', escalaMedicoController.deleteCivil);
 
 // --- ROTAS DE ESCALA DE MÉDICOS (APONTANDO PARA AS FUNÇÕES CORRETAS) ---

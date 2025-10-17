@@ -5,6 +5,9 @@ import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
+// Importação do store de UI para gerenciar o título da página
+import { useUiStore } from '@/store/uiStore';
+
 // Componentes de UI
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
@@ -37,6 +40,9 @@ export default function Dashboard() {
   const location = useLocation();
   const isLoggedInArea = location.pathname.startsWith('/app');
 
+  // Hook para definir o título da página no cabeçalho principal
+  const { setPageTitle } = useUiStore();
+
   // Estados (sem alteração)
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
@@ -52,6 +58,11 @@ export default function Dashboard() {
   const [selectedObm, setSelectedObm] = useState<string>('');
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Define o título da página ao carregar o componente
+  useEffect(() => {
+    setPageTitle('Dashboard Operacional');
+  }, [setPageTitle]);
 
   // Funções de busca de dados (sem alteração)
   const fetchDashboardData = useCallback(async () => {
@@ -115,7 +126,7 @@ export default function Dashboard() {
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard Operacional</h2>
+            {/* TÍTULO H2 REMOVIDO DAQUI */}
             <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
           </div>
           {isLoggedInArea && (
@@ -141,12 +152,10 @@ export default function Dashboard() {
 
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
       
-      {/* --- INÍCIO DA CORREÇÃO DE ALINHAMENTO --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
         <CodecCard data={escalaCodec} isLoading={isLoading} />
       </div>
-      {/* --- FIM DA CORREÇÃO DE ALINHAMENTO --- */}
 
       <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />

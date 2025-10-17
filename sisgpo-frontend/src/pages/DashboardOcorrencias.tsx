@@ -571,32 +571,49 @@ const DashboardOcorrencias: React.FC = () => {
                 </thead>
                 <tbody>
                   {filteredEspelho.map((group) => (
-                    <React.Fragment key={group.crbm}>
-                      {group.rows.map((row) => (
-                        <tr key={`${group.crbm}-${row.cidade}`}>
-                          <td className="oc-espelho-crbm">{group.crbm}</td>
-                          <td className="oc-espelho-city">{row.cidade}</td>
-                          {ESPELHO_COLUMNS.map((col) => (
-                            <td key={col.id}>{row.counts[col.id] || 0}</td>
-                          ))}
-                          <td className="oc-espelho-total-cell">{row.total}</td>
-                        </tr>
-                      ))}
-                      <tr className="oc-espelho-subtotal">
-                        <td className="oc-espelho-crbm">{group.crbm}</td>
-                        <td className="oc-espelho-city">SUB TOTAL</td>
-                        {ESPELHO_COLUMNS.map((col) => (
-                          <td key={`${group.crbm}-subtotal-${col.id}`}>
-                            {group.subtotal.counts[col.id] || 0}
-                          </td>
+                      <React.Fragment key={group.crbm}>
+                        {group.rows.map((row, rowIndex) => ( // Adicionamos o 'rowIndex'
+                          <tr key={`${group.crbm}-${row.cidade}`}>
+                            {/* CONDIÇÃO: Renderizar a célula do CRBM apenas para a primeira linha (índice 0) */}
+                            {rowIndex === 0 && (
+                              <td
+                                className="oc-espelho-crbm"
+                                // Define o rowspan com o número total de linhas no grupo
+                                rowSpan={group.rows.length}
+                                // Adiciona alinhamento vertical no topo para corresponder à imagem
+                                style={{ verticalAlign: 'top' }}
+                              >
+                                {group.crbm}
+                              </td>
+                            )}
+                            <td className="oc-espelho-city">{row.cidade}</td>
+                            {ESPELHO_COLUMNS.map((col) => (
+                              <td key={col.id}>{row.counts[col.id] || 0}</td>
+                            ))}
+                            <td className="oc-espelho-total-cell">{row.total}</td>
+                          </tr>
                         ))}
-                        <td className="oc-espelho-total-cell">{group.subtotal.total}</td>
-                      </tr>
+                          <tr className="oc-espelho-subtotal">
+                            {/* Célula única que mescla as duas primeiras colunas */}
+                            <td colSpan={2} className="oc-espelho-city">
+                              SUB TOTAL
+                            </td>
+                            {/* As células restantes de contagem permanecem iguais */}
+                            {ESPELHO_COLUMNS.map((col) => (
+                              <td key={`${group.crbm}-subtotal-${col.id}`}>
+                                {group.subtotal.counts[col.id] || 0}
+                              </td>
+                            ))}
+                            <td className="oc-espelho-total-cell">{group.subtotal.total}</td>
+                          </tr>
                     </React.Fragment>
                   ))}
+
                   <tr className="oc-espelho-total-row">
-                    <td className="oc-espelho-crbm">TOTAL</td>
-                    <td className="oc-espelho-city">GERAL</td>
+                    {/* Célula única que mescla as duas colunas */}
+                    <td colSpan={2} className="oc-espelho-city">TOTAL GERAL</td>
+                    
+                    {/* As células de contagem de totais permanecem as mesmas */}
                     {ESPELHO_COLUMNS.map((col) => (
                       <td key={`overall-${col.id}`}>{espelhoTotal.counts[col.id] || 0}</td>
                     ))}

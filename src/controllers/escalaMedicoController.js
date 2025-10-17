@@ -1,21 +1,24 @@
-// Arquivo: backend/src/controllers/escalaMedicoController.js
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+const normalizeOptionalText = (value) => {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.toString().trim();
+  return trimmed.length ? trimmed : null;
+};
+
 const escalaMedicoController = {
-  // --- CRUD PARA O CADASTRO DE MÉDICOS (tabela 'civis') ---
-  // Esta função agora também serve para listar as escalas, pois os dados estão na mesma tabela.
+  /**
+   * Lista registros da tabela civis com suporte a filtros de médicos e de escala.
+   */
   getAllCivis: async (req, res) => {
     const { nome_completo, all, data_inicio, data_fim } = req.query;
     const query = db('civis').select('*');
 
-    // Filtros para a página de "Cadastro de Médicos"
     if (nome_completo) {
       query.where('nome_completo', 'ilike', `%${nome_completo}%`);
     }
 
-    // Filtros para a página de "Escalas"
     if (data_inicio) {
       query.where('entrada_servico', '>=', data_inicio);
     }
@@ -23,13 +26,11 @@ const escalaMedicoController = {
       query.where('saida_servico', '<=', data_fim);
     }
 
-    // Se 'all=true' for passado, retorna todos os registros sem paginação
     if (all === 'true') {
       const registros = await query.orderBy('nome_completo', 'asc');
       return res.status(200).json({ data: registros, pagination: null });
     }
 
-    // Lógica de paginação padrão
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 15;
     const offset = (page - 1) * limit;
@@ -47,49 +48,84 @@ const escalaMedicoController = {
     });
   },
 
-  // Cria um novo registro de médico/escala
+  /**
+   * Cria um novo médico (registro na tabela civis sem informações de escala).
+   */
   createCivil: async (req, res) => {
-    // Recebe todos os campos, incluindo os de escala
-    const { nome_completo, funcao, telefone, observacoes, ativo, entrada_servico, saida_servico, status_servico } = req.body;
-    const [novoRegistro] = await db('civis')
-      .insert({ 
-        nome_completo, 
-        funcao, 
-        telefone, 
-        observacoes, 
-        ativo: ativo !== false,
-        entrada_servico,
-        saida_servico,
-        status_servico
-      })
-      .returning('*');
-    res.status(201).json(novoRegistro);
-  },
-
-  // Atualiza um registro de médico/escala
-  updateCivil: async (req, res) => {
-    const { id } = req.params;
-    const { nome_completo, funcao, telefone, observacoes, ativo, entrada_servico, saida_servico, status_servico } = req.body;
-    
-    const registroExists = await db('civis').where({ id }).first();
-    if (!registroExists) throw new AppError('Registro de médico/escala não encontrado.', 404);
-    
-    const dadosAtualizacao = { 
-      nome_completo, 
-      funcao, 
-      telefone, 
-      observacoes, 
+    const {
+      nome_completo,
+      funcao,
+      telefone,
+      observacoes,
       ativo,
       entrada_servico,
       saida_servico,
       status_servico,
-      updated_at: db.fn.now() 
+    } = req.body;
+
+    const payload = {
+      nome_completo,
+      funcao,
+      telefone: normalizeOptionalText(telefone),
+      observacoes: normalizeOptionalText(observacoes),
+      ativo: typeof ativo === 'boolean' ? ativo : true,
     };
-    const [registroAtualizado] = await db('civis').where({ id }).update(dadosAtualizacao).returning('*');
+
+    if (entrada_servico !== undefined) payload.entrada_servico = entrada_servico;
+    if (saida_servico !== undefined) payload.saida_servico = saida_servico;
+    if (status_servico !== undefined) payload.status_servico = status_servico;
+
+    const [novoRegistro] = await db('civis').insert(payload).returning('*');
+    res.status(201).json(novoRegistro);
+  },
+
+  /**
+   * Atualiza um registro de médico/escala.
+   */
+  updateCivil: async (req, res) => {
+    const { id } = req.params;
+    const {
+      nome_completo,
+      funcao,
+      telefone,
+      observacoes,
+      ativo,
+      entrada_servico,
+      saida_servico,
+      status_servico,
+    } = req.body;
+
+    const registroExists = await db('civis').where({ id }).first();
+    if (!registroExists) {
+      throw new AppError('Registro de médico/escala não encontrado.', 404);
+    }
+
+    const dadosAtualizacao = {};
+    if (nome_completo !== undefined) dadosAtualizacao.nome_completo = nome_completo;
+    if (funcao !== undefined) dadosAtualizacao.funcao = funcao;
+    if (telefone !== undefined) dadosAtualizacao.telefone = normalizeOptionalText(telefone);
+    if (observacoes !== undefined) dadosAtualizacao.observacoes = normalizeOptionalText(observacoes);
+    if (ativo !== undefined) dadosAtualizacao.ativo = ativo;
+    if (entrada_servico !== undefined) dadosAtualizacao.entrada_servico = entrada_servico;
+    if (saida_servico !== undefined) dadosAtualizacao.saida_servico = saida_servico;
+    if (status_servico !== undefined) dadosAtualizacao.status_servico = status_servico;
+
+    if (!Object.keys(dadosAtualizacao).length) {
+      return res.status(200).json(registroExists);
+    }
+
+    dadosAtualizacao.updated_at = db.fn.now();
+
+    const [registroAtualizado] = await db('civis')
+      .where({ id })
+      .update(dadosAtualizacao)
+      .returning('*');
     res.status(200).json(registroAtualizado);
   },
 
-  // Deleta um registro de médico/escala
+  /**
+   * Exclui um médico/escala.
+   */
   deleteCivil: async (req, res) => {
     const { id } = req.params;
     const result = await db('civis').where({ id }).del();
@@ -97,18 +133,20 @@ const escalaMedicoController = {
     res.status(204).send();
   },
 
-  // Busca civis para os selects (sem alteração necessária)
+  /**
+   * Busca civis para selects assíncronos.
+   */
   searchCivis: async (req, res) => {
     const { term } = req.query;
     if (!term || term.length < 2) return res.status(200).json([]);
-    
+
     const civis = await db('civis')
       .where('nome_completo', 'ilike', `%${term}%`)
       .andWhere('ativo', true)
       .select('id', 'nome_completo', 'funcao')
       .limit(15);
 
-    const options = civis.map(c => ({
+    const options = civis.map((c) => ({
       value: c.id,
       label: c.nome_completo,
       civil: c,
@@ -116,13 +154,14 @@ const escalaMedicoController = {
     res.status(200).json(options);
   },
 
-  // --- FUNÇÕES ANTIGAS DE 'escala_medicos' AGORA SÃO REDIRECIONADAS OU REMOVIDAS ---
-  // A função getAllEscalas agora é efetivamente a mesma que getAllCivis com filtros de data
+  /**
+   * Lista registros de escala (civis com horários preenchidos).
+   */
   getAllEscalas: async (req, res) => {
     const { data_inicio, data_fim } = req.query;
     const query = db('civis')
-      .select('*') // Seleciona todos os campos da tabela civis
-      .whereNotNull('entrada_servico'); // Filtra apenas registros que são de fato escalas
+      .select('*')
+      .whereNotNull('entrada_servico');
 
     if (data_inicio) query.where('entrada_servico', '>=', data_inicio);
     if (data_fim) query.where('saida_servico', '<=', data_fim);
@@ -131,33 +170,63 @@ const escalaMedicoController = {
     res.status(200).json(escalas);
   },
 
-  // A função createEscala agora é a mesma que createCivil
+  /**
+   * Cria um novo registro de escala na tabela civis.
+   */
   createEscala: async (req, res) => {
-    const { civil_id, entrada_servico, saida_servico, status_servico, observacoes } = req.body;
-    
-    // Para criar uma escala, precisamos dos dados do médico.
-    // Esta abordagem assume que o frontend enviará os dados completos do médico.
-    // Uma abordagem mais simples é usar a função createCivil diretamente.
-    // Por simplicidade, vamos assumir que o frontend chama a rota /civis para criar.
-    // Se a rota /escala-medicos for mantida, ela precisa de mais lógica para buscar o nome do médico.
-    // A melhor abordagem é unificar no frontend para usar a rota /civis.
-    // Por ora, vamos implementar a criação de um novo registro civil com dados de escala.
-    const { nome_completo, funcao } = req.body; // Supondo que o frontend envie isso
+    const {
+      civil_id,
+      nome_completo,
+      funcao,
+      telefone,
+      observacoes,
+      ativo,
+      entrada_servico,
+      saida_servico,
+      status_servico,
+    } = req.body;
+
+    let baseDados;
+
+    if (civil_id) {
+      const civil = await db('civis').where({ id: civil_id }).first();
+      if (!civil) {
+        throw new AppError('Médico não encontrado para a escala.', 404);
+      }
+      baseDados = {
+        nome_completo: civil.nome_completo,
+        funcao: civil.funcao,
+        telefone: civil.telefone,
+        observacoes: observacoes !== undefined ? normalizeOptionalText(observacoes) : civil.observacoes,
+        ativo: civil.ativo,
+      };
+    } else {
+      if (!nome_completo || !funcao) {
+        throw new AppError('Informe os dados do médico ou selecione um registro existente.', 400);
+      }
+      baseDados = {
+        nome_completo,
+        funcao,
+        telefone: normalizeOptionalText(telefone),
+        observacoes: normalizeOptionalText(observacoes),
+        ativo: typeof ativo === 'boolean' ? ativo : true,
+      };
+    }
+
     const [novaEscala] = await db('civis')
-      .insert({ 
-        nome_completo, // Este campo é obrigatório na tabela
-        funcao,        // Este campo é obrigatório na tabela
-        entrada_servico, 
-        saida_servico, 
-        status_servico, 
-        observacoes,
-        ativo: true
+      .insert({
+        ...baseDados,
+        entrada_servico,
+        saida_servico,
+        status_servico,
       })
       .returning('*');
     res.status(201).json(novaEscala);
   },
 
-  // A função deleteEscala agora é a mesma que deleteCivil
+  /**
+   * Remove um registro de escala (mesmo comportamento do deleteCivil).
+   */
   deleteEscala: async (req, res) => {
     const { id } = req.params;
     const result = await db('civis').where({ id }).del();

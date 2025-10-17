@@ -1,117 +1,262 @@
-// Arquivo: frontend/src/components/forms/MilitarForm.tsx (Versão Final Desacoplada)
-
 import React, { useState, useEffect, FormEvent } from 'react';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
 import Button from '../ui/Button';
 import FormError from '../ui/FormError';
+import Select from '../ui/Select';
+import type { Militar, Obm, ValidationError } from '@/types/entities';
 
-// Interface para os dados do militar, usando 'obm_nome'
-interface Militar {
-  id?: number;
+const TELEFONE_PATTERN_ATTR = '^\\(\\d{2}\\)\\s?\\d{4,5}-\\d{4}$';
+
+export interface MilitarFormProps {
+  initialData?: Militar | null;
+  onSave: (militar: Omit<Militar, 'id'> & { id?: number }) => Promise<void>;
+  onSuccess: () => void;
+  isSaving: boolean;
+  errors?: ValidationError[];
+  obms: Obm[];
+}
+
+type MilitarFormState = {
   matricula: string;
   nome_completo: string;
-  nome_guerra: string | null;
+  nome_guerra: string;
   posto_graduacao: string;
-  ativo: boolean;
-  obm_nome: string | null; // Campo de texto para o nome da OBM
-}
+  obm_nome: string;
+  ativo: 'ativo' | 'inativo';
+  telefone: string;
+};
 
-interface ValidationError {
-  field: string;
-  message: string;
-}
+const formatTelefone = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (!digits) return '';
 
-interface MilitarFormProps {
-  militarToEdit?: Militar | null;
-  onSave: (militar: Omit<Militar, 'id'> & { id?: number }) => void;
-  onCancel: () => void;
-  isLoading: boolean;
-  errors?: ValidationError[];
-}
+  const ddd = digits.slice(0, 2);
+  const restante = digits.slice(2);
 
-const MilitarForm: React.FC<MilitarFormProps> = ({ militarToEdit, onSave, onCancel, isLoading, errors = [] }) => {
-  // Estado inicial do formulário
-  const getInitialState = (): Militar => ({
-    matricula: '',
-    nome_completo: '',
-    nome_guerra: '',
-    posto_graduacao: '',
-    ativo: true,
-    obm_nome: '',
-  });
+  if (digits.length <= 2) {
+    return `(${digits}`;
+  }
 
-  const [formData, setFormData] = useState<Militar>(getInitialState());
+  if (digits.length <= 6) {
+    return `(${ddd}) ${restante}`;
+  }
 
-  // Função para encontrar erros de validação para um campo específico
-  const getError = (field: string) => errors.find(e => e.field === field)?.message;
+  if (digits.length <= 10) {
+    const parte1 = restante.slice(0, 4);
+    const parte2 = restante.slice(4);
+    return `(${ddd}) ${parte1}${parte2 ? `-${parte2}` : ''}`;
+  }
 
-  // Efeito para popular o formulário quando um militar é passado para edição
+  const parte1 = restante.slice(0, 5);
+  const parte2 = restante.slice(5);
+  return `(${ddd}) ${parte1}-${parte2}`;
+};
+
+const getInitialState = (): MilitarFormState => ({
+  matricula: '',
+  nome_completo: '',
+  nome_guerra: '',
+  posto_graduacao: '',
+  obm_nome: '',
+  ativo: 'ativo',
+  telefone: '',
+});
+
+const mapInitialData = (data: Militar): MilitarFormState => ({
+  matricula: data.matricula ?? '',
+  nome_completo: data.nome_completo ?? '',
+  nome_guerra: data.nome_guerra ?? '',
+  posto_graduacao: data.posto_graduacao ?? '',
+  obm_nome: data.obm_nome ?? '',
+  ativo: data.ativo ? 'ativo' : 'inativo',
+  telefone: data.telefone ?? '',
+});
+
+const MilitarForm: React.FC<MilitarFormProps> = ({
+  initialData,
+  onSave,
+  onSuccess,
+  isSaving,
+  errors = [],
+  obms,
+}) => {
+  const [formData, setFormData] = useState<MilitarFormState>(getInitialState());
+
   useEffect(() => {
-    if (militarToEdit) {
-      setFormData(militarToEdit);
+    if (initialData) {
+      setFormData(mapInitialData(initialData));
     } else {
       setFormData(getInitialState());
     }
-  }, [militarToEdit]);
+  }, [initialData]);
 
-  // Manipulador de mudanças genérico para todos os inputs
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+  const getError = (field: string) => errors.find((error) => error.field === field)?.message;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name === 'telefone') {
+      const formatted = formatTelefone(value);
+      setFormData((prev) => ({ ...prev, telefone: formatted }));
+      return;
+    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Manipulador de submissão do formulário
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const form = e.currentTarget as HTMLFormElement;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const payload: Record<string, unknown> = {
+      id: initialData?.id,
+      matricula: formData.matricula.trim(),
+      nome_completo: formData.nome_completo.trim(),
+      posto_graduacao: formData.posto_graduacao.trim(),
+      ativo: formData.ativo === 'ativo',
+    };
+
+    const nomeGuerra = formData.nome_guerra.trim();
+    if (nomeGuerra) {
+      payload.nome_guerra = nomeGuerra;
+    } else if (initialData?.id && initialData?.nome_guerra && !nomeGuerra) {
+      payload.nome_guerra = null;
+    }
+
+    const obmNome = formData.obm_nome.trim();
+    if (obmNome) {
+      payload.obm_nome = obmNome;
+    } else if (initialData?.id && initialData?.obm_nome && !obmNome) {
+      payload.obm_nome = null;
+    }
+
+    const telefone = formData.telefone.trim();
+    if (telefone) {
+      payload.telefone = telefone;
+    } else if (initialData?.id && initialData?.telefone && !telefone) {
+      payload.telefone = null;
+    }
+
+    await onSave(payload as Omit<Militar, 'id'> & { id?: number });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="matricula">Matrícula (RG)</Label>
-          <Input id="matricula" name="matricula" value={formData.matricula} onChange={handleChange} required hasError={!!getError('matricula')} />
-          <FormError message={getError('matricula')} />
-        </div>
         <div>
           <Label htmlFor="posto_graduacao">Posto/Graduação</Label>
-          <Input id="posto_graduacao" name="posto_graduacao" value={formData.posto_graduacao} onChange={handleChange} required hasError={!!getError('posto_graduacao')} />
+          <Input
+            id="posto_graduacao"
+            name="posto_graduacao"
+            value={formData.posto_graduacao}
+            onChange={handleChange}
+            required
+            hasError={!!getError('posto_graduacao')}
+          />
           <FormError message={getError('posto_graduacao')} />
         </div>
-      </div>
-      <div>
-        <Label htmlFor="nome_completo">Nome Completo</Label>
-        <Input id="nome_completo" name="nome_completo" value={formData.nome_completo} onChange={handleChange} required hasError={!!getError('nome_completo')} />
-        <FormError message={getError('nome_completo')} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="nome_guerra">Nome de Guerra (Opcional)</Label>
-          <Input id="nome_guerra" name="nome_guerra" value={formData.nome_guerra || ''} onChange={handleChange} hasError={!!getError('nome_guerra')} />
+          <Label htmlFor="nome_guerra">Nome de Guerra</Label>
+          <Input
+            id="nome_guerra"
+            name="nome_guerra"
+            value={formData.nome_guerra}
+            onChange={handleChange}
+            hasError={!!getError('nome_guerra')}
+          />
           <FormError message={getError('nome_guerra')} />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          {/* Campo de OBM agora é um input de texto simples */}
-          <Label htmlFor="obm_nome">OBM (Nome por extenso)</Label>
-          <Input id="obm_nome" name="obm_nome" value={formData.obm_nome || ''} onChange={handleChange} hasError={!!getError('obm_nome')} />
-          <FormError message={getError('obm_nome')} />
+          <Label htmlFor="nome_completo">Nome Completo</Label>
+          <Input
+            id="nome_completo"
+            name="nome_completo"
+            value={formData.nome_completo}
+            onChange={handleChange}
+            required
+            hasError={!!getError('nome_completo')}
+          />
+          <FormError message={getError('nome_completo')} />
+        </div>
+        <div>
+          <Label htmlFor="matricula">Matrícula</Label>
+          <Input
+            id="matricula"
+            name="matricula"
+            value={formData.matricula}
+            onChange={handleChange}
+            required
+            hasError={!!getError('matricula')}
+          />
+          <FormError message={getError('matricula')} />
         </div>
       </div>
-      <div className="flex items-center">
-        <input id="ativo" name="ativo" type="checkbox" checked={formData.ativo} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-        <Label htmlFor="ativo" className="ml-2 mb-0">Militar Ativo</Label>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="obm_nome">Lotação (OBM)</Label>
+          <Select
+            id="obm_nome"
+            name="obm_nome"
+            value={formData.obm_nome}
+            onChange={handleChange}
+            hasError={!!getError('obm_nome')}
+          >
+            <option value="">Nenhuma</option>
+            {obms.map((obm) => (
+              <option key={obm.id} value={obm.nome}>
+                {obm.abreviatura} - {obm.nome}
+              </option>
+            ))}
+          </Select>
+          <FormError message={getError('obm_nome')} />
+        </div>
+        <div>
+          <Label htmlFor="telefone">Telefone</Label>
+          <Input
+            id="telefone"
+            name="telefone"
+            inputMode="numeric"
+            pattern={TELEFONE_PATTERN_ATTR}
+            maxLength={15}
+            title="Informe um telefone no formato (XX) XXXX-XXXX ou (XX) XXXXX-XXXX"
+            value={formData.telefone}
+            onChange={handleChange}
+            hasError={!!getError('telefone')}
+          />
+          <FormError message={getError('telefone')} />
+        </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="ativo">Status</Label>
+          <Select
+            id="ativo"
+            name="ativo"
+            value={formData.ativo}
+            onChange={handleChange}
+            required
+            hasError={!!getError('ativo')}
+          >
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+          </Select>
+          <FormError message={getError('ativo')} />
+        </div>
+      </div>
+
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">
+        <Button type="button" onClick={onSuccess} className="bg-gray-500 hover:bg-gray-600">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Salvando...' : 'Salvar'}
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? 'Salvando...' : 'Salvar'}
         </Button>
       </div>
     </form>
