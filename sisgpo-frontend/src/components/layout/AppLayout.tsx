@@ -9,9 +9,9 @@ const AppLayout: React.FC = () => {
       <header className="h-16 bg-white border-b flex items-center px-6">
         <h1 className="text-lg font-semibold text-gray-800">Área Administrativa</h1>
       </header>
-      <main className="overflow-y-auto p-6">
-        <div className="max-w-7xl mx-auto">
-          <Outlet />
+        <main className="overflow-y-auto p-8">
+          <div>
+            <Outlet />
         </div>
       </main>
     </div>

@@ -475,15 +475,15 @@ const DashboardOcorrencias: React.FC = () => {
                     <th>Total</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {stats.ocorrenciasPorNatureza?.length ? (
-                    stats.ocorrenciasPorNatureza.map((row) => (
-                      <tr key={row.nome}>
-                        <td>{row.nome}</td>
-                        <td>{row.total}</td>
-                      </tr>
-                    ))
-                  ) : (
+                    <tbody>
+                      {stats.ocorrenciasPorNatureza?.length ? (
+                        stats.ocorrenciasPorNatureza.map((row, index) => (
+                          <tr key={`${row.nome}-${index}`}>
+                            <td>{row.nome}</td>
+                            <td>{row.total}</td>
+                          </tr>
+                        ))
+                      ) : (
                     <tr>
                       <td colSpan={2} className="oc-empty">
                         Nenhum registro disponível
@@ -504,8 +504,8 @@ const DashboardOcorrencias: React.FC = () => {
                 </thead>
                 <tbody>
                   {stats.ocorrenciasPorCrbm?.length ? (
-                    stats.ocorrenciasPorCrbm.map((row) => (
-                      <tr key={row.nome}>
+                    stats.ocorrenciasPorCrbm.map((row, index) => (
+                      <tr key={`${row.nome}-${index}`}>
                         <td>{row.nome}</td>
                         <td>{row.total}</td>
                       </tr>
@@ -637,29 +637,29 @@ const DashboardOcorrencias: React.FC = () => {
                   <th>Total Geral</th>
                 </tr>
               </thead>
-              <tbody>
-                {groupedRelatorio.map(([grupo, rows]) =>
-                  rows.map((row, index) => (
-                    <tr key={`${grupo}-${row.subgrupo}`}>
-                      {index === 0 && <td rowSpan={rows.length}>{grupo}</td>}
-                      <td>{row.subgrupo}</td>
-                      <td>{row.diurno}</td>
-                      <td>{row.noturno}</td>
-                      <td>{row.total_capital}</td>
-                      <td>{row["1º CRBM"] || row["1�� CRBM"] || 0}</td>
-                      <td>{row["2º CRBM"] || row["2�� CRBM"] || 0}</td>
-                      <td>{row["3º CRBM"] || row["3�� CRBM"] || 0}</td>
-                      <td>{row["4º CRBM"] || row["4�� CRBM"] || 0}</td>
-                      <td>{row["5º CRBM"] || row["5�� CRBM"] || 0}</td>
-                      <td>{row["6º CRBM"] || row["6�� CRBM"] || 0}</td>
-                      <td>{row["7º CRBM"] || row["7�� CRBM"] || 0}</td>
-                      <td>{row["8º CRBM"] || row["8�� CRBM"] || 0}</td>
-                      <td>{row["9º CRBM"] || row["9�� CRBM"] || 0}</td>
-                      <td>{row.total_geral}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
+                  <tbody>
+                    {groupedRelatorio.map(([grupo, rows]) =>
+                      rows.map((row, index) => (
+                        <tr key={`${grupo}-${row.subgrupo}`}>
+                          {index === 0 && <td rowSpan={rows.length}>{grupo}</td>}
+                          <td>{row.subgrupo}</td>
+                          <td>{row.diurno}</td>
+                          <td>{row.noturno}</td>
+                          <td>{row.total_capital}</td>
+                          <td>{row["1º CRBM"] || row["1 CRBM"] || 0}</td>
+                          <td>{row["2º CRBM"] || row["2 CRBM"] || 0}</td>
+                          <td>{row["3º CRBM"] || row["3 CRBM"] || 0}</td>
+                          <td>{row["4º CRBM"] || row["4 CRBM"] || 0}</td>
+                          <td>{row["5º CRBM"] || row["5 CRBM"] || 0}</td>
+                          <td>{row["6º CRBM"] || row["6 CRBM"] || 0}</td>
+                          <td>{row["7º CRBM"] || row["7 CRBM"] || 0}</td>
+                          <td>{row["8º CRBM"] || row["8 CRBM"] || 0}</td>
+                          <td>{row["9º CRBM"] || row["9 CRBM"] || 0}</td>
+                          <td>{row.total_geral}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
             </table>
           )}
         </div>

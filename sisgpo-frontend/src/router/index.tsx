@@ -12,6 +12,7 @@ const Login = lazy(() => import('../pages/Login'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Obms = lazy(() => import('../pages/Obms'));
 const Viaturas = lazy(() => import('../pages/Viaturas'));
+const Aeronaves = lazy(() => import('../pages/Aeronaves'));
 const Militares = lazy(() => import('../pages/Militares'));
 const Medicos = lazy(() => import('../pages/Medicos'));
 const Plantoes = lazy(() => import('../pages/Plantoes'));
@@ -84,6 +85,7 @@ const router = createBrowserRouter([
       // Rotas de Administração protegidas com AdminRoute
       { path: 'obms', element: <AdminRoute><Suspended><Obms /></Suspended></AdminRoute> },
       { path: 'viaturas', element: <AdminRoute><Suspended><Viaturas /></Suspended></AdminRoute> },
+      { path: 'aeronaves', element: <AdminRoute><Suspended><Aeronaves /></Suspended></AdminRoute> },
       { path: 'militares', element: <AdminRoute><Suspended><Militares /></Suspended></AdminRoute> },
       { path: 'medicos', element: <AdminRoute><Suspended><Medicos /></Suspended></AdminRoute> },
       { path: 'plantoes', element: <AdminRoute><Suspended><Plantoes /></Suspended></AdminRoute> },
