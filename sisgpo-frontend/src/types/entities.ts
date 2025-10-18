@@ -29,3 +29,17 @@ export interface Aeronave {
   created_at: string;
   updated_at: string;
 }
+
+// TIPO ADICIONADO PARA CORRIGIR O ERRO
+export interface EscalaAeronave {
+  id?: number;
+  aeronave_id: number;
+  comandante_id: number;
+  copiloto_id?: number;
+  tripulante_id?: number;
+  em_servico: boolean;
+  aeronave?: Aeronave;
+  comandante?: Militar;
+  copiloto?: Militar;
+  tripulante?: Militar;
+}

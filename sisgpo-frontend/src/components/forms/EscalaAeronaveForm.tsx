@@ -1,148 +1,179 @@
-// Arquivo: src/components/forms/EscalaAeronaveForm.tsx (VERSÃO FINAL CORRIGIDA)
-
-import React, { useState, useEffect } from 'react';
+﻿import { useQuery } from '@tanstack/react-query';
+import { useForm, Controller } from 'react-hook-form';
+import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
-import { SingleValue } from 'react-select';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Label from '@/components/ui/Label';
-import api from '@/services/api';
+import api from '../../services/api';
+import { Aeronave, EscalaAeronave, Militar } from '../../types/entities';
 
-// Interfaces para tipagem
-interface SelectOption {
-  value: number;
-  label: string;
-}
+import Button from '../ui/Button';
+import FormError from '../ui/FormError';
+import Label from '../ui/Label';
 
-interface FormData {
-  data: string;
-  aeronave_id: number | '';
-  aeronave_prefixo: string;
-  status: 'Ativa' | 'Inativa' | 'Manutenção';
-  primeiro_piloto_id: number | '';
-  segundo_piloto_id: number | '';
-}
 
-interface FormProps {
-  onSave: (data: FormData) => void;
-  onCancel: () => void;
-  isLoading: boolean;
-}
+type EscalaAeronaveFormProps = {
+  onSubmit: (data: EscalaAeronave) => void;
+  initialData?: EscalaAeronave;
+  isSubmitting: boolean;
+};
 
-const EscalaAeronaveForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) => {
-  const [formData, setFormData] = useState<FormData>({
-    data: new Date().toISOString().split('T')[0],
-    aeronave_id: '',
-    aeronave_prefixo: '',
-    status: 'Ativa',
-    primeiro_piloto_id: '',
-    segundo_piloto_id: '',
+const EscalaAeronaveForm = ({
+  onSubmit,
+  initialData,
+  isSubmitting,
+}: EscalaAeronaveFormProps) => {
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<EscalaAeronave>({
+    defaultValues: initialData || {
+      em_servico: true,
+    },
   });
 
-  const [initialAeronaveOptions, setInitialAeronaveOptions] = useState<SelectOption[]>([]);
+  const { data: aeronavesData, isLoading: isLoadingAeronaves } = useQuery<Aeronave[]>({
+    queryKey: ['aeronaves'],
+    queryFn: () => api.get('/api/admin/viaturas/aeronaves').then(res => res.data.data),
+  });
 
-  useEffect(() => {
-    api.get(`/api/admin/viaturas/aeronaves`)
+  const loadMilitares = (inputValue: string, callback: (options: any[]) => void) => {
+    api.get('/admin/militares', { params: { 'por-pagina': 10, nome: inputValue } })
       .then(res => {
-        const options = res.data.data.map((a: any) => ({ value: a.id, label: a.prefixo }));
-        setInitialAeronaveOptions(options);
-      })
-      .catch(() => {
-        setInitialAeronaveOptions([]);
-      });
-  }, []);
-
-  const loadAeronaveOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
-    api.get(`/api/admin/viaturas/aeronaves?term=${inputValue}`)
-      .then(res => {
-        const options = res.data.data.map((a: any) => ({ value: a.id, label: a.prefixo }));
+        const options = res.data.data.map((militar: Militar) => ({
+          value: militar.id,
+          label: `${militar.posto_graduacao} ${militar.nome_guerra}`,
+        }));
         callback(options);
-      })
-      .catch(() => callback([]));
+      });
   };
 
-  const loadPilotoOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
-    if (!inputValue || inputValue.length < 2) return callback([]);
-    api.get(`/api/admin/militares/search?term=${inputValue}`)
-      .then(res => callback(res.data))
-      .catch(() => callback([]));
-  };
-
-  const handleAeronaveChange = (opt: SingleValue<SelectOption>) => {
-    setFormData(prev => ({
-      ...prev,
-      aeronave_id: opt ? opt.value : '',
-      aeronave_prefixo: opt ? opt.label : '',
+  const defaultMilitarOptions = (militares: Militar[] | undefined) => {
+    if (!militares) return [];
+    return militares.map(militar => ({
+      value: militar.id,
+      label: `${militar.posto_graduacao} ${militar.nome_guerra}`,
     }));
   };
 
-  const handlePilotoChange = (field: 'primeiro_piloto_id' | 'segundo_piloto_id', opt: SingleValue<SelectOption>) => {
-    setFormData(prev => ({ ...prev, [field]: opt ? opt.value : '' }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="data">Data da Escala</Label>
-          <Input id="data" type="date" value={formData.data} onChange={e => setFormData(p => ({ ...p, data: e.target.value }))} required />
-        </div>
-        <div>
-          <Label htmlFor="aeronave_id">Aeronave</Label>
-          <AsyncSelect
-            id="aeronave_id"
-            cacheOptions
-            loadOptions={loadAeronaveOptions}
-            defaultOptions={initialAeronaveOptions}
-            isClearable
-            placeholder="Digite o prefixo (Ex: B-05)"
-            onChange={handleAeronaveChange}
-            noOptionsMessage={() => 'Nenhuma aeronave encontrada'}
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="primeiro_piloto_id">1º Piloto</Label>
-          <AsyncSelect
-            id="primeiro_piloto_id"
-            loadOptions={loadPilotoOptions}
-            // --- CORREÇÃO APLICADA ---
-            // A propriedade 'defaultOptions' foi completamente removida daqui.
-            isClearable
-            placeholder="Buscar por nome ou matrícula..."
-            onChange={(opt) => handlePilotoChange('primeiro_piloto_id', opt)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="segundo_piloto_id">2º Piloto</Label>
-          <AsyncSelect
-            id="segundo_piloto_id"
-            loadOptions={loadPilotoOptions}
-            // --- CORREÇÃO APLICADA ---
-            // A propriedade 'defaultOptions' foi completamente removida daqui.
-            isClearable
-            placeholder="Buscar por nome ou matrícula..."
-            onChange={(opt) => handlePilotoChange('segundo_piloto_id', opt)}
-          />
-        </div>
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Label htmlFor="status">Status</Label>
-        <select id="status" value={formData.status} onChange={e => setFormData(p => ({ ...p, status: e.target.value as any }))} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-          <option value="Ativa">Ativa</option>
-          <option value="Inativa">Inativa</option>
-          <option value="Manutenção">Manutenção</option>
-        </select>
+        <Label htmlFor="aeronave_id">Prefixo</Label>
+        <Controller
+          name="aeronave_id"
+          control={control}
+          rules={{ required: 'O prefixo Ã© obrigatÃ³rio' }}
+          render={({ field }) => (
+            <Select
+              {...field}
+              id="aeronave_id"
+              options={aeronavesData?.map(a => ({ value: a.id, label: a.prefixo })) || []}
+              value={
+                aeronavesData?.map(a => ({ value: a.id, label: a.prefixo })).find(
+                  option => option.value === field.value,
+                ) || null
+              }
+              onChange={option => field.onChange(option?.value)}
+              isLoading={isLoadingAeronaves}
+              placeholder="Selecione o prefixo"
+            />
+          )}
+        />
+        {errors.aeronave_id && (
+          <FormError message={errors.aeronave_id.message} />
+        )}
       </div>
-      <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
-        <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar Escala'}</Button>
+
+      <div>
+        <Label htmlFor="comandante_id">Comandante</Label>
+        <Controller
+          name="comandante_id"
+          control={control}
+          rules={{ required: 'O comandante Ã© obrigatÃ³rio' }}
+          render={({ field }) => (
+            <AsyncSelect
+              {...field}
+              id="comandante_id"
+              loadOptions={loadMilitares}
+              defaultOptions={defaultMilitarOptions(initialData?.comandante ? [initialData.comandante] : [])}
+              value={field.value && initialData?.comandante ? { value: initialData.comandante.id, label: `${initialData.comandante.posto_graduacao} ${initialData.comandante.nome_guerra}` } : null}
+              onChange={(option: any) => field.onChange(option.value)}
+              placeholder="Digite o nome do comandante"
+              isClearable
+            />
+          )}
+        />
+        {errors.comandante_id && (
+          <FormError message={errors.comandante_id.message} />
+        )}
+      </div>
+      
+      <div>
+        <Label htmlFor="copiloto_id">Copiloto</Label>
+        <Controller
+          name="copiloto_id"
+          control={control}
+          render={({ field }) => (
+            <AsyncSelect
+              {...field}
+              id="copiloto_id"
+              loadOptions={loadMilitares}
+              defaultOptions={defaultMilitarOptions(initialData?.copiloto ? [initialData.copiloto] : [])}
+              value={field.value && initialData?.copiloto ? { value: initialData.copiloto.id, label: `${initialData.copiloto.posto_graduacao} ${initialData.copiloto.nome_guerra}` } : null}
+              onChange={(option: any) => field.onChange(option.value)}
+              placeholder="Digite o nome do copiloto"
+              isClearable
+            />
+          )}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="tripulante_id">Tripulante</Label>
+        <Controller
+          name="tripulante_id"
+          control={control}
+          render={({ field }) => (
+            <AsyncSelect
+              {...field}
+              id="tripulante_id"
+              loadOptions={loadMilitares}
+              defaultOptions={defaultMilitarOptions(initialData?.tripulante ? [initialData.tripulante] : [])}
+              value={field.value && initialData?.tripulante ? { value: initialData.tripulante.id, label: `${initialData.tripulante.posto_graduacao} ${initialData.tripulante.nome_guerra}` } : null}
+              onChange={(option: any) => field.onChange(option.value)}
+              placeholder="Digite o nome do tripulante"
+              isClearable
+            />
+          )}
+        />
+      </div>
+      
+      <div className="flex items-center">
+        <Controller
+          name="em_servico"
+          control={control}
+          render={({ field }) => (
+            <input
+              id="em_servico"
+              type="checkbox"
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              checked={field.value}
+              name={field.name}
+              ref={field.ref}
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+          )}
+        />
+        <Label htmlFor="em_servico" className="ml-2 block text-sm text-gray-900">
+          Em serviÃ§o
+        </Label>
+      </div>
+
+      <div className="flex justify-end">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Salvando...' : (initialData ? 'Atualizar' : 'Adicionar')}
+        </Button>
       </div>
     </form>
   );

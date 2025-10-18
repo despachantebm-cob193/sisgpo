@@ -32,11 +32,20 @@ exports.getAll = async (req, res) => {
 };
 
 exports.getAllSimple = async (req, res) => {
-  const viaturas = await db('viaturas as v')
+  const { obm } = req.query;
+  const normalizedObm = obm ? String(obm).trim() : null;
+
+  const viaturasQuery = db('viaturas as v')
     .leftJoin('obms as o', 'v.obm', 'o.nome')
-    .select('v.id', 'v.prefixo', 'o.id as obm_id')
+    .select('v.id', 'v.prefixo', 'v.obm', 'o.id as obm_id')
     .where('v.ativa', true)
     .orderBy('v.prefixo', 'asc');
+
+  if (normalizedObm) {
+    viaturasQuery.andWhere('v.obm', 'ilike', normalizedObm);
+  }
+
+  const viaturas = await viaturasQuery;
   return res.status(200).json({ data: viaturas });
 };
 

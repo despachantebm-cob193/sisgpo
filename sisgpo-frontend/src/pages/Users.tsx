@@ -13,6 +13,9 @@ import { useAuthStore } from '../store/authStore';
 type UserRecord = {
   id: number;
   login: string;
+  nome?: string | null;
+  nome_completo?: string | null;
+  email?: string | null;
   perfil: 'admin' | 'user';
   ativo: boolean;
   created_at?: string;
@@ -21,6 +24,9 @@ type UserRecord = {
 
 type FormState = {
   login: string;
+  nome: string;
+  nome_completo: string;
+  email: string;
   senha: string;
   confirmarSenha: string;
   perfil: 'admin' | 'user';
@@ -30,6 +36,9 @@ type ValidationErrors = Record<string, string>;
 
 const initialForm: FormState = {
   login: '',
+  nome: '',
+  nome_completo: '',
+  email: '',
   senha: '',
   confirmarSenha: '',
   perfil: 'user',
@@ -100,6 +109,9 @@ export default function Users() {
     setEditingUser(user);
     setFormData({
       login: user.login,
+      nome: user.nome ?? '',
+      nome_completo: user.nome_completo ?? '',
+      email: user.email ?? '',
       senha: '',
       confirmarSenha: '',
       perfil: user.perfil,
@@ -118,25 +130,78 @@ export default function Users() {
     setIsSubmitting(true);
     setFormErrors({});
 
+    const trimmedLogin = formData.login.trim();
+    const trimmedNome = formData.nome.trim();
+    const trimmedNomeCompleto = formData.nome_completo.trim();
+    const trimmedEmail = formData.email.trim();
+
+    const validationErrors: ValidationErrors = {};
+
+    if (!trimmedNomeCompleto) {
+      validationErrors.nome_completo = 'Informe o nome completo.';
+    }
+
+    if (!trimmedNome) {
+      validationErrors.nome = 'Informe o nome.';
+    }
+
+    if (!trimmedEmail) {
+      validationErrors.email = 'Informe o email.';
+    }
+
+    if (!trimmedLogin) {
+      validationErrors.login = 'Informe o login.';
+    }
+
+    if (!editingUser) {
+      if (!formData.senha) {
+        validationErrors.senha = 'Informe a senha.';
+      }
+
+      if (!formData.confirmarSenha) {
+        validationErrors.confirmarSenha = 'Confirme a senha.';
+      }
+    }
+
+    if (formData.confirmarSenha && !formData.senha) {
+      validationErrors.confirmarSenha = 'Informe a nova senha para confirmar.';
+    } else if ((formData.senha || formData.confirmarSenha) && formData.senha !== formData.confirmarSenha) {
+      validationErrors.confirmarSenha = 'As senhas devem ser iguais.';
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       if (editingUser) {
         const payload: Record<string, unknown> = {};
 
-        if (formData.login && formData.login !== editingUser.login) {
-          payload.login = formData.login;
+        if (trimmedLogin && trimmedLogin !== editingUser.login) {
+          payload.login = trimmedLogin;
         }
 
         if (formData.perfil && formData.perfil !== editingUser.perfil) {
           payload.perfil = formData.perfil;
         }
 
+        if (trimmedNome && trimmedNome !== (editingUser.nome ?? '')) {
+          payload.nome = trimmedNome;
+        }
+
+        if (trimmedNomeCompleto && trimmedNomeCompleto !== (editingUser.nome_completo ?? '')) {
+          payload.nome_completo = trimmedNomeCompleto;
+        }
+
+        if (trimmedEmail && trimmedEmail !== (editingUser.email ?? '')) {
+          payload.email = trimmedEmail;
+        }
+
         if (formData.senha) {
           payload.senha = formData.senha;
           payload.confirmarSenha = formData.confirmarSenha;
-        } else if (formData.confirmarSenha) {
-          setFormErrors({ confirmarSenha: 'Informe a nova senha para confirmar.' });
-          setIsSubmitting(false);
-          return;
         }
 
         if (Object.keys(payload).length === 0) {
@@ -150,10 +215,13 @@ export default function Users() {
         toast.success('Usuario atualizado com sucesso!');
       } else {
         await api.post('/api/admin/users', {
-          login: formData.login,
+          login: trimmedLogin,
           senha: formData.senha,
           confirmarSenha: formData.confirmarSenha,
           perfil: formData.perfil,
+          nome: trimmedNome,
+          nome_completo: trimmedNomeCompleto,
+          email: trimmedEmail,
         });
         toast.success('Usuario criado com sucesso!');
       }
@@ -190,6 +258,9 @@ export default function Users() {
           setEditingUser(refreshed);
           setFormData({
             login: refreshed.login,
+            nome: refreshed.nome ?? '',
+            nome_completo: refreshed.nome_completo ?? '',
+            email: refreshed.email ?? '',
             senha: '',
             confirmarSenha: '',
             perfil: refreshed.perfil,
@@ -277,6 +348,46 @@ export default function Users() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <Label htmlFor="nome_completo">Nome completo</Label>
+              <Input
+                id="nome_completo"
+                name="nome_completo"
+                value={formData.nome_completo}
+                onChange={handleInputChange}
+                placeholder="Digite o nome completo"
+                required
+              />
+              {formErrors.nome_completo && <FormError message={formErrors.nome_completo} />}
+            </div>
+
+            <div>
+              <Label htmlFor="nome">Nome</Label>
+              <Input
+                id="nome"
+                name="nome"
+                value={formData.nome}
+                onChange={handleInputChange}
+                placeholder="Digite o nome"
+                required
+              />
+              {formErrors.nome && <FormError message={formErrors.nome} />}
+            </div>
+
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="Digite o email"
+                required
+              />
+              {formErrors.email && <FormError message={formErrors.email} />}
+            </div>
+
+            <div>
               <Label htmlFor="login">Login</Label>
               <Input
                 ref={loginInputRef}
@@ -359,6 +470,8 @@ export default function Users() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Login</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Nome completo</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Email</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Perfil</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider">Criado em</th>
@@ -368,16 +481,18 @@ export default function Users() {
               <tbody className="divide-y divide-gray-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">Carregando usuarios...</td>
+                    <td colSpan={7} className="px-4 py-6 text-center text-gray-500">Carregando usuarios...</td>
                   </tr>
                 ) : sortedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">Nenhum usuario cadastrado ate o momento.</td>
+                    <td colSpan={7} className="px-4 py-6 text-center text-gray-500">Nenhum usuario cadastrado ate o momento.</td>
                   </tr>
                 ) : (
                   sortedUsers.map((item) => (
                     <tr key={item.id} className={!item.ativo ? 'bg-gray-100 text-gray-600' : ''}>
                       <td className="px-4 py-2 font-medium text-gray-900">{item.login}</td>
+                      <td className="px-4 py-2 text-gray-900">{item.nome_completo ?? '-'}</td>
+                      <td className="px-4 py-2 text-gray-700">{item.email ?? '-'}</td>
                       <td className="px-4 py-2 text-gray-700 capitalize">{item.perfil}</td>
                       <td className="px-4 py-2">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${item.ativo ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>

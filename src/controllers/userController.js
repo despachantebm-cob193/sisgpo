@@ -9,6 +9,10 @@ const sanitizeUser = (user) => ({
   login: user.login,
   perfil: user.perfil,
   ativo: user.ativo,
+  // Adicionando os novos campos para garantir que sejam retornados, se existirem
+  nome_completo: user.nome_completo,
+  nome: user.nome,
+  email: user.email,
   created_at: user.created_at,
   updated_at: user.updated_at,
 });
@@ -54,10 +58,15 @@ const userController = {
    * Cria um novo usuario com o perfil informado.
    */
   create: async (req, res) => {
-    const { login, senha, perfil } = req.body;
-    const normalizedPerfil = perfil.toLowerCase();
+    // CORREÇÃO: Capturando os novos campos do corpo da requisição
+    const { login, senha, perfil, nome_completo, nome, email } = req.body;
+    const trimmedLogin = login.trim();
+    const trimmedNome = nome.trim();
+    const trimmedNomeCompleto = nome_completo.trim();
+    const trimmedEmail = email.trim();
+    const normalizedPerfil = perfil.trim().toLowerCase();
 
-    const existingUser = await db('usuarios').where({ login }).first();
+    const existingUser = await db('usuarios').where({ login: trimmedLogin }).first();
     if (existingUser) {
       throw new AppError('Login ja esta em uso.', 409);
     }
@@ -65,11 +74,15 @@ const userController = {
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senha, salt);
 
+    // CORREÇÃO: Adicionando os campos obrigatórios ao payload de inserção
     const insertPayload = {
-      login,
+      login: trimmedLogin,
       senha_hash: senhaHash,
       perfil: normalizedPerfil,
       ativo: true,
+      nome_completo: trimmedNomeCompleto, // Adicionado
+      nome: trimmedNome,          // Adicionado
+      email: trimmedEmail.toLowerCase(),         // Adicionado
     };
 
     let createdUserRecord;
@@ -79,11 +92,11 @@ const userController = {
       const userId = Array.isArray(insertedIds) ? insertedIds[0] : insertedIds;
       createdUserRecord = await db('usuarios')
         .where({ id: userId })
-        .first('id', 'login', 'perfil', 'ativo', 'created_at', 'updated_at');
+        .first(); // Seleciona todos os campos para sanitização
     } else {
       const insertedRows = await db('usuarios')
         .insert(insertPayload)
-        .returning(['id', 'login', 'perfil', 'ativo', 'created_at', 'updated_at']);
+        .returning('*'); // Retorna todos os campos para sanitização
 
       createdUserRecord = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
     }
@@ -99,7 +112,8 @@ const userController = {
    */
   update: async (req, res) => {
     const { id } = req.params;
-    const { login, perfil, senha } = req.body;
+    // CORREÇÃO: Permitindo a atualização dos novos campos
+    const { login, perfil, senha, nome_completo, nome, email } = req.body;
     const userId = Number(id);
 
     const user = await db('usuarios').where({ id: userId }).first();
@@ -108,17 +122,33 @@ const userController = {
     }
 
     const updatePayload = { updated_at: db.fn.now() };
+    const trimmedLogin = typeof login === 'string' ? login.trim() : undefined;
+    const trimmedNome = typeof nome === 'string' ? nome.trim() : undefined;
+    const trimmedNomeCompleto = typeof nome_completo === 'string' ? nome_completo.trim() : undefined;
+    const trimmedEmail = typeof email === 'string' ? email.trim() : undefined;
 
-    if (login && login !== user.login) {
-      const loginInUse = await db('usuarios').where({ login }).whereNot({ id: userId }).first();
+    if (trimmedLogin && trimmedLogin !== user.login) {
+      const loginInUse = await db('usuarios').where({ login: trimmedLogin }).whereNot({ id: userId }).first();
       if (loginInUse) {
         throw new AppError('Login informado ja esta em uso.', 409);
       }
-      updatePayload.login = login;
+      updatePayload.login = trimmedLogin;
     }
 
-    if (perfil) {
-      updatePayload.perfil = perfil.toLowerCase();
+    const normalizedPerfil = typeof perfil === 'string' ? perfil.trim().toLowerCase() : undefined;
+    if (normalizedPerfil) {
+      updatePayload.perfil = normalizedPerfil;
+    }
+    
+    // CORREÇÃO: Adicionando os novos campos ao payload de atualização
+    if (typeof trimmedNomeCompleto === 'string' && trimmedNomeCompleto && trimmedNomeCompleto !== (user.nome_completo ?? '')) {
+      updatePayload.nome_completo = trimmedNomeCompleto;
+    }
+    if (typeof trimmedNome === 'string' && trimmedNome && trimmedNome !== (user.nome ?? '')) {
+      updatePayload.nome = trimmedNome;
+    }
+    if (typeof trimmedEmail === 'string' && trimmedEmail && trimmedEmail.toLowerCase() !== (user.email ?? '').toLowerCase()) {
+      updatePayload.email = trimmedEmail.toLowerCase();
     }
 
     if (senha) {
@@ -126,7 +156,7 @@ const userController = {
       updatePayload.senha_hash = await bcrypt.hash(senha, salt);
     }
 
-    const updatableFields = ['login', 'perfil', 'senha_hash'];
+    const updatableFields = ['login', 'perfil', 'senha_hash', 'nome_completo', 'nome', 'email'];
     const hasUpdates = updatableFields.some((field) => field in updatePayload);
     if (!hasUpdates) {
       return res.status(200).json({
@@ -139,7 +169,7 @@ const userController = {
 
     const updatedUser = await db('usuarios')
       .where({ id: userId })
-      .first('id', 'login', 'perfil', 'ativo', 'created_at', 'updated_at');
+      .first();
 
     res.status(200).json({
       message: 'Usuario atualizado com sucesso!',
@@ -177,7 +207,7 @@ const userController = {
 
     const updatedUser = await db('usuarios')
       .where({ id: targetUserId })
-      .first('id', 'login', 'perfil', 'ativo', 'created_at', 'updated_at');
+      .first();
 
     res.status(200).json({
       message: ativo ? 'Usuario reativado com sucesso!' : 'Usuario desativado com sucesso!',
@@ -211,7 +241,7 @@ const userController = {
    */
   list: async (_req, res) => {
     const users = await db('usuarios')
-      .select('id', 'login', 'perfil', 'ativo', 'created_at', 'updated_at')
+      .select('*') // Seleciona todos os campos para a função sanitize
       .orderBy('login', 'asc');
 
     res.status(200).json({
