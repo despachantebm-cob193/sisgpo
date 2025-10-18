@@ -43,3 +43,27 @@ export interface EscalaAeronave {
   copiloto?: Militar;
   tripulante?: Militar;
 }
+
+export type UserRecord = {
+  id: number;
+  login: string;
+  nome?: string | null;
+  nome_completo?: string | null;
+  email?: string | null;
+  perfil: 'admin' | 'user';
+  ativo: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type FormState = {
+  login: string;
+  nome: string;
+  nome_completo: string;
+  email: string;
+  senha: string;
+  confirmarSenha: string;
+  perfil: 'admin' | 'user';
+};
+
+export type ValidationErrors = Record<string, string>;

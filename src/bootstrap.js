@@ -58,11 +58,43 @@ async function ensureCriticalUserColumnsRaw(knex) {
     }
 }
 
+// Função auxiliar para forçar a adição de colunas críticas na tabela 'plantoes'
+async function ensureCriticalPlantaoColumnsRaw(knex) {
+    try {
+        // Tenta um SELECT seguro para verificar se as colunas essenciais existem.
+        await knex.raw('SELECT id, data_plantao, viatura_id, obm_id FROM plantoes LIMIT 1');
+        return; // Schema está OK
+    } catch (e) {
+        if (e.code !== '42703') throw e; // Só trata o erro de coluna inexistente
+
+        console.log('[Bootstrap Fix - RAW SQL] Colunas críticas ausentes em "plantoes". Aplicando ALTER TABLE forçado...');
+
+        // Adiciona as colunas que podem estar faltando.
+        // O IF NOT EXISTS previne erros se a coluna já existir.
+        await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS data_plantao DATE;`);
+        await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS viatura_id INTEGER;`);
+        await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS obm_id INTEGER;`);
+        await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS observacoes TEXT;`);
+
+        // Define as constraints NOT NULL para as colunas que devem ser obrigatórias
+        // Apenas se a tabela estiver vazia para evitar erros em dados existentes.
+        const { count } = await knex('plantoes').count('id as count').first();
+        if (Number(count) === 0) {
+            await knex.raw(`ALTER TABLE plantoes ALTER COLUMN data_plantao SET NOT NULL;`);
+            await knex.raw(`ALTER TABLE plantoes ALTER COLUMN viatura_id SET NOT NULL;`);
+            await knex.raw(`ALTER TABLE plantoes ALTER COLUMN obm_id SET NOT NULL;`);
+        }
+
+        console.log('[Bootstrap Fix] Correção RAW SQL para "plantoes" aplicada com sucesso.');
+    }
+}
+
 async function bootstrapDatabase() {
     console.log('[Bootstrap] Iniciando verificacao e populacao de dados essenciais...');
     
     try {
         await ensureCriticalUserColumnsRaw(db);
+        await ensureCriticalPlantaoColumnsRaw(db); // <-- Adicionado aqui
 
         // 1. Verificar se o usuário admin já existe
         const adminUser = await db('usuarios')
@@ -92,17 +124,61 @@ async function bootstrapDatabase() {
         console.log('-> Usuario "admin" criado com sucesso.');
 
         // Resto do seeding (OBMs, Militares, Viaturas)
-        const [obm] = await db('obms')
-            .insert([{ nome: 'Comando Geral do Corpo de Bombeiros', abreviatura: 'CGCBM', cidade: 'Goiania', telefone: '6232012000' }])
-            .returning('id');
+        const obmSeed = {
+            nome: 'Comando Geral do Corpo de Bombeiros',
+            abreviatura: 'CGCBM',
+            cidade: 'Goiania',
+            telefone: '6232012000',
+        };
 
-        await db('militares').insert([{
-            matricula: '000000', nome_completo: ADMIN_NOME_COMPLETO, nome_guerra: 'Admin', posto_graduacao: 'Sistema', ativo: true, obm_nome: 'Comando Geral do Corpo de Bombeiros',
-        }]);
+        const existingObm = await db('obms')
+            .where({ nome: obmSeed.nome })
+            .first();
 
-        await db('viaturas').insert([{
-            prefixo: 'VTR-ADM', ativa: true, cidade: 'Goiania', obm: 'Comando Geral do Corpo de Bombeiros',
-        }]);
+        if (!existingObm) {
+            await db('obms').insert(obmSeed);
+            console.log(`-> OBM "${obmSeed.nome}" criada com sucesso.`);
+        } else {
+            console.log(`-> OBM "${obmSeed.nome}" ja existe. Pulando criacao.`);
+        }
+
+        const militarSeed = {
+            matricula: '000000',
+            nome_completo: ADMIN_NOME_COMPLETO,
+            nome_guerra: 'Admin',
+            posto_graduacao: 'Sistema',
+            ativo: true,
+            obm_nome: obmSeed.nome,
+        };
+
+        const existingMilitar = await db('militares')
+            .where({ matricula: militarSeed.matricula })
+            .first();
+
+        if (!existingMilitar) {
+            await db('militares').insert(militarSeed);
+            console.log(`-> Militar "${militarSeed.nome_completo}" criado com sucesso.`);
+        } else {
+            console.log(`-> Militar com matricula ${militarSeed.matricula} ja existe. Pulando criacao.`);
+        }
+
+        const viaturaSeed = {
+            prefixo: 'VTR-ADM',
+            ativa: true,
+            cidade: 'Goiania',
+            obm: obmSeed.nome,
+        };
+
+        const existingViatura = await db('viaturas')
+            .where({ prefixo: viaturaSeed.prefixo })
+            .first();
+
+        if (!existingViatura) {
+            await db('viaturas').insert(viaturaSeed);
+            console.log(`-> Viatura "${viaturaSeed.prefixo}" criada com sucesso.`);
+        } else {
+            console.log(`-> Viatura "${viaturaSeed.prefixo}" ja existe. Pulando criacao.`);
+        }
         
         console.log('OK. [Bootstrap] Banco de dados populado com sucesso!');
         
