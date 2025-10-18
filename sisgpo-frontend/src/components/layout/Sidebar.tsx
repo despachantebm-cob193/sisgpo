@@ -17,7 +17,13 @@ import {
   ChevronsLeft,
   ChevronsRight,
   GaugeCircle, // Adicionado
+  BellElectric,
 } from 'lucide-react';
+import { TfiJoomla } from 'react-icons/tfi';
+import { GiSiren } from 'react-icons/gi';
+import { FaHelicopter } from 'react-icons/fa';
+import { MdFireTruck } from 'react-icons/md';
+import { IoMedicalSharp } from 'react-icons/io5';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
@@ -35,7 +41,7 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
   </div>
 );
 
-function Sidebar() {
+export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { isSidebarCollapsed, toggleSidebar } = useUiStore();
@@ -65,11 +71,13 @@ function Sidebar() {
           }`}
         >
           {isSidebarCollapsed ? (
-            <GaugeCircle className="h-8 w-8 text-white" />
+            <TfiJoomla className="text-white text-3xl" />
           ) : (
-            <div>
-              <h1 className="text-xl font-bold text-white">SISGPO</h1>
-              <p className="text-sm text-gray-300">Sistema de Gerenciamento</p>
+            <div className="flex items-center">
+              <TfiJoomla className="text-white mr-2 text-2xl" />
+              <div>
+                <h1 className="text-xl font-bold text-white">SISGPO</h1>
+              </div>
             </div>
           )}
         </div>
@@ -84,7 +92,7 @@ function Sidebar() {
             >
               <NavLinkContent
                 isCollapsed={isSidebarCollapsed}
-                icon={<Home className="mr-3" />}
+                icon={<Home className="mr-3 h-6 w-6" />}
                 text="Dashboard"
               />
             </NavLink>
@@ -98,7 +106,7 @@ function Sidebar() {
             >
               <NavLinkContent
                 isCollapsed={isSidebarCollapsed}
-                icon={<FileStack className="mr-3" />}
+                icon={<GiSiren className="mr-3 h-6 w-6" />}
                 text="Ocorrências"
               />
             </NavLink>
@@ -121,10 +129,18 @@ function Sidebar() {
               </button>
               <div
                 className={`transition-all duration-300 overflow-hidden ${
-                  isAdminOpen && !isSidebarCollapsed ? 'max-h-screen' : 'max-h-0'
+                  !isSidebarCollapsed
+                    ? isAdminOpen
+                      ? 'max-h-screen'
+                      : 'max-h-0'
+                    : 'max-h-screen'
                 }`}
               >
-                <ul className="space-y-2 font-medium pl-4">
+                <ul
+                  className={`space-y-2 font-medium ${
+                    !isSidebarCollapsed ? 'pl-4' : ''
+                  }`}
+                >
                   <li>
                     <NavLink
                       to="/app/servico-dia"
@@ -134,7 +150,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<ClipboardList className="mr-3" />}
+                        icon={<ClipboardList className="mr-3 h-6 w-6" />}
                         text="Serviço do Dia"
                       />
                     </NavLink>
@@ -148,7 +164,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<Users className="mr-3" />}
+                        icon={<Users className="mr-3 h-6 w-6" />}
                         text="Militares"
                       />
                     </NavLink>
@@ -162,7 +178,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<UserPlus className="mr-3" />}
+                        icon={<IoMedicalSharp className="mr-3 h-6 w-6" />}
                         text="Médicos"
                       />
                     </NavLink>
@@ -176,7 +192,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<Truck className="mr-3" />}
+                        icon={<MdFireTruck className="mr-3 h-6 w-6" />}
                         text="Viaturas"
                       />
                     </NavLink>
@@ -190,7 +206,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<Plane className="mr-3" />}
+                        icon={<FaHelicopter className="mr-3 h-6 w-6" />}
                         text="Aeronaves"
                       />
                     </NavLink>
@@ -204,7 +220,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<Pyramid className="mr-3" />}
+                        icon={<BellElectric className="mr-3 h-6 w-6" />}
                         text="OBMs"
                       />
                     </NavLink>
@@ -218,7 +234,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<Shield className="mr-3" />}
+                        icon={<Shield className="mr-3 h-6 w-6" />}
                         text="Plantões"
                       />
                     </NavLink>
@@ -232,7 +248,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<UserCheck className="mr-3" />}
+                        icon={<UserCheck className="mr-3 h-6 w-6" />}
                         text="Usuários"
                       />
                     </NavLink>
@@ -258,7 +274,7 @@ function Sidebar() {
             >
               <NavLinkContent
                 isCollapsed={isSidebarCollapsed}
-                icon={<FileText className="mr-3" />}
+                icon={<FileText className="mr-3 h-6 w-6" />}
                 text="Relatório de Escala"
               />
             </NavLink>
@@ -269,7 +285,7 @@ function Sidebar() {
           <button onClick={toggleSidebar} className={`${navLinkClass} w-full`}>
             <NavLinkContent
               isCollapsed={isSidebarCollapsed}
-              icon={isSidebarCollapsed ? <ChevronsRight className="mr-3" /> : <ChevronsLeft className="mr-3" />}
+              icon={isSidebarCollapsed ? <ChevronsRight className="mr-3 h-6 w-6" /> : <ChevronsLeft className="mr-3 h-6 w-6" />}
               text="Recolher"
             />
           </button>
@@ -282,14 +298,14 @@ function Sidebar() {
             >
               <NavLinkContent
                 isCollapsed={isSidebarCollapsed}
-                icon={<Settings className="mr-3" />}
+                icon={<Settings className="mr-3 h-6 w-6" />}
                 text={user?.login}
               />
             </NavLink>
             <button onClick={handleLogout} className={`${navLinkClass} w-full`}>
               <NavLinkContent
                 isCollapsed={isSidebarCollapsed}
-                icon={<LogOut className="mr-3" />}
+                icon={<LogOut className="mr-3 h-6 w-6" />}
                 text="Sair"
               />
             </button>
@@ -299,5 +315,3 @@ function Sidebar() {
     </aside>
   );
 }
-
-export default Sidebar;
