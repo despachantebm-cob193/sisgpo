@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import {
   ClipboardList,
   FileStack,
@@ -9,19 +8,27 @@ import {
   Pyramid,
   Settings,
   Shield,
-  Ship,
+  Plane,
   Truck,
   UserCheck,
   UserPlus,
   Users,
   ChevronDown,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  GaugeCircle, // Adicionado
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { useUiStore } from '../../store/uiStore'; // Importe o store da UI
+import { useUiStore } from '../../store/uiStore';
 
-const NavLinkContent = ({ isCollapsed, icon, text }) => (
+interface NavLinkContentProps {
+  isCollapsed: boolean;
+  icon: ReactNode;
+  text: string | null | undefined;
+}
+
+const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
   <div className="flex items-center">
     {icon}
     {!isCollapsed && <span className="ml-3">{text}</span>}
@@ -31,7 +38,7 @@ const NavLinkContent = ({ isCollapsed, icon, text }) => (
 function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { isSidebarCollapsed, toggleSidebar } = useUiStore(); // Use o estado global
+  const { isSidebarCollapsed, toggleSidebar } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
 
   const handleLogout = () => {
@@ -58,23 +65,13 @@ function Sidebar() {
           }`}
         >
           {isSidebarCollapsed ? (
-            <h1 className="text-xl font-bold text-white">SISGPO</h1>
+            <GaugeCircle className="h-8 w-8 text-white" />
           ) : (
             <div>
               <h1 className="text-xl font-bold text-white">SISGPO</h1>
               <p className="text-sm text-gray-300">Sistema de Gerenciamento</p>
             </div>
           )}
-          <button
-            onClick={toggleSidebar} // Usa o estado global
-            className="absolute right-[-12px] top-1/2 -translate-y-1/2 rounded-full bg-gray-700 p-1 text-white"
-          >
-            <ChevronRight
-              className={`transition-transform duration-300 ${
-                isSidebarCollapsed ? '' : 'rotate-180'
-              }`}
-            />
-          </button>
         </div>
 
         <ul className="space-y-2 pt-4 font-medium">
@@ -193,7 +190,7 @@ function Sidebar() {
                     >
                       <NavLinkContent
                         isCollapsed={isSidebarCollapsed}
-                        icon={<Ship className="mr-3" />}
+                        icon={<Plane className="mr-3" />}
                         text="Aeronaves"
                       />
                     </NavLink>
@@ -268,7 +265,14 @@ function Sidebar() {
           </li>
         </ul>
 
-        <div className="absolute bottom-0 left-0 justify-center p-4 space-y-2 w-full bg-gray-800 dark:bg-gray-800 dark:border-gray-700">
+        <div className="absolute bottom-0 left-0 justify-center p-4 space-y-2 w-full bg-gray-800 dark:bg-gray-800">
+          <button onClick={toggleSidebar} className={`${navLinkClass} w-full`}>
+            <NavLinkContent
+              isCollapsed={isSidebarCollapsed}
+              icon={isSidebarCollapsed ? <ChevronsRight className="mr-3" /> : <ChevronsLeft className="mr-3" />}
+              text="Recolher"
+            />
+          </button>
           <div className="p-2 border-t border-gray-700">
             <NavLink
               to="/app/perfil"
