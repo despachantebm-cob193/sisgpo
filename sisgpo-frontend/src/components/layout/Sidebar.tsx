@@ -46,30 +46,28 @@ function Sidebar() {
   return (
     <aside
       id="logo-sidebar"
-      className={`fixed top-0 left-0 z-40 h-screen pt-5 transition-all duration-300 ${
+      className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${
         isSidebarCollapsed ? 'w-20' : 'w-64'
       } bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
       aria-label="Sidebar"
     >
       <div className="h-full px-3 pb-4 overflow-y-auto bg-gray-800 dark:bg-gray-800">
         <div
-          className={`p-4 mb-5 border-b border-gray-700 ${
-            isSidebarCollapsed ? 'text-center' : ''
+          className={`relative flex h-16 items-center border-b border-gray-700 px-6 ${
+            isSidebarCollapsed ? 'justify-center' : 'justify-between'
           }`}
         >
-          <h1 className={`text-xl font-bold ${isSidebarCollapsed ? 'hidden' : ''}`}>
-            SISGPO
-          </h1>
-          <p
-            className={`text-sm text-gray-400 ${
-              isSidebarCollapsed ? 'hidden' : ''
-            }`}
-          >
-            Sistema de Gerenciamento
-          </p>
+          {isSidebarCollapsed ? (
+            <h1 className="text-xl font-bold text-white">SISGPO</h1>
+          ) : (
+            <div>
+              <h1 className="text-xl font-bold text-white">SISGPO</h1>
+              <p className="text-sm text-gray-300">Sistema de Gerenciamento</p>
+            </div>
+          )}
           <button
-            onClick={toggleSidebar} // Use a função do store
-            className="absolute top-4 right-[-12px] bg-gray-700 text-white p-1 rounded-full"
+            onClick={toggleSidebar} // Usa o estado global
+            className="absolute right-[-12px] top-1/2 -translate-y-1/2 rounded-full bg-gray-700 p-1 text-white"
           >
             <ChevronRight
               className={`transition-transform duration-300 ${
@@ -79,7 +77,7 @@ function Sidebar() {
           </button>
         </div>
 
-        <ul className="space-y-2 font-medium">
+        <ul className="space-y-2 pt-4 font-medium">
           <li>
             <NavLink
               to="/app/dashboard"

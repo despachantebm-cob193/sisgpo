@@ -11,14 +11,14 @@ const AppLayout: React.FC = () => {
     <div className="relative min-h-screen bg-gray-100">
       <Sidebar />
       <div
-        className={`transition-all duration-300 ${
+        className={`flex min-h-screen flex-col transition-all duration-300 ${
           isSidebarCollapsed ? 'ml-20' : 'ml-64'
         }`}
       >
-        <header className="h-16 bg-white border-b flex items-center px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center border-b bg-white px-6">
           <h1 className="text-lg font-semibold text-gray-800">{pageTitle}</h1>
         </header>
-        <main className="p-8">
+        <main className="flex-1 overflow-y-auto p-8">
           <Outlet />
         </main>
       </div>
