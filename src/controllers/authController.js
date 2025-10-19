@@ -3,7 +3,11 @@
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
 const AppError = require('../utils/AppError');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const authController = {
   login: async (req, res) => {
@@ -91,6 +95,79 @@ const authController = {
 
     res.status(200).json({
       message: 'Login bem-sucedido!',
+      token,
+      user,
+    });
+  },
+
+  googleLogin: async (req, res) => {
+    const { credential } = req.body;
+
+    if (!credential) {
+      throw new AppError('Token do Google não fornecido.', 400);
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, sub: google_id } = payload;
+
+    if (!email) {
+      throw new AppError('Não foi possível obter o e-mail da conta Google.', 400);
+    }
+
+    let user = await db('usuarios').where({ google_id }).first();
+
+    if (!user) {
+      // Se não encontrou pelo google_id, tenta pelo e-mail para vincular contas existentes
+      user = await db('usuarios').where({ email }).first();
+      if (user) {
+        // Vincula a conta existente ao google_id
+        await db('usuarios').where({ id: user.id }).update({ google_id });
+      }
+    }
+
+    if (!user) {
+      // Se ainda não há usuário, cria um novo
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const senha_hash = await bcrypt.hash(randomPassword, 10);
+
+      const newUser = {
+        nome_completo: name,
+        login: email.split('@')[0], // Usa a parte local do e-mail como login inicial
+        email,
+        senha_hash,
+        google_id,
+        perfil: 'user', // Perfil padrão para novos usuários via Google
+        ativo: true,
+      };
+
+      const [insertedUser] = await db('usuarios').insert(newUser).returning('*');
+      user = insertedUser;
+    }
+
+    if (!user.ativo) {
+      throw new AppError('Conta desativada. Procure um administrador.', 403);
+    }
+
+    console.log(`[AuthController] Login com Google bem-sucedido para '${user.email}'.`);
+
+    const perfil = (user.perfil || '').toLowerCase();
+    const token = jwt.sign(
+      { id: user.id, login: user.login, perfil },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    delete user.senha_hash;
+    user.perfil = perfil;
+    user.ativo = Boolean(user.ativo);
+
+    res.status(200).json({
+      message: 'Login com Google bem-sucedido!',
       token,
       user,
     });

@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import router from './router'; // <<< CORREÇÃO AQUI: importe sem as chaves {}
 import './index.css';
 
@@ -22,19 +23,21 @@ const root = ReactDOM.createRoot(rootElement);
 
 root.render(
   <React.StrictMode>
-    {/* Envolve a aplicação com o Provider */}
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 5000,
-          style: {
-            background: '#333',
-            color: '#fff',
-          },
-        }}
-      />
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId="1051946291439-3u8vm6u2ao40nslmf2k0rmgmna932qp5.apps.googleusercontent.com">
+      {/* Envolve a aplicação com o Provider */}
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 5000,
+            style: {
+              background: '#333',
+              color: '#fff',
+            },
+          }}
+        />
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>,
 );

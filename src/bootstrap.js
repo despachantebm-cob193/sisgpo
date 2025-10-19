@@ -12,7 +12,7 @@ const ADMIN_NOME_COMPLETO = 'Administrador do Sistema';
 async function ensureCriticalUserColumnsRaw(knex) {
     try {
         // Tenta um SELECT seguro para verificar se as colunas essenciais existem.
-        await knex.raw('SELECT login, senha_hash, perfil, nome_completo, nome, ativo, email FROM usuarios LIMIT 1'); 
+        await knex.raw('SELECT login, senha_hash, perfil, nome_completo, nome, ativo, email, google_id FROM usuarios LIMIT 1'); 
         return; // Schema está OK
     } catch (e) {
         if (e.code !== '42703') throw e; // Só trata o erro de coluna inexistente
@@ -27,6 +27,7 @@ async function ensureCriticalUserColumnsRaw(knex) {
         await knex.raw(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome_completo VARCHAR(255);`);
         await knex.raw(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255);`);
         await knex.raw(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email VARCHAR(255);`); // CRÍTICO: Coluna email
+        await knex.raw(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS google_id VARCHAR(255);`); // Opcional: vinculo Google OAuth
         
         // B. Preenche os dados temporários e define NOT NULL
         await knex.raw(`UPDATE usuarios SET login = 'temp_user_' || id::text WHERE login IS NULL;`);
@@ -50,6 +51,13 @@ async function ensureCriticalUserColumnsRaw(knex) {
             DO $$ BEGIN
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'usuarios_login_unique') THEN
                     ALTER TABLE usuarios ADD CONSTRAINT usuarios_login_unique UNIQUE (login);
+                END IF;
+            END $$;
+        `);
+        await knex.raw(`
+            DO $$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'usuarios_google_id_unique') THEN
+                    ALTER TABLE usuarios ADD CONSTRAINT usuarios_google_id_unique UNIQUE (google_id);
                 END IF;
             END $$;
         `);
