@@ -1,4 +1,5 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
@@ -8,171 +9,245 @@ import { Aeronave, EscalaAeronave, Militar } from '../../types/entities';
 import Button from '../ui/Button';
 import FormError from '../ui/FormError';
 import Label from '../ui/Label';
+import Input from '../ui/Input';
 
+interface MilitarOption {
+  value: number;
+  label: string;
+}
 
 type EscalaAeronaveFormProps = {
-  onSubmit: (data: EscalaAeronave) => void;
+  onSave: (data: EscalaAeronave) => void;
   initialData?: EscalaAeronave;
-  isSubmitting: boolean;
+  isLoading?: boolean;
+  onCancel?: () => void;
+};
+
+const loadMilitares = (inputValue: string, callback: (options: MilitarOption[]) => void) => {
+  if (inputValue.length < 2) {
+    callback([]);
+    return;
+  }
+
+  api
+    .get('/api/admin/militares/search', { params: { term: inputValue } })
+    .then((res) => {
+      const rawData = Array.isArray(res.data) ? res.data : [];
+      const options = rawData
+        .map((item: any) => {
+          if (item && typeof item === 'object' && 'value' in item && 'label' in item) {
+            return item as MilitarOption;
+          }
+
+          const id = item?.id ?? item?.militar_id;
+          const posto = item?.posto_graduacao ?? '';
+          const nomeGuerra =
+            item?.nome_guerra && item.nome_guerra.trim().length > 0
+              ? item.nome_guerra
+              : item?.nome_completo ?? '';
+
+          return {
+            value: id,
+            label: `${posto} ${nomeGuerra}`.trim(),
+          } as MilitarOption;
+        })
+        .filter((option) => option.value && option.label);
+
+      callback(options);
+    })
+    .catch(() => {
+      callback([]);
+    });
+};
+
+const formatMilitarOption = (militar?: Militar | null) => {
+  if (!militar) return null;
+  const nome =
+    militar.nome_guerra && militar.nome_guerra.trim().length > 0
+      ? militar.nome_guerra
+      : militar.nome_completo;
+  return {
+    value: militar.id,
+    label: `${militar.posto_graduacao} ${nome}`.trim(),
+  };
+};
+
+const buildDefaultValues = (initialData?: EscalaAeronave) => {
+  const aeronaveValue =
+    initialData?.aeronave_id ?? initialData?.aeronave?.id ?? null;
+  const aeronaveLabel =
+    initialData?.aeronave?.prefixo ?? initialData?.aeronave_prefixo ?? '';
+
+  return {
+    data: initialData?.data
+      ? new Date(initialData.data).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0],
+    status: initialData?.status ?? 'Em serviço',
+    aeronave: aeronaveValue
+      ? { value: aeronaveValue, label: aeronaveLabel }
+      : null,
+    primeiro_piloto: formatMilitarOption(initialData?.comandante ?? null),
+    segundo_piloto: formatMilitarOption(initialData?.copiloto ?? null),
+  };
 };
 
 const EscalaAeronaveForm = ({
-  onSubmit,
+  onSave,
   initialData,
-  isSubmitting,
+  isLoading = false,
+  onCancel,
 }: EscalaAeronaveFormProps) => {
+  const handleFormSubmit = (formData: any) => {
+    const aeronaveOption = formData.aeronave;
+
+    const payload = {
+      data: formData.data,
+      status: formData.status,
+      aeronave_id: aeronaveOption?.value ?? initialData?.aeronave_id,
+      aeronave_prefixo: aeronaveOption?.label ?? initialData?.aeronave?.prefixo,
+      primeiro_piloto_id: formData.primeiro_piloto?.value ?? null,
+      segundo_piloto_id: formData.segundo_piloto?.value ?? null,
+    };
+
+    onSave(payload);
+  };
+
   const {
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm<EscalaAeronave>({
-    defaultValues: initialData || {
-      em_servico: true,
-    },
+    reset,
+  } = useForm({
+    defaultValues: buildDefaultValues(initialData),
   });
+
+  useEffect(() => {
+    reset(buildDefaultValues(initialData));
+  }, [initialData, reset]);
 
   const { data: aeronavesData, isLoading: isLoadingAeronaves } = useQuery<Aeronave[]>({
     queryKey: ['aeronaves'],
-    queryFn: () => api.get('/api/admin/viaturas/aeronaves').then(res => res.data.data),
+    queryFn: () => api.get('/api/admin/viaturas/aeronaves').then((res) => res.data.data),
   });
 
-  const loadMilitares = (inputValue: string, callback: (options: any[]) => void) => {
-    api.get('/admin/militares', { params: { 'por-pagina': 10, nome: inputValue } })
-      .then(res => {
-        const options = res.data.data.map((militar: Militar) => ({
-          value: militar.id,
-          label: `${militar.posto_graduacao} ${militar.nome_guerra}`,
-        }));
-        callback(options);
-      });
-  };
-
-  const defaultMilitarOptions = (militares: Militar[] | undefined) => {
-    if (!militares) return [];
-    return militares.map(militar => ({
-      value: militar.id,
-      label: `${militar.posto_graduacao} ${militar.nome_guerra}`,
-    }));
-  };
+  const aeronaveOptions =
+    aeronavesData?.map((a) => ({ value: a.id, label: a.prefixo })) ?? [];
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <div>
+        <Label htmlFor="data">Data da Escala</Label>
+        <Controller
+          name="data"
+          control={control}
+          rules={{ required: 'A data da escala é obrigatória' }}
+          render={({ field }) => (
+            <Input id="data" type="date" {...field} value={field.value} onChange={field.onChange} />
+          )}
+        />
+        {errors.data && <FormError message={errors.data.message as string} />}
+      </div>
+
       <div>
         <Label htmlFor="aeronave_id">Prefixo</Label>
         <Controller
-          name="aeronave_id"
+          name="aeronave"
           control={control}
-          rules={{ required: 'O prefixo Ã© obrigatÃ³rio' }}
+          rules={{ required: 'O prefixo é obrigatório' }}
           render={({ field }) => (
             <Select
               {...field}
               id="aeronave_id"
-              options={aeronavesData?.map(a => ({ value: a.id, label: a.prefixo })) || []}
-              value={
-                aeronavesData?.map(a => ({ value: a.id, label: a.prefixo })).find(
-                  option => option.value === field.value,
-                ) || null
-              }
-              onChange={option => field.onChange(option?.value)}
+              options={aeronaveOptions}
+              value={field.value}
+              onChange={(option) => field.onChange(option)}
               isLoading={isLoadingAeronaves}
               placeholder="Selecione o prefixo"
             />
           )}
         />
-        {errors.aeronave_id && (
-          <FormError message={errors.aeronave_id.message} />
-        )}
+        {errors.aeronave && <FormError message={errors.aeronave.message as string} />}
       </div>
 
       <div>
-        <Label htmlFor="comandante_id">Comandante</Label>
+        <Label htmlFor="primeiro_piloto">Comandante</Label>
         <Controller
-          name="comandante_id"
+          name="primeiro_piloto"
           control={control}
-          rules={{ required: 'O comandante Ã© obrigatÃ³rio' }}
+          rules={{ required: 'O comandante é obrigatório' }}
           render={({ field }) => (
             <AsyncSelect
               {...field}
-              id="comandante_id"
+              id="primeiro_piloto"
+              cacheOptions
               loadOptions={loadMilitares}
-              defaultOptions={defaultMilitarOptions(initialData?.comandante ? [initialData.comandante] : [])}
-              value={field.value && initialData?.comandante ? { value: initialData.comandante.id, label: `${initialData.comandante.posto_graduacao} ${initialData.comandante.nome_guerra}` } : null}
-              onChange={(option: any) => field.onChange(option.value)}
               placeholder="Digite o nome do comandante"
               isClearable
+              defaultOptions
+              value={field.value}
+              onChange={(option) => field.onChange(option)}
             />
           )}
         />
-        {errors.comandante_id && (
-          <FormError message={errors.comandante_id.message} />
+        {errors.primeiro_piloto && (
+          <FormError message={errors.primeiro_piloto.message as string} />
         )}
       </div>
-      
+
       <div>
-        <Label htmlFor="copiloto_id">Copiloto</Label>
+        <Label htmlFor="segundo_piloto">Copiloto</Label>
         <Controller
-          name="copiloto_id"
+          name="segundo_piloto"
           control={control}
           render={({ field }) => (
             <AsyncSelect
               {...field}
-              id="copiloto_id"
+              id="segundo_piloto"
+              cacheOptions
               loadOptions={loadMilitares}
-              defaultOptions={defaultMilitarOptions(initialData?.copiloto ? [initialData.copiloto] : [])}
-              value={field.value && initialData?.copiloto ? { value: initialData.copiloto.id, label: `${initialData.copiloto.posto_graduacao} ${initialData.copiloto.nome_guerra}` } : null}
-              onChange={(option: any) => field.onChange(option.value)}
               placeholder="Digite o nome do copiloto"
               isClearable
+              defaultOptions
+              value={field.value}
+              onChange={(option) => field.onChange(option)}
             />
           )}
         />
       </div>
 
       <div>
-        <Label htmlFor="tripulante_id">Tripulante</Label>
+        <Label htmlFor="status">Status</Label>
         <Controller
-          name="tripulante_id"
+          name="status"
           control={control}
           render={({ field }) => (
-            <AsyncSelect
-              {...field}
-              id="tripulante_id"
-              loadOptions={loadMilitares}
-              defaultOptions={defaultMilitarOptions(initialData?.tripulante ? [initialData.tripulante] : [])}
-              value={field.value && initialData?.tripulante ? { value: initialData.tripulante.id, label: `${initialData.tripulante.posto_graduacao} ${initialData.tripulante.nome_guerra}` } : null}
-              onChange={(option: any) => field.onChange(option.value)}
-              placeholder="Digite o nome do tripulante"
-              isClearable
-            />
-          )}
-        />
-      </div>
-      
-      <div className="flex items-center">
-        <Controller
-          name="em_servico"
-          control={control}
-          render={({ field }) => (
-            <input
-              id="em_servico"
-              type="checkbox"
+            <select
+              id="status"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={field.value}
               onChange={field.onChange}
-              onBlur={field.onBlur}
-              checked={field.value}
-              name={field.name}
-              ref={field.ref}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
+            >
+              <option value="Em serviço">Em serviço</option>
+              <option value="Reserva">Reserva</option>
+              <option value="Em manutenção">Em manutenção</option>
+            </select>
           )}
         />
-        <Label htmlFor="em_servico" className="ml-2 block text-sm text-gray-900">
-          Em serviÃ§o
-        </Label>
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvando...' : (initialData ? 'Atualizar' : 'Adicionar')}
+      <div className="flex justify-end gap-2">
+        {onCancel && (
+          <Button
+            type="button"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="bg-gray-600 hover:bg-gray-700 focus:ring-gray-500"
+          >
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Salvando...' : initialData ? 'Atualizar' : 'Adicionar'}
         </Button>
       </div>
     </form>

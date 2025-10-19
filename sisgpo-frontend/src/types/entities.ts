@@ -33,11 +33,16 @@ export interface Aeronave {
 // TIPO ADICIONADO PARA CORRIGIR O ERRO
 export interface EscalaAeronave {
   id?: number;
-  aeronave_id: number;
-  comandante_id: number;
+  data?: string;
+  status?: string;
+  aeronave_id?: number;
+  aeronave_prefixo?: string;
+  primeiro_piloto_id?: number | null;
+  segundo_piloto_id?: number | null;
+  comandante_id?: number;
   copiloto_id?: number;
   tripulante_id?: number;
-  em_servico: boolean;
+  em_servico?: boolean;
   aeronave?: Aeronave;
   comandante?: Militar;
   copiloto?: Militar;

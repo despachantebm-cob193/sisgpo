@@ -11,18 +11,32 @@ const escalaAeronaveController = {
       .leftJoin('aeronaves as a', 'ea.aeronave_id', 'a.id')
       .leftJoin('militares as p1', 'ea.primeiro_piloto_id', 'p1.id')
       .leftJoin('militares as p2', 'ea.segundo_piloto_id', 'p2.id')
-      .select(
+      .select([
         'ea.id',
         'ea.data',
         'a.prefixo as aeronave_prefixo',
         'ea.status',
-        // --- CORREÇÃO APLICADA AQUI ---
-        // Garante a concatenação do posto com o nome de guerra para ambos os pilotos.
-        // Usa COALESCE para tratar casos onde o piloto não está escalado.
-        db.raw("COALESCE(p1.posto_graduacao || ' ' || p1.nome_guerra, 'N/A') as primeiro_piloto"),
-        db.raw("COALESCE(p2.posto_graduacao || ' ' || p2.nome_guerra, 'N/A') as segundo_piloto")
-        // --- FIM DA CORREÇÃO ---
-      );
+        db.raw(`
+          CASE
+            WHEN p1.id IS NULL THEN 'N/A'
+            ELSE CONCAT(
+              COALESCE(TRIM(p1.posto_graduacao), ''),
+              ' ',
+              COALESCE(NULLIF(TRIM(p1.nome_guerra), ''), TRIM(p1.nome_completo))
+            )
+          END as primeiro_piloto
+        `),
+        db.raw(`
+          CASE
+            WHEN p2.id IS NULL THEN 'N/A'
+            ELSE CONCAT(
+              COALESCE(TRIM(p2.posto_graduacao), ''),
+              ' ',
+              COALESCE(NULLIF(TRIM(p2.nome_guerra), ''), SUBSTRING(TRIM(p2.nome_completo) FROM '^[^ ]+'))
+            )
+          END as segundo_piloto
+        `)
+      ]);
 
     if (data_inicio) query.where('ea.data', '>=', data_inicio);
     if (data_fim) query.where('ea.data', '<=', data_fim);
@@ -31,40 +45,47 @@ const escalaAeronaveController = {
     res.status(200).json(escalas);
   },
 
-  // Função CREATE (sem alterações, já estava correta)
   create: async (req, res) => {
-    const { aeronave_id, aeronave_prefixo, data, status, primeiro_piloto_id, segundo_piloto_id } = req.body;
+    try {
+      const { aeronave_id, aeronave_prefixo, data, status, primeiro_piloto_id, segundo_piloto_id } = req.body;
 
-    if (!aeronave_id || !aeronave_prefixo) {
-        throw new AppError('ID da aeronave ou prefixo não fornecido.', 400);
-    }
+      if (!aeronave_id || !aeronave_prefixo) {
+          throw new AppError('ID da aeronave ou prefixo não fornecido.', 400);
+      }
 
-    await db.transaction(async trx => {
-      let aeronave = await trx('aeronaves').where({ prefixo: aeronave_prefixo }).first();
+      await db.transaction(async trx => {
+        let aeronave = await trx('aeronaves').where({ prefixo: aeronave_prefixo }).first();
 
-      if (!aeronave) {
-        [aeronave] = await trx('aeronaves').insert({
-          prefixo: aeronave_prefixo,
-          tipo_asa: 'rotativa',
-          ativa: true,
+        if (!aeronave) {
+          [aeronave] = await trx('aeronaves').insert({
+            prefixo: aeronave_prefixo,
+            tipo_asa: 'rotativa',
+            ativa: true,
+          }).returning('*');
+        }
+
+        const existing = await trx('escala_aeronaves').where({ data, aeronave_id: aeronave.id }).first();
+        if (existing) {
+          throw new AppError('Já existe uma escala para esta aeronave nesta data.', 409);
+        }
+
+        const [novaEscala] = await trx('escala_aeronaves').insert({
+          data,
+          aeronave_id: aeronave.id,
+          status,
+          primeiro_piloto_id: primeiro_piloto_id || null,
+          segundo_piloto_id: segundo_piloto_id || null,
         }).returning('*');
+
+        res.status(201).json(novaEscala);
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
       }
-
-      const existing = await trx('escala_aeronaves').where({ data, aeronave_id: aeronave.id }).first();
-      if (existing) {
-        throw new AppError('Já existe uma escala para esta aeronave nesta data.', 409);
-      }
-
-      const [novaEscala] = await trx('escala_aeronaves').insert({
-        data,
-        aeronave_id: aeronave.id,
-        status,
-        primeiro_piloto_id: primeiro_piloto_id || null,
-        segundo_piloto_id: segundo_piloto_id || null,
-      }).returning('*');
-
-      res.status(201).json(novaEscala);
-    });
+      console.error("Erro ao criar escala de aeronave:", error);
+      throw new AppError('Erro interno do servidor ao tentar salvar a escala.', 500);
+    }
   },
 
   // Função DELETE (sem alterações)

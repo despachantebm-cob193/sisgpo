@@ -184,12 +184,42 @@ export default function Plantoes() {
   const handleSaveAeronave = async (data: any) => {
     setIsSavingAeronave(true);
     try {
+      // A requisição POST é feita aqui
       await api.post('/api/admin/escala-aeronaves', data);
+      
       toast.success('Escala de aeronave salva com sucesso!');
       setIsAeronaveModalOpen(false);
-      fetchEscalaAeronaves();
-    } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao salvar escala.'); }
-    finally { setIsSavingAeronave(false); }
+      fetchEscalaAeronaves(); // Atualiza a lista na tela
+
+    } catch (error: any) {
+      // --- Bloco de Captura de Erro Aprimorado ---
+
+      // 1. Loga o erro detalhado no console para o desenvolvedor
+      if (error.response) {
+        console.error('Erro ao salvar escala de aeronave:', error.response.data);
+      } else {
+        console.error('Erro inesperado:', error);
+      }
+
+      // 2. Prepara uma mensagem clara para o usuário
+      let errorMessage = 'Não foi possível salvar a escala.';
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        
+        // Concatena múltiplos erros de validação, se o backend os enviar
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorMessage = errorData.errors.map((e: { msg: string }) => e.msg).join('; ');
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+      
+      // 3. Exibe o erro para o usuário usando um toast
+      toast.error(errorMessage);
+
+    } finally {
+      setIsSavingAeronave(false);
+    }
   };
 
   const handleSaveCodec = async (data: any) => {
