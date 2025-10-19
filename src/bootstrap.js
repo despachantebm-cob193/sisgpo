@@ -97,12 +97,87 @@ async function ensureCriticalPlantaoColumnsRaw(knex) {
     }
 }
 
+async function ensurePlantaoRelations(knex) {
+    const hasPlantoesMilitares = await knex.schema.hasTable('plantoes_militares');
+
+    if (!hasPlantoesMilitares) {
+        const hasLegacyTable = await knex.schema.hasTable('militar_plantao');
+
+        if (hasLegacyTable) {
+            console.log('[Bootstrap Fix] Renomeando tabela legacy "militar_plantao" para "plantoes_militares"...');
+            await knex.schema.renameTable('militar_plantao', 'plantoes_militares');
+        } else {
+            console.log('[Bootstrap Fix] Criando tabela "plantoes_militares"...');
+            await knex.schema.createTable('plantoes_militares', (table) => {
+                table.increments('id').primary();
+                table
+                    .integer('plantao_id')
+                    .unsigned()
+                    .references('id')
+                    .inTable('plantoes')
+                    .onDelete('CASCADE')
+                    .notNullable();
+                table
+                    .integer('militar_id')
+                    .unsigned()
+                    .references('id')
+                    .inTable('militares')
+                    .onDelete('CASCADE')
+                    .notNullable();
+                table.string('funcao', 100).notNullable().defaultTo('DESCONHECIDA');
+                table.timestamp('created_at').defaultTo(knex.fn.now());
+                table.timestamp('updated_at').defaultTo(knex.fn.now());
+                table.unique(['plantao_id', 'militar_id'], 'plantoes_militares_unique');
+            });
+        }
+    }
+
+    const ensureColumn = async (columnName, buildCallback, onPopulate) => {
+        const exists = await knex.schema.hasColumn('plantoes_militares', columnName);
+        if (!exists) {
+            await knex.schema.alterTable('plantoes_militares', buildCallback);
+            if (onPopulate) {
+                await onPopulate();
+            }
+        }
+    };
+
+    await ensureColumn('funcao', (table) => {
+        table.string('funcao', 100).defaultTo('DESCONHECIDA');
+    }, async () => {
+        await knex('plantoes_militares').update({ funcao: 'DESCONHECIDA' });
+        await knex.schema.alterTable('plantoes_militares', (table) => {
+            table.string('funcao', 100).notNullable().defaultTo('DESCONHECIDA').alter();
+        });
+    });
+
+    await ensureColumn('created_at', (table) => {
+        table.timestamp('created_at').defaultTo(knex.fn.now());
+    });
+
+    await ensureColumn('updated_at', (table) => {
+        table.timestamp('updated_at').defaultTo(knex.fn.now());
+    });
+
+    await knex.raw(`
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'plantoes_militares_unique'
+            ) THEN
+                ALTER TABLE plantoes_militares
+                ADD CONSTRAINT plantoes_militares_unique UNIQUE (plantao_id, militar_id);
+            END IF;
+        END $$;
+    `);
+}
+
 async function bootstrapDatabase() {
     console.log('[Bootstrap] Iniciando verificacao e populacao de dados essenciais...');
     
     try {
         await ensureCriticalUserColumnsRaw(db);
         await ensureCriticalPlantaoColumnsRaw(db); // <-- Adicionado aqui
+        await ensurePlantaoRelations(db);
 
         // 1. Verificar se o usuário admin já existe
         const adminUser = await db('usuarios')

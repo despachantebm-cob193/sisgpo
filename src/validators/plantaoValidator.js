@@ -25,10 +25,16 @@ const plantaoSchema = Joi.object({
     'number.base': 'O ID da viatura deve ser um número.',
     'any.required': 'O ID da viatura é obrigatório.',
   }),
-  obm_id: Joi.number().integer().positive().required().messages({
-    'number.base': 'O ID da OBM deve ser um número.',
-    'any.required': 'O ID da OBM é obrigatório.',
-  }),
+  obm_id: Joi.alternatives()
+    .try(
+      Joi.number().integer().positive(),
+      Joi.string().trim().pattern(/^\d+$/)
+    )
+    .optional()
+    .allow(null, '')
+    .messages({
+      'alternatives.match': 'O ID da OBM deve ser um número válido.',
+    }),
   observacoes: Joi.string().optional().allow(null, ''),
   guarnicao: Joi.array().items(guarnicaoItemSchema).min(1).required().messages({
     'array.base': 'A guarnição deve ser uma lista de militares.',

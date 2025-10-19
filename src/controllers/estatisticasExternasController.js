@@ -52,10 +52,10 @@ const estatisticasExternasController = {
       console.error('Falha ao buscar dados do sistema de ocorrencias:', error.message);
 
       if (error.code === 'ECONNREFUSED') {
-        throw new AppError(
-          'Nao foi possivel conectar ao sistema de ocorrencias. O servico pode estar offline.',
-          503
-        );
+        // Retorna uma resposta 503 diretamente em vez de lançar um erro que pode derrubar o servidor.
+        return response.status(503).json({
+          message: 'Nao foi possivel conectar ao sistema de ocorrencias. O servico pode estar offline.',
+        });
       }
 
       if (error.response) {
@@ -63,16 +63,15 @@ const estatisticasExternasController = {
         const errorMessage = error.response.data?.message || error.response.statusText;
 
         if (status === 401) {
-          throw new AppError(
-            'Falha ao autenticar com o sistema de ocorrencias. Verifique a chave compartilhada entre os sistemas.',
-            502
-          );
+          return response.status(502).json({ 
+            message: 'Falha ao autenticar com o sistema de ocorrencias. Verifique a chave compartilhada.' 
+          });
         }
-
-        throw new AppError(`Erro no sistema de ocorrencias: ${errorMessage}`, status);
+        return response.status(status).json({ message: `Erro no sistema de ocorrencias: ${errorMessage}` });
       }
 
-      throw new AppError('Erro interno ao buscar dados externos.', 500);
+      // Erro genérico se nenhuma das condições acima for atendida
+      return response.status(500).json({ message: 'Erro interno ao processar a requisição para o sistema externo.' });
     }
   },
 };

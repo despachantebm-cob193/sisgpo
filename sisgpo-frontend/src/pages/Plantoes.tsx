@@ -22,8 +22,8 @@ import EscalaCodecForm from '@/components/forms/EscalaCodecForm';
 
 // --- Interfaces ---
 export interface Plantao { id: number; data_plantao: string; viatura_prefixo: string; obm_abreviatura: string; }
-export interface Viatura { id: number; prefixo: string; obm_id: number; }
-export interface PlantaoDetalhado { id: number; data_plantao: string; viatura_id: number; obm_id: number; observacoes: string; guarnicao: { militar_id: number; funcao: string; nome_guerra: string; posto_graduacao: string; telefone: string | null; }[]; }
+export interface Viatura { id: number; prefixo: string; obm_id: number | null; }
+export interface PlantaoDetalhado { id: number; data_plantao: string; viatura_id: number; obm_id: number | null; observacoes: string; guarnicao: { militar_id: number; funcao: string; nome_guerra: string; posto_graduacao: string; telefone: string | null; }[]; }
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 interface EscalaMedico { id: number; civil_id: number; nome_completo: string; funcao: string; entrada_servico: string; saida_servico: string; status_servico: string; }
@@ -137,7 +137,36 @@ export default function Plantoes() {
       toast.success('Plantão salvo com sucesso!');
       setIsPlantaoModalOpen(false);
       fetchPlantoes();
-    } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao salvar plantão.'); }
+    } catch (err: any) {
+      // Log para depuração
+      if (err.response) {
+        console.log('Dados da resposta de erro do servidor:', err.response.data);
+
+        // ADICIONE ESTA LINHA para inspecionar o array de erros diretamente
+        if (err.response.data.errors) {
+          console.log('Detalhes dos erros de validação:', err.response.data.errors);
+        }
+
+      } else {
+        console.error("Erro não relacionado a uma resposta do servidor:", err);
+      }
+
+      // Lógica aprimorada para exibir o erro
+      let errorMessage = 'Erro ao salvar o plantão.';
+      if (err.response && err.response.data) {
+        const { data } = err.response;
+        
+        // Se houver um array de 'errors', concatena todas as mensagens
+        if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+            errorMessage = data.errors.map((e: { msg: string }) => e.msg).join('; ');
+        } 
+        // Senão, usa a mensagem principal se ela existir
+        else if (data.message) {
+            errorMessage = data.message;
+        }
+      }
+      toast.error(errorMessage);
+    }
     finally { setIsSavingPlantao(false); }
   };
 

@@ -26,7 +26,7 @@ import CodecCard from '@/components/dashboard/CodecCard';
 // Interfaces (sem alteração)
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
-interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_plantoes_mes: number; }
+interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_militares_em_viaturas_mes: number; }
 interface ChartStat { name: string; value: number; }
 interface Obm { id: number; abreviatura: string; nome: string; }
 interface ObmGrupo { nome: string; prefixos: string[]; }
@@ -146,7 +146,7 @@ export default function Dashboard() {
           <StatCard title="Militares Ativos" value={stats?.total_militares_ativos ?? 0} description="Total de militares na ativa." isLoading={isLoading} />
           <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
           <StatCard title="OBMs Cadastradas" value={stats?.total_obms ?? 0} description="Total de unidades operacionais." isLoading={isLoading} />
-          <StatCard title="Plantões no Mês" value={stats?.total_plantoes_mes ?? 0} description="Total de plantões no mês corrente." isLoading={isLoading} />
+          <StatCard title="Militares em Viaturas (Mês)" value={stats?.total_militares_em_viaturas_mes ?? 0} description="Militares escalados em viaturas no mês." isLoading={isLoading} />
         </div>
       </div>
 

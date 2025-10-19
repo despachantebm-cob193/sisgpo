@@ -22,7 +22,7 @@ type MilitarFormState = {
   nome_completo: string;
   nome_guerra: string;
   posto_graduacao: string;
-  obm_nome: string;
+  obm_id: string; // Alterado de obm_nome para obm_id
   ativo: 'ativo' | 'inativo';
   telefone: string;
 };
@@ -58,7 +58,7 @@ const getInitialState = (): MilitarFormState => ({
   nome_completo: '',
   nome_guerra: '',
   posto_graduacao: '',
-  obm_nome: '',
+  obm_id: '', // Alterado de obm_nome para obm_id
   ativo: 'ativo',
   telefone: '',
 });
@@ -68,7 +68,7 @@ const mapInitialData = (data: Militar): MilitarFormState => ({
   nome_completo: data.nome_completo ?? '',
   nome_guerra: data.nome_guerra ?? '',
   posto_graduacao: data.posto_graduacao ?? '',
-  obm_nome: data.obm_nome ?? '',
+  obm_id: data.obm_id?.toString() ?? '', // Mapeia obm_id para string
   ativo: data.ativo ? 'ativo' : 'inativo',
   telefone: data.telefone ?? '',
 });
@@ -118,18 +118,22 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
       ativo: formData.ativo === 'ativo',
     };
 
+    // --- CORREÇÃO APLICADA AQUI ---
+    if (formData.obm_id) {
+      const obmIdAsNumber = parseInt(formData.obm_id, 10);
+      if (!isNaN(obmIdAsNumber)) {
+        payload.obm_id = obmIdAsNumber;
+      }
+    } else if (initialData?.id) {
+      payload.obm_id = null;
+    }
+    // --- FIM DA CORREÇÃO ---
+
     const nomeGuerra = formData.nome_guerra.trim();
     if (nomeGuerra) {
       payload.nome_guerra = nomeGuerra;
     } else if (initialData?.id && initialData?.nome_guerra && !nomeGuerra) {
       payload.nome_guerra = null;
-    }
-
-    const obmNome = formData.obm_nome.trim();
-    if (obmNome) {
-      payload.obm_nome = obmNome;
-    } else if (initialData?.id && initialData?.obm_nome && !obmNome) {
-      payload.obm_nome = null;
     }
 
     const telefone = formData.telefone.trim();
@@ -199,22 +203,22 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="obm_nome">Lotação (OBM)</Label>
+          <Label htmlFor="obm_id">Lotação (OBM)</Label>
           <Select
-            id="obm_nome"
-            name="obm_nome"
-            value={formData.obm_nome}
+            id="obm_id"
+            name="obm_id"
+            value={formData.obm_id}
             onChange={handleChange}
-            hasError={!!getError('obm_nome')}
+            hasError={!!getError('obm_id')}
           >
             <option value="">Nenhuma</option>
             {obms.map((obm) => (
-              <option key={obm.id} value={obm.nome}>
+              <option key={obm.id} value={obm.id}>
                 {obm.abreviatura} - {obm.nome}
               </option>
             ))}
           </Select>
-          <FormError message={getError('obm_nome')} />
+          <FormError message={getError('obm_id')} />
         </div>
         <div>
           <Label htmlFor="telefone">Telefone</Label>

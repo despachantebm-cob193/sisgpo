@@ -36,7 +36,7 @@ interface PlantaoFormData {
   id?: number;
   data_plantao: string;
   viatura_id: number | '';
-  obm_id: number | '';
+  obm_id: number | '' | null;
   observacoes: string;
   guarnicao: GuarnicaoMembro[];
 }
@@ -150,9 +150,17 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       toast.error('Por favor, selecione uma viatura.');
       return;
     }
+    const obmIdFromState = typeof formData.obm_id === 'number' ? formData.obm_id : null;
+    const obmId = viaturaSelecionada.obm_id ?? obmIdFromState;
+
+    if (obmId === null || obmId === undefined) {
+      toast.error('A viatura selecionada não está vinculada a uma OBM. Atualize o cadastro da viatura ou selecione outra antes de lançar o plantão.');
+      return;
+    }
+
     const payload = {
       ...formData,
-      obm_id: viaturaSelecionada.obm_id,
+      obm_id: obmId,
       guarnicao: formData.guarnicao.map(({ militar_id, funcao, telefone }) => ({
         militar_id,
         funcao,
@@ -172,7 +180,28 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         </div>
         <div>
           <Label htmlFor="viatura_id">Viatura</Label>
-          <select id="viatura_id" value={formData.viatura_id} onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, viatura_id: Number(e.target.value) }))} required className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+          <select
+            id="viatura_id"
+            value={formData.viatura_id}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+              const { value } = e.target;
+              if (!value) {
+                setFormData(prev => ({ ...prev, viatura_id: '', obm_id: '' }));
+                return;
+              }
+
+              const selectedId = Number(value);
+              const viatura = viaturas.find(v => v.id === selectedId) || null;
+
+              setFormData(prev => ({
+                ...prev,
+                viatura_id: selectedId,
+                obm_id: viatura?.obm_id ?? null,
+              }));
+            }}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+          >
             <option value="">Selecione uma viatura</option>
             {viaturas.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
           </select>

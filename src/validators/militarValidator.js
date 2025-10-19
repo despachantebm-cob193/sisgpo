@@ -15,6 +15,11 @@ const militarSchema = {
     'string.empty': 'O nome completo é obrigatório.',
     'any.required': 'O nome completo é obrigatório.',
   }),
+  obm_id: Joi.number().integer().required().messages({
+    'number.base': 'O ID da OBM deve ser um número.',
+    'number.integer': 'O ID da OBM deve ser um número inteiro.',
+    'any.required': 'O ID da OBM é obrigatório.',
+  }),
   obm_nome: Joi.string().max(150).optional().allow(null, ''),
   telefone: Joi.string()
     .pattern(telefoneRegex)

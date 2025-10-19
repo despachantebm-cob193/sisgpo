@@ -36,17 +36,46 @@ const dashboardController = {
    */
   getStats: async (req, res) => {
     try {
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
       const totalMilitaresAtivos = await db('militares').where({ ativo: true }).count({ count: '*' }).first();
       const totalViaturasDisponiveis = await db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
       const totalObms = await db('obms').count({ count: '*' }).first();
-      const totalPlantoesMesResult = await db.raw("SELECT COUNT(*) FROM plantoes WHERE date_trunc('month', data_inicio) = date_trunc('month', CURRENT_DATE)");
-      const totalPlantoesMes = totalPlantoesMesResult.rows[0];
+      const dateColumnChoices = [
+        { table: 'servico_dia', column: 'data_servico' },
+        { table: 'servico_dia', column: 'data_plantao' },
+        { table: 'servico_dia', column: 'data_inicio' },
+      ];
+
+      let availableDateColumn = null;
+      for (const { table, column } of dateColumnChoices) {
+        // eslint-disable-next-line no-await-in-loop
+        const exists = await db.schema.hasColumn(table, column);
+        if (exists) {
+          availableDateColumn = column;
+          break;
+        }
+      }
+
+      const totalMilitaresQuery = db('servico_dia').whereNotNull('viatura_id');
+
+      if (availableDateColumn) {
+        totalMilitaresQuery.whereBetween(availableDateColumn, [firstDayOfMonth, lastDayOfMonth]);
+      } else {
+        console.warn('[Dashboard] Coluna de data não encontrada em servico_dia; usando contagem total sem filtro de período.');
+      }
+
+      const total_militares_em_viaturas_mes = await totalMilitaresQuery
+        .count('id as total')
+        .first();
 
       res.status(200).json({
         total_militares_ativos: parseInt(totalMilitaresAtivos.count, 10),
         total_viaturas_disponiveis: parseInt(totalViaturasDisponiveis.count, 10),
         total_obms: parseInt(totalObms.count, 10),
-        total_plantoes_mes: parseInt(totalPlantoesMes.count, 10),
+        total_militares_em_viaturas_mes: total_militares_em_viaturas_mes.total,
       });
     } catch (error) {
       console.error("ERRO AO BUSCAR ESTATÍSTICAS GERAIS:", error);

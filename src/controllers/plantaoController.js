@@ -3,6 +3,63 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+const parsePositiveInt = (value) => {
+  const numericValue = Number(value);
+  return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : null;
+};
+
+const sanitizeStringToken = (token) => {
+  if (!token) return null;
+  return token
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toUpperCase();
+};
+
+const buildPlantaoNome = (prefixo, dataPlantao, viaturaId) => {
+  const fallback = `VTR-${viaturaId}`;
+  const token = sanitizeStringToken(prefixo) || sanitizeStringToken(fallback) || `PLANTAO-${viaturaId}`;
+  return `PLANTAO-${token}-${dataPlantao}`;
+};
+
+const resolveViaturaContext = async (trx, viaturaId, providedObmId) => {
+  const viaturaData = await trx('viaturas as v')
+    .leftJoin('obms as o', 'v.obm', 'o.nome')
+    .select('v.prefixo', 'v.obm', 'o.id as obm_id')
+    .where('v.id', viaturaId)
+    .first();
+
+  if (!viaturaData) {
+    throw new AppError('Viatura não encontrada.', 404);
+  }
+
+  let resolvedObmId = parsePositiveInt(providedObmId) || viaturaData.obm_id;
+
+  if (!resolvedObmId && viaturaData.obm) {
+    const obmMatch = await trx('obms')
+      .whereRaw('LOWER(nome) = LOWER(?)', [viaturaData.obm])
+      .first();
+    if (obmMatch) {
+      resolvedObmId = obmMatch.id;
+    }
+  }
+
+  if (!resolvedObmId) {
+    throw new AppError(
+      'Não foi possível identificar a OBM vinculada à viatura selecionada. Atualize o cadastro da viatura e tente novamente.',
+      400
+    );
+  }
+
+  return {
+    obmId: resolvedObmId,
+    prefixo: viaturaData.prefixo,
+  };
+};
+
 const plantaoController = {
   create: async (req, res) => {
     const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
@@ -12,8 +69,22 @@ const plantaoController = {
       if (plantaoExists) {
         throw new AppError('Já existe um plantão cadastrado para esta viatura nesta data.', 409);
       }
-      
-      const [novoPlantao] = await trx('plantoes').insert({ data_plantao, viatura_id, obm_id, observacoes }).returning('*');
+
+      const { obmId, prefixo } = await resolveViaturaContext(trx, viatura_id, obm_id);
+      const plantaoNome = buildPlantaoNome(prefixo, data_plantao, viatura_id);
+
+      const [novoPlantao] = await trx('plantoes')
+        .insert({
+          nome: plantaoNome,
+          tipo: 'VIATURA',
+          data_inicio: data_plantao,
+          data_fim: data_plantao,
+          data_plantao,
+          viatura_id,
+          obm_id: obmId,
+          observacoes,
+        })
+        .returning('*');
       
       if (guarnicao && guarnicao.length > 0) {
         const guarnicaoParaInserir = guarnicao.map(militar => ({
@@ -112,7 +183,22 @@ const plantaoController = {
         throw new AppError('Já existe um plantão cadastrado para esta viatura nesta data.', 409);
       }
 
-      await trx('plantoes').where({ id }).update({ data_plantao, viatura_id, obm_id, observacoes, updated_at: db.fn.now() });
+      const { obmId, prefixo } = await resolveViaturaContext(trx, viatura_id, obm_id);
+      const plantaoNome = buildPlantaoNome(prefixo, data_plantao, viatura_id);
+
+      await trx('plantoes')
+        .where({ id })
+        .update({
+          nome: plantaoNome,
+          tipo: plantaoExists.tipo || 'VIATURA',
+          data_inicio: data_plantao,
+          data_fim: data_plantao,
+          data_plantao,
+          viatura_id,
+          obm_id: obmId,
+          observacoes,
+          updated_at: db.fn.now(),
+        });
       
       await trx('plantoes_militares').where({ plantao_id: id }).del();
       if (guarnicao && guarnicao.length > 0) {
