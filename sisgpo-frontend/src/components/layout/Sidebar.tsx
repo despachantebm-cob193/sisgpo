@@ -59,8 +59,8 @@ export default function Sidebar() {
   return (
     <aside
       id="logo-sidebar"
-      className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${
-        isSidebarCollapsed ? 'w-20' : 'w-64'
+      className={`hidden md:flex md:flex-col md:fixed md:top-0 md:left-0 z-40 h-screen transition-all duration-300 ${
+        isSidebarCollapsed ? 'md:w-20' : 'md:w-64'
       } bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
       aria-label="Sidebar"
     >

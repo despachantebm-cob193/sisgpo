@@ -93,6 +93,9 @@ export default function Militares() {
     );
   }, [militares]);
 
+  const responsiveCellClass =
+    'block px-4 py-2 text-sm text-gray-900 md:table-cell md:px-6 md:py-4 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:before:hidden';
+
   return (
     <div className="space-y-6">
       <FileUpload
@@ -125,9 +128,9 @@ export default function Militares() {
 
         {!isLoading && (
           <>
-            <div className="overflow-x-auto">
+            <div className="md:overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="hidden bg-gray-50 md:table-header-group">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posto/Grad.</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome Completo</th>
@@ -139,41 +142,54 @@ export default function Militares() {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-gray-200">
                   {sortedMilitares.map((militar) => (
-                    <tr key={militar.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{militar.posto_graduacao}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{militar.nome_completo}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr
+                      key={militar.id}
+                      className="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-gray-50"
+                    >
+                      <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Posto/Grad.">
+                        {militar.posto_graduacao}
+                      </td>
+                      <td className={responsiveCellClass} data-label="Nome Completo">
+                        {militar.nome_completo}
+                      </td>
+                      <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Nome de Guerra">
                         {militar.nome_guerra || 'Não informado'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.matricula}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{militar.obm_nome || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className={`${responsiveCellClass} text-gray-500 md:whitespace-nowrap`} data-label="Matr��cula">
+                        {militar.matricula}
+                      </td>
+                      <td className={`${responsiveCellClass} text-gray-500`} data-label="Lota��ǜo (OBM)">
+                        {militar.obm_nome || 'N/A'}
+                      </td>
+                      <td className={responsiveCellClass} data-label="Status">
                         <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
                             militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}
                         >
                           {militar.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className={`${responsiveCellClass} text-gray-500`} data-label="Telefone">
                         {militar.telefone || 'Não informado'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleOpenFormModal(militar)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(militar.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                      <td className={`${responsiveCellClass} md:text-right`} data-label="Ações">
+                        <div className="mt-2 flex items-center gap-4 md:mt-0 md:justify-end">
+                          <button
+                            onClick={() => handleOpenFormModal(militar)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(militar.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

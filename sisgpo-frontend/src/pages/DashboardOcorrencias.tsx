@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import api from "../services/api";
 import "./DashboardOcorrencias.css";
 
@@ -116,6 +117,16 @@ interface EspelhoColumn {
   abreviacao: string;
 }
 
+const CRBM_FIELD_MAPPINGS = Array.from({ length: 9 }, (_, index) => {
+  const number = index + 1;
+  const display = `${number}\u00BA CRBM`;
+
+  return {
+    display,
+    keys: [display, `${number}\u00B0 CRBM`, `${number} CRBM`],
+  };
+});
+
 const ESPELHO_LAYOUT: Array<Omit<EspelhoColumn, "codigo">> = [
   { grupo: "Resgate", subgrupo: "Resgate - Salvamento em Emergências", abreviacao: "RESGATE" },
   { grupo: "Incêndio", subgrupo: "Vegetação", abreviacao: "INC. VEG" },
@@ -165,6 +176,7 @@ const formatTime = (value?: string | null) => {
 const DashboardOcorrencias: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [selectedCrbm, setSelectedCrbm] = useState<string>("todos");
+  const [expandedCrbms, setExpandedCrbms] = useState<Record<string, boolean>>({});
   const [payload, setPayload] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -430,6 +442,44 @@ const DashboardOcorrencias: React.FC = () => {
     [espelhoGroups, selectedCrbm]
   );
 
+  useEffect(() => {
+    if (filteredEspelho.length === 0) {
+      setExpandedCrbms({});
+      return;
+    }
+
+    setExpandedCrbms((prev) => {
+      const next: Record<string, boolean> = {};
+      let anyExpanded = false;
+
+      filteredEspelho.forEach((group, index) => {
+        const previous = prev[group.crbm];
+        const resolved = previous ?? (filteredEspelho.length === 1 && index === 0);
+        next[group.crbm] = resolved;
+        if (resolved) {
+          anyExpanded = true;
+        }
+      });
+
+      if (!anyExpanded) {
+        next[filteredEspelho[0].crbm] = true;
+      }
+
+      const unchanged =
+        Object.keys(prev).length === Object.keys(next).length &&
+        Object.keys(next).every((key) => prev[key] === next[key]);
+
+      return unchanged ? prev : next;
+    });
+  }, [filteredEspelho]);
+
+  const handleToggleCrbm = (crbm: string) => {
+    setExpandedCrbms((prev) => ({
+      ...prev,
+      [crbm]: !prev[crbm],
+    }));
+  };
+
   const espelhoTotal = useMemo(() => {
     const summary = {
       counts: createEmptyCounts(espelhoColumns),
@@ -458,6 +508,18 @@ const DashboardOcorrencias: React.FC = () => {
     });
     return Array.from(groups.entries());
   }, [payload?.relatorio?.estatisticas]);
+
+  const resolveCrbmValue = (
+    row: RelatorioRow,
+    mapping: (typeof CRBM_FIELD_MAPPINGS)[number]
+  ) => {
+    for (const key of mapping.keys) {
+      if (row[key] != null) {
+        return row[key];
+      }
+    }
+    return 0;
+  };
 
   if (loading) {
     return <div className="oc-loading">Carregando dashboard operacional...</div>;
@@ -546,40 +608,83 @@ const DashboardOcorrencias: React.FC = () => {
           <span className="oc-section-title">Relatório de Óbitos do Dia</span>
         </div>
         <div className="oc-section-body">
-          <table className="oc-obitos-table">
-            <thead>
-              <tr>
-                <th>Natureza</th>
-                <th>QTE</th>
-                <th>Número RAI e OBM Responsável</th>
-              </tr>
-            </thead>
-            <tbody>
-              {obitosResumo.rows.map((row) => (
-                <tr key={row.label}>
-                  <td>{row.label}</td>
-                  <td>{row.quantidade}</td>
-                  <td>
-                    {row.registros.length === 0
-                      ? "—"
-                      : row.registros
-                          .map(
-                            (registro) =>
-                              `(${registro.numero_ocorrencia || "N/A"}) - ${
-                                registro.obm_nome || "N/A"
-                              } (${registro.quantidade_vitimas || 0})`
-                          )
-                          .join("; ")}
-                  </td>
+          <div className="oc-table-wrapper">
+            <table className="oc-obitos-table oc-table-desktop">
+              <thead>
+                <tr>
+                  <th>Natureza</th>
+                  <th>QTE</th>
+                  <th>Número RAI e OBM Responsável</th>
                 </tr>
-              ))}
-              <tr className="oc-obitos-total-row">
-                <td>TOTAL</td>
-                <td>{obitosResumo.total}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {obitosResumo.rows.map((row) => (
+                  <tr key={row.label}>
+                    <td>{row.label}</td>
+                    <td>{row.quantidade}</td>
+                    <td>
+                      {row.registros.length === 0
+                        ? "-"
+                        : row.registros
+                            .map(
+                              (registro) =>
+                                `(${registro.numero_ocorrencia || "N/A"}) - ${
+                                  registro.obm_nome || "N/A"
+                                } (${registro.quantidade_vitimas || 0})`
+                            )
+                            .join("; ")}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="oc-obitos-total-row">
+                  <td>TOTAL</td>
+                  <td>{obitosResumo.total}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="oc-obitos-cards">
+              {obitosResumo.rows.map((row) => {
+                const registrosTexto =
+                  row.registros.length === 0
+                    ? "-"
+                    : row.registros
+                        .map(
+                          (registro) =>
+                            `(${registro.numero_ocorrencia || "N/A"}) - ${
+                              registro.obm_nome || "N/A"
+                            } (${registro.quantidade_vitimas || 0})`
+                        )
+                        .join("\n");
+
+                return (
+                  <div className="oc-obitos-card" key={row.label}>
+                    <div className="oc-card-row">
+                      <span className="oc-card-label">Natureza</span>
+                      <span className="oc-card-value">{row.label}</span>
+                    </div>
+                    <div className="oc-card-row">
+                      <span className="oc-card-label">Quantidade</span>
+                      <span className="oc-card-value">{row.quantidade}</span>
+                    </div>
+                    <div className="oc-card-row">
+                      <span className="oc-card-label">Registros</span>
+                      <span className="oc-card-value oc-card-value-multiline">
+                        {registrosTexto}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="oc-obitos-card oc-obitos-card-total">
+                <div className="oc-card-row">
+                  <span className="oc-card-label">Total</span>
+                  <span className="oc-card-value">{obitosResumo.total}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -677,34 +782,28 @@ const DashboardOcorrencias: React.FC = () => {
           </div>
 
           {filteredEspelho.length === 0 ? (
-            <div className="oc-empty">Nenhum lançamento encontrado para esta data.</div>
+            <div className="oc-empty">Nenhum lancamento encontrado para esta data.</div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table className="oc-espelho-table">
-                <thead>
-                  <tr>
-                    <th>CRBM</th>
-                    <th>Quartel / Cidade</th>
-                    {espelhoColumns.map((col) => (
-                      <th key={col.codigo}>{col.abreviacao}</th>
-                    ))}
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEspelho.map((group) => (
+            <>
+              <div className="oc-table-scroll">
+                <table className="oc-espelho-table oc-table-desktop">
+                  <thead>
+                    <tr>
+                      <th>CRBM</th>
+                      <th>Quartel / Cidade</th>
+                      {espelhoColumns.map((col) => (
+                        <th key={col.codigo}>{col.abreviacao}</th>
+                      ))}
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEspelho.map((group) => (
                       <React.Fragment key={group.crbm}>
-                        {group.rows.map((row, rowIndex) => ( // Adicionamos o 'rowIndex'
+                        {group.rows.map((row, rowIndex) => (
                           <tr key={`${group.crbm}-${row.cidade}`}>
-                            {/* CONDIÇÃO: Renderizar a célula do CRBM apenas para a primeira linha (índice 0) */}
                             {rowIndex === 0 && (
-                              <td
-                                className="oc-espelho-crbm"
-                                // Define o rowspan com o número total de linhas no grupo
-                                rowSpan={group.rows.length}
-                                // Adiciona alinhamento vertical no topo para corresponder à imagem
-                                style={{ verticalAlign: 'top' }}
-                              >
+                              <td className="oc-espelho-crbm" rowSpan={group.rows.length} style={{ verticalAlign: "top" }}>
                                 {group.crbm}
                               </td>
                             )}
@@ -715,35 +814,120 @@ const DashboardOcorrencias: React.FC = () => {
                             <td className="oc-espelho-total-cell">{row.total}</td>
                           </tr>
                         ))}
-                          <tr className="oc-espelho-subtotal">
-                            {/* Célula única que mescla as duas primeiras colunas */}
-                            <td colSpan={2} className="oc-espelho-city">
-                              SUB TOTAL
+                        <tr className="oc-espelho-subtotal">
+                          <td colSpan={2} className="oc-espelho-city">
+                            SUB TOTAL
+                          </td>
+                          {espelhoColumns.map((col) => (
+                            <td key={`${group.crbm}-subtotal-${col.codigo}`}>
+                              {group.subtotal.counts[col.codigo] || 0}
                             </td>
-                            {/* As células restantes de contagem permanecem iguais */}
-                            {espelhoColumns.map((col) => (
-                              <td key={`${group.crbm}-subtotal-${col.codigo}`}>
-                                {group.subtotal.counts[col.codigo] || 0}
-                              </td>
-                            ))}
-                            <td className="oc-espelho-total-cell">{group.subtotal.total}</td>
-                          </tr>
-                    </React.Fragment>
-                  ))}
-
-                  <tr className="oc-espelho-total-row">
-                    {/* Célula única que mescla as duas colunas */}
-                    <td colSpan={2} className="oc-espelho-city">TOTAL GERAL</td>
-                    
-                    {/* As células de contagem de totais permanecem as mesmas */}
-                    {espelhoColumns.map((col) => (
-                      <td key={`overall-${col.codigo}`}>{espelhoTotal.counts[col.codigo] || 0}</td>
+                          ))}
+                          <td className="oc-espelho-total-cell">{group.subtotal.total}</td>
+                        </tr>
+                      </React.Fragment>
                     ))}
-                    <td className="oc-espelho-total-cell">{espelhoTotal.total}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+
+                    <tr className="oc-espelho-total-row">
+                      <td colSpan={2} className="oc-espelho-city">
+                        TOTAL GERAL
+                      </td>
+                      {espelhoColumns.map((col) => (
+                        <td key={`overall-${col.codigo}`}>{espelhoTotal.counts[col.codigo] || 0}</td>
+                      ))}
+                      <td className="oc-espelho-total-cell">{espelhoTotal.total}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="oc-espelho-cards">
+                {filteredEspelho.map((group) => {
+                  const isExpanded = !!expandedCrbms[group.crbm];
+
+                  return (
+                    <div className="oc-espelho-accordion" key={group.crbm}>
+                      <button
+                        type="button"
+                        className={`oc-espelho-accordion-header ${isExpanded ? "is-open" : ""}`}
+                        onClick={() => handleToggleCrbm(group.crbm)}
+                      >
+                        <div className="oc-espelho-accordion-title">
+                          <span className="oc-espelho-accordion-arrow">
+                            <ChevronDown />
+                          </span>
+                          <span>{group.crbm}</span>
+                        </div>
+                        <div className="oc-espelho-accordion-total">
+                          <span>Total</span>
+                          <span>{group.subtotal.total}</span>
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="oc-espelho-accordion-body">
+                          {group.rows.map((row) => (
+                            <div className="oc-espelho-city-card" key={`${group.crbm}-${row.cidade}`}>
+                              <div className="oc-espelho-city-header">
+                                <div>
+                                  <div className="oc-espelho-city-name">{row.cidade}</div>
+                                  <div className="oc-espelho-city-subtitle">{group.crbm}</div>
+                                </div>
+                                <div className="oc-espelho-city-total">
+                                  <span>Total</span>
+                                  <span>{row.total}</span>
+                                </div>
+                              </div>
+                              <div className="oc-espelho-count-grid">
+                                {espelhoColumns.map((col) => (
+                                  <div className="oc-espelho-count-item" key={`${group.crbm}-${row.cidade}-${col.codigo}`}>
+                                    <span className="oc-espelho-count-label">{col.abreviacao}</span>
+                                    <span className="oc-espelho-count-value">
+                                      {row.counts[col.codigo] || 0}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          <div className="oc-espelho-summary-card">
+                            <div className="oc-card-row">
+                              <span className="oc-card-label">Subtotal</span>
+                              <span className="oc-card-value">{group.subtotal.total}</span>
+                            </div>
+                            <div className="oc-espelho-count-grid">
+                              {espelhoColumns.map((col) => (
+                                <div className="oc-espelho-count-item" key={`${group.crbm}-subtotal-${col.codigo}`}>
+                                  <span className="oc-espelho-count-label">{col.abreviacao}</span>
+                                  <span className="oc-espelho-count-value">
+                                    {group.subtotal.counts[col.codigo] || 0}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="oc-espelho-summary-card oc-espelho-summary-card-total">
+                  <div className="oc-card-row">
+                    <span className="oc-card-label">Total Geral</span>
+                    <span className="oc-card-value">{espelhoTotal.total}</span>
+                  </div>
+                  <div className="oc-espelho-count-grid">
+                    {espelhoColumns.map((col) => (
+                      <div className="oc-espelho-count-item" key={`overall-card-${col.codigo}`}>
+                        <span className="oc-espelho-count-label">{col.abreviacao}</span>
+                        <span className="oc-espelho-count-value">
+                          {espelhoTotal.counts[col.codigo] || 0}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -752,30 +936,26 @@ const DashboardOcorrencias: React.FC = () => {
         <div className="oc-section-header">
           <span className="oc-section-title">Relatório Estatístico do Dia</span>
         </div>
-        <div className="oc-section-body" style={{ overflowX: "auto" }}>
+        <div className="oc-section-body">
           {groupedRelatorio.length === 0 ? (
-            <div className="oc-empty">Nenhuma estatística encontrada.</div>
+            <div className="oc-empty">Nenhuma estatistica encontrada.</div>
           ) : (
-            <table className="oc-relatorio-table">
-              <thead>
-                <tr>
-                  <th>Grupo</th>
-                  <th>Natureza (Subgrupo)</th>
-                  <th>Diurno</th>
-                  <th>Noturno</th>
-                  <th>Total Capital</th>
-                  <th>1º CRBM</th>
-                  <th>2º CRBM</th>
-                  <th>3º CRBM</th>
-                  <th>4º CRBM</th>
-                  <th>5º CRBM</th>
-                  <th>6º CRBM</th>
-                  <th>7º CRBM</th>
-                  <th>8º CRBM</th>
-                  <th>9º CRBM</th>
-                  <th>Total Geral</th>
-                </tr>
-              </thead>
+            <>
+              <div className="oc-table-scroll">
+                <table className="oc-relatorio-table oc-table-desktop">
+                  <thead>
+                    <tr>
+                      <th>Grupo</th>
+                      <th>Natureza (Subgrupo)</th>
+                      <th>Diurno</th>
+                      <th>Noturno</th>
+                      <th>Total Capital</th>
+                      {CRBM_FIELD_MAPPINGS.map((field) => (
+                        <th key={field.display}>{field.display}</th>
+                      ))}
+                      <th>Total Geral</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {groupedRelatorio.map(([grupo, rows]) =>
                       rows.map((row, index) => (
@@ -785,21 +965,58 @@ const DashboardOcorrencias: React.FC = () => {
                           <td>{row.diurno}</td>
                           <td>{row.noturno}</td>
                           <td>{row.total_capital}</td>
-                          <td>{row["1º CRBM"] || row["1 CRBM"] || 0}</td>
-                          <td>{row["2º CRBM"] || row["2 CRBM"] || 0}</td>
-                          <td>{row["3º CRBM"] || row["3 CRBM"] || 0}</td>
-                          <td>{row["4º CRBM"] || row["4 CRBM"] || 0}</td>
-                          <td>{row["5º CRBM"] || row["5 CRBM"] || 0}</td>
-                          <td>{row["6º CRBM"] || row["6 CRBM"] || 0}</td>
-                          <td>{row["7º CRBM"] || row["7 CRBM"] || 0}</td>
-                          <td>{row["8º CRBM"] || row["8 CRBM"] || 0}</td>
-                          <td>{row["9º CRBM"] || row["9 CRBM"] || 0}</td>
+                          {CRBM_FIELD_MAPPINGS.map((field) => (
+                            <td key={`${grupo}-${row.subgrupo}-${field.display}`}>
+                              {resolveCrbmValue(row, field)}
+                            </td>
+                          ))}
                           <td>{row.total_geral}</td>
                         </tr>
                       ))
                     )}
                   </tbody>
-            </table>
+                </table>
+              </div>
+              <div className="oc-relatorio-cards">
+                {groupedRelatorio.map(([grupo, rows]) => (
+                  <div className="oc-relatorio-group" key={grupo}>
+                    <div className="oc-relatorio-group-title">{grupo}</div>
+                    {rows.map((row) => {
+                      const baseMetrics = [
+                        { label: "Diurno", value: row.diurno },
+                        { label: "Noturno", value: row.noturno },
+                        { label: "Total Capital", value: row.total_capital },
+                        ...CRBM_FIELD_MAPPINGS.map((field) => ({
+                          label: field.display,
+                          value: resolveCrbmValue(row, field),
+                        })),
+                        { label: "Total Geral", value: row.total_geral },
+                      ];
+
+                      return (
+                        <div className="oc-relatorio-card" key={`${grupo}-${row.subgrupo}`}>
+                          <div className="oc-card-row">
+                            <span className="oc-card-label">Natureza</span>
+                            <span className="oc-card-value">{row.subgrupo}</span>
+                          </div>
+                          <div className="oc-relatorio-metrics">
+                            {baseMetrics.map((metric) => (
+                              <div
+                                className="oc-relatorio-item"
+                                key={`${grupo}-${row.subgrupo}-${metric.label}`}
+                              >
+                                <span className="oc-relatorio-label">{metric.label}</span>
+                                <span className="oc-relatorio-value">{metric.value ?? 0}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>
