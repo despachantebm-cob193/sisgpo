@@ -63,7 +63,10 @@ interface RelatorioData {
 interface EspelhoEntry {
   cidade_nome: string;
   crbm_nome: string;
+  natureza_id?: number | null;
   natureza_nome: string;
+  natureza_grupo?: string | null;
+  natureza_abreviacao?: string | null;
   quantidade: number;
 }
 
@@ -88,6 +91,14 @@ const normalizeText = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase();
 
+const normalizeKey = (value?: string | null) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
 const OBITOS_ORDER = [
   "ACIDENTE DE TRÂNSITO",
   "ACIDENTES COM VIATURAS",
@@ -98,28 +109,35 @@ const OBITOS_ORDER = [
   "OUTROS",
 ];
 
-const ESPELHO_COLUMNS = [
-  { id: "RESGATE", label: "RESGA1", targets: ["RESGATE - SALVAMENTO EM EMERGENCIAS"] },
-  { id: "INC_VEG", label: "INC. VEG", targets: ["VEGETAÇÃO"] },
-  { id: "INC_EDIF", label: "INC. EDIF", targets: ["EDIFICAÇÕES", "EDIFICACOES"] },
-  { id: "INC_OUTROS", label: "INC. OUT.", targets: ["OUTROS"] },
-  { id: "B_CADAV", label: "B. CADÁV", targets: ["CADÁVER", "CADAVER"] },
-  { id: "B_SALV", label: "B. SALV.", targets: ["DIVERSOS"] },
-  { id: "AP_PAL", label: "AP. PAL", targets: ["PALESTRAS"] },
-  { id: "AP_EVE", label: "AP. EVE", targets: ["EVENTOS"] },
-  { id: "AP_FOL", label: "AP. FOL", targets: ["FOLDERS/PANFLETOS", "FOLDERS"] },
-  { id: "AP_OUT", label: "AP. OUT", targets: ["AÇÕES PREVENTIVAS OUTROS", "OUTROS / DIVERSOS"] },
-  { id: "AT_INS", label: "AT. INS", targets: ["INSPEÇÕES", "INSPECOES"] },
-  { id: "AN_PROJ", label: "AN. PROJ", targets: ["ANÁLISE DE PROJETOS", "ANALISE DE PROJETOS"] },
-  { id: "PPV", label: "PPV", targets: ["VAZAMENTOS"] },
-  { id: "PPO", label: "PPO", targets: ["OUTROS / DIVERSOS"] },
-  { id: "DC_PREV", label: "DC PREV.", targets: ["PREVENTIVA"] },
-  { id: "DC_RESP", label: "DC RESP.", targets: ["DE RESPOSTA"] },
+interface EspelhoColumn {
+  codigo: string;
+  grupo: string;
+  subgrupo: string;
+  abreviacao: string;
+}
+
+const ESPELHO_LAYOUT: Array<Omit<EspelhoColumn, "codigo">> = [
+  { grupo: "Resgate", subgrupo: "Resgate - Salvamento em Emergências", abreviacao: "RESGATE" },
+  { grupo: "Incêndio", subgrupo: "Vegetação", abreviacao: "INC. VEG" },
+  { grupo: "Incêndio", subgrupo: "Edificações", abreviacao: "INC. EDIF" },
+  { grupo: "Incêndio", subgrupo: "Outros", abreviacao: "INC. OUT." },
+  { grupo: "Busca e Salvamento", subgrupo: "Cadáver", abreviacao: "B. CADÁV." },
+  { grupo: "Busca e Salvamento", subgrupo: "Diversos", abreviacao: "B. SALV." },
+  { grupo: "Ações Preventivas", subgrupo: "Palestras", abreviacao: "AP. PAL" },
+  { grupo: "Ações Preventivas", subgrupo: "Eventos", abreviacao: "AP. EVE" },
+  { grupo: "Ações Preventivas", subgrupo: "Folders/Panfletos", abreviacao: "AP. FOL" },
+  { grupo: "Ações Preventivas", subgrupo: "Outros", abreviacao: "AP. OUT" },
+  { grupo: "Atividades Técnicas", subgrupo: "Inspeções", abreviacao: "AT. INS" },
+  { grupo: "Atividades Técnicas", subgrupo: "Análise de Projetos", abreviacao: "AN. PROJ" },
+  { grupo: "Produtos Perigosos", subgrupo: "Vazamentos", abreviacao: "PPV" },
+  { grupo: "Produtos Perigosos", subgrupo: "Outros / Diversos", abreviacao: "PPO" },
+  { grupo: "Defesa Civil", subgrupo: "Preventiva", abreviacao: "DC PREV." },
+  { grupo: "Defesa Civil", subgrupo: "De Resposta", abreviacao: "DC RESP." },
 ];
 
-const createEmptyCounts = () =>
-  ESPELHO_COLUMNS.reduce<Record<string, number>>((acc, col) => {
-    acc[col.id] = 0;
+const createEmptyCounts = (columns: EspelhoColumn[]) =>
+  columns.reduce<Record<string, number>>((acc, col) => {
+    acc[col.codigo] = 0;
     return acc;
   }, {});
 
@@ -220,6 +238,93 @@ const DashboardOcorrencias: React.FC = () => {
     return { rows, total };
   }, [payload?.relatorio?.obitos]);
 
+  const espelhoColumns = useMemo<EspelhoColumn[]>(() => {
+    const entries = payload?.espelho || [];
+
+    const idPorGrupoSub = new Map<string, string>();
+    const idPorNome = new Map<string, string>();
+    const idPorAbreviacao = new Map<string, string>();
+
+    entries.forEach((entry) => {
+      if (entry.natureza_id == null) {
+        return;
+      }
+
+      const codigo = String(entry.natureza_id);
+      const grupoNorm = normalizeKey(entry.natureza_grupo);
+      const subgrupoNorm = normalizeKey(entry.natureza_nome);
+      const abreviacaoNorm = normalizeKey(entry.natureza_abreviacao);
+
+      if (grupoNorm && subgrupoNorm && !idPorGrupoSub.has(`${grupoNorm}|${subgrupoNorm}`)) {
+        idPorGrupoSub.set(`${grupoNorm}|${subgrupoNorm}`, codigo);
+      }
+      if (subgrupoNorm && !idPorNome.has(subgrupoNorm)) {
+        idPorNome.set(subgrupoNorm, codigo);
+      }
+      if (abreviacaoNorm && !idPorAbreviacao.has(abreviacaoNorm)) {
+        idPorAbreviacao.set(abreviacaoNorm, codigo);
+      }
+    });
+
+    const codigosUsados = new Set<string>();
+
+    return ESPELHO_LAYOUT.map((colunaBase) => {
+      const grupoNorm = normalizeKey(colunaBase.grupo);
+      const subgrupoNorm = normalizeKey(colunaBase.subgrupo);
+      const abreviacaoNorm = normalizeKey(colunaBase.abreviacao);
+      const fallbackCodigo = `${grupoNorm}|${subgrupoNorm}`;
+
+      const candidatos = [
+        idPorGrupoSub.get(`${grupoNorm}|${subgrupoNorm}`),
+        idPorNome.get(subgrupoNorm),
+        abreviacaoNorm ? idPorAbreviacao.get(abreviacaoNorm) : undefined,
+      ];
+
+      let codigo: string | undefined;
+      for (const candidato of candidatos) {
+        if (candidato && !codigosUsados.has(candidato)) {
+          codigo = candidato;
+          break;
+        }
+      }
+
+      if (!codigo || codigosUsados.has(codigo)) {
+        codigo = fallbackCodigo;
+      }
+
+      codigosUsados.add(codigo);
+
+      return {
+        codigo,
+        grupo: colunaBase.grupo,
+        subgrupo: colunaBase.subgrupo,
+        abreviacao: colunaBase.abreviacao,
+      };
+    });
+  }, [payload?.espelho]);
+
+  const espelhoColumnLookups = useMemo(() => {
+    const byCodigo = new Map<string, EspelhoColumn>();
+    const byGrupoSub = new Map<string, EspelhoColumn>();
+    const bySub = new Map<string, EspelhoColumn>();
+    const byAbreviacao = new Map<string, EspelhoColumn>();
+
+    espelhoColumns.forEach((col) => {
+      const grupoNorm = normalizeKey(col.grupo);
+      const subgrupoNorm = normalizeKey(col.subgrupo);
+      const abreviacaoNorm = normalizeKey(col.abreviacao);
+
+      byCodigo.set(col.codigo, col);
+      byGrupoSub.set(`${grupoNorm}|${subgrupoNorm}`, col);
+      bySub.set(subgrupoNorm, col);
+      if (abreviacaoNorm) {
+        byAbreviacao.set(abreviacaoNorm, col);
+      }
+    });
+
+    return { byCodigo, byGrupoSub, bySub, byAbreviacao };
+  }, [espelhoColumns]);
+
   const espelhoGroups = useMemo(() => {
     const entries = payload?.espelho || [];
     const baseEntries = payload?.espelhoBase || [];
@@ -240,14 +345,14 @@ const DashboardOcorrencias: React.FC = () => {
         group = {
           crbm,
           rows: new Map(),
-          totals: createEmptyCounts(),
+          totals: createEmptyCounts(espelhoColumns),
           total: 0,
         };
         groups.set(crbm, group);
       }
 
       if (!group.rows.has(cidade)) {
-        group.rows.set(cidade, { cidade, counts: createEmptyCounts(), total: 0 });
+        group.rows.set(cidade, { cidade, counts: createEmptyCounts(espelhoColumns), total: 0 });
       }
 
       return group;
@@ -260,11 +365,28 @@ const DashboardOcorrencias: React.FC = () => {
     });
 
     entries.forEach((entry) => {
-      const normalized = normalizeText(entry.natureza_nome || "");
-      const column = ESPELHO_COLUMNS.find((col) =>
-        col.targets.some((target) => normalizeText(target) === normalized)
-      );
-      if (!column) return;
+      const codigoDireto = entry.natureza_id != null ? String(entry.natureza_id) : undefined;
+      let codigoColuna: string | undefined;
+
+      if (codigoDireto && espelhoColumnLookups.byCodigo.has(codigoDireto)) {
+        codigoColuna = codigoDireto;
+      } else {
+        const grupoNorm = normalizeKey(entry.natureza_grupo);
+        const subgrupoNorm = normalizeKey(entry.natureza_nome);
+        const abreviacaoNorm = normalizeKey(entry.natureza_abreviacao);
+
+        if (grupoNorm && subgrupoNorm && !codigoColuna) {
+          codigoColuna = espelhoColumnLookups.byGrupoSub.get(`${grupoNorm}|${subgrupoNorm}`)?.codigo;
+        }
+        if (!codigoColuna && subgrupoNorm) {
+          codigoColuna = espelhoColumnLookups.bySub.get(subgrupoNorm)?.codigo;
+        }
+        if (!codigoColuna && abreviacaoNorm) {
+          codigoColuna = espelhoColumnLookups.byAbreviacao.get(abreviacaoNorm)?.codigo;
+        }
+      }
+
+      if (!codigoColuna) return;
 
       const crbm = entry.crbm_nome || "OUTROS";
       const cidade = entry.cidade_nome || "Não informado";
@@ -272,9 +394,9 @@ const DashboardOcorrencias: React.FC = () => {
       const cityRow = group.rows.get(cidade)!;
 
       const quantidade = entry.quantidade || 0;
-      cityRow.counts[column.id] += quantidade;
+      cityRow.counts[codigoColuna] = (cityRow.counts[codigoColuna] || 0) + quantidade;
       cityRow.total += quantidade;
-      group.totals[column.id] += quantidade;
+      group.totals[codigoColuna] = (group.totals[codigoColuna] || 0) + quantidade;
       group.total += quantidade;
     });
 
@@ -287,7 +409,7 @@ const DashboardOcorrencias: React.FC = () => {
         subtotal: { counts: group.totals, total: group.total },
       }))
       .sort((a, b) => a.crbm.localeCompare(b.crbm, "pt-BR"));
-  }, [payload?.espelho, payload?.espelhoBase]);
+  }, [payload?.espelho, payload?.espelhoBase, espelhoColumns, espelhoColumnLookups]);
 
   useEffect(() => {
     if (selectedCrbm !== "todos" && !espelhoGroups.some((group) => group.crbm === selectedCrbm)) {
@@ -310,19 +432,19 @@ const DashboardOcorrencias: React.FC = () => {
 
   const espelhoTotal = useMemo(() => {
     const summary = {
-      counts: createEmptyCounts(),
+      counts: createEmptyCounts(espelhoColumns),
       total: 0,
     };
 
     filteredEspelho.forEach((group) => {
-      ESPELHO_COLUMNS.forEach((col) => {
-        summary.counts[col.id] += group.subtotal.counts[col.id];
+      espelhoColumns.forEach((col) => {
+        summary.counts[col.codigo] += group.subtotal.counts[col.codigo] || 0;
       });
       summary.total += group.subtotal.total;
     });
 
     return summary;
-  }, [filteredEspelho]);
+  }, [filteredEspelho, espelhoColumns]);
 
   const groupedRelatorio = useMemo(() => {
     const estatisticas = payload?.relatorio?.estatisticas || [];
@@ -563,8 +685,8 @@ const DashboardOcorrencias: React.FC = () => {
                   <tr>
                     <th>CRBM</th>
                     <th>Quartel / Cidade</th>
-                    {ESPELHO_COLUMNS.map((col) => (
-                      <th key={col.id}>{col.label}</th>
+                    {espelhoColumns.map((col) => (
+                      <th key={col.codigo}>{col.abreviacao}</th>
                     ))}
                     <th>Total</th>
                   </tr>
@@ -587,8 +709,8 @@ const DashboardOcorrencias: React.FC = () => {
                               </td>
                             )}
                             <td className="oc-espelho-city">{row.cidade}</td>
-                            {ESPELHO_COLUMNS.map((col) => (
-                              <td key={col.id}>{row.counts[col.id] || 0}</td>
+                            {espelhoColumns.map((col) => (
+                              <td key={col.codigo}>{row.counts[col.codigo] || 0}</td>
                             ))}
                             <td className="oc-espelho-total-cell">{row.total}</td>
                           </tr>
@@ -599,9 +721,9 @@ const DashboardOcorrencias: React.FC = () => {
                               SUB TOTAL
                             </td>
                             {/* As células restantes de contagem permanecem iguais */}
-                            {ESPELHO_COLUMNS.map((col) => (
-                              <td key={`${group.crbm}-subtotal-${col.id}`}>
-                                {group.subtotal.counts[col.id] || 0}
+                            {espelhoColumns.map((col) => (
+                              <td key={`${group.crbm}-subtotal-${col.codigo}`}>
+                                {group.subtotal.counts[col.codigo] || 0}
                               </td>
                             ))}
                             <td className="oc-espelho-total-cell">{group.subtotal.total}</td>
@@ -614,8 +736,8 @@ const DashboardOcorrencias: React.FC = () => {
                     <td colSpan={2} className="oc-espelho-city">TOTAL GERAL</td>
                     
                     {/* As células de contagem de totais permanecem as mesmas */}
-                    {ESPELHO_COLUMNS.map((col) => (
-                      <td key={`overall-${col.id}`}>{espelhoTotal.counts[col.id] || 0}</td>
+                    {espelhoColumns.map((col) => (
+                      <td key={`overall-${col.codigo}`}>{espelhoTotal.counts[col.codigo] || 0}</td>
                     ))}
                     <td className="oc-espelho-total-cell">{espelhoTotal.total}</td>
                   </tr>

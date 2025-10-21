@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
@@ -86,19 +86,28 @@ const mockPayload = {
     {
       cidade_nome: "Goiânia - Diurno",
       crbm_nome: "1º CRBM",
+      natureza_id: 101,
+      natureza_grupo: "Resgate",
       natureza_nome: "Resgate - Salvamento em Emergências",
+      natureza_abreviacao: "RESGATE",
       quantidade: 2,
     },
     {
       cidade_nome: "Goiânia - Diurno",
       crbm_nome: "1º CRBM",
+      natureza_id: 202,
+      natureza_grupo: "Incêndio",
       natureza_nome: "Edificações",
+      natureza_abreviacao: "INC. EDIF",
       quantidade: 1,
     },
     {
       cidade_nome: "Rio Verde",
       crbm_nome: "2º CRBM",
+      natureza_id: 303,
+      natureza_grupo: "Produtos Perigosos",
       natureza_nome: "Outros / Diversos",
+      natureza_abreviacao: "PPO",
       quantidade: 3,
     },
   ],
