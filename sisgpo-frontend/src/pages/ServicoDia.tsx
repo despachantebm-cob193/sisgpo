@@ -10,6 +10,7 @@ import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
 import Spinner from '../components/ui/Spinner';
 import { Trash2 } from 'lucide-react';
+import { useUiStore } from '@/store/uiStore';
 
 // Interfaces
 interface SelectOption {
@@ -32,6 +33,12 @@ const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
 
 export default function ServicoDia() {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Gerenciar Serviço de Dia");
+  }, [setPageTitle]);
+
   // Define o estado inicial para as datas de início e fim
   const hoje = new Date();
   const amanha = new Date(hoje);

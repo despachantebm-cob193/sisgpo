@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCrud } from '../hooks/useCrud'; // CORREÇÃO: Importação nomeada
 import { Aeronave } from '../types/entities';
 import Modal from '../components/ui/Modal';
@@ -6,8 +6,15 @@ import Button from '../components/ui/Button';
 import AeronaveForm from '../components/forms/AeronaveForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Spinner from '../components/ui/Spinner';
+import { useUiStore } from '@/store/uiStore';
 
 const Aeronaves: React.FC = () => {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Gerenciar Aeronaves");
+  }, [setPageTitle]);
+
   const {
     data: aeronaves,
     isLoading,

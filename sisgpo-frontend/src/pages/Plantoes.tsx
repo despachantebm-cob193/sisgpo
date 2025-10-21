@@ -19,6 +19,7 @@ import PlantaoForm from '@/components/forms/PlantaoForm';
 import EscalaMedicoForm from '@/components/forms/EscalaMedicoForm';
 import EscalaAeronaveForm from '@/components/forms/EscalaAeronaveForm';
 import EscalaCodecForm from '@/components/forms/EscalaCodecForm';
+import { useUiStore } from '@/store/uiStore';
 
 // --- Interfaces ---
 export interface Plantao { id: number; data_plantao: string; viatura_prefixo: string; obm_abreviatura: string; }
@@ -49,6 +50,12 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; on
 
 
 export default function Plantoes() {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Gerenciamento de Escalas");
+  }, [setPageTitle]);
+
   const [activeTab, setActiveTab] = useState<ActiveTab>('plantoes');
   const [filters, setFilters] = useState({ data_inicio: '', data_fim: '' });
   const [plantoes, setPlantoes] = useState<Plantao[]>([]);

@@ -7,10 +7,16 @@ import { Pencil, Ban, RotateCcw, Trash2, PlusCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { UserRecord } from '../types/entities';
 import UserFormModal from '../components/forms/UserFormModal';
+import { useUiStore } from '@/store/uiStore';
 
 export default function Users() {
   const navigate = useNavigate();
   const { user: loggedUser } = useAuthStore();
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Usuários");
+  }, [setPageTitle]);
 
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);

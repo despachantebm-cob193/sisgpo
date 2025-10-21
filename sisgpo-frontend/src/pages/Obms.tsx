@@ -14,6 +14,7 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import { formatarTelefone } from '../utils/formatters';
 import FileUpload from '../components/ui/FileUpload';
+import { useUiStore } from '@/store/uiStore';
 
 interface Obm { id: number; nome: string; abreviatura: string; cidade: string | null; telefone: string | null; }
 export interface ObmOption { value: string; label: string; cidade: string; }
@@ -21,6 +22,12 @@ interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Obms() {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("OBMs");
+  }, [setPageTitle]);
+
   // Todos os hooks e funções (useState, useCallback, useEffect, handlers) permanecem os mesmos.
   // ... (código dos hooks e handlers que já estava aqui) ...
   const [obms, setObms] = useState<Obm[]>([]);

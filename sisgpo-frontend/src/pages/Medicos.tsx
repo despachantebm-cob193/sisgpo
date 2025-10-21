@@ -13,12 +13,19 @@ import Pagination from '../components/ui/Pagination';
 import { Edit, Trash2 } from 'lucide-react';
 import MedicoForm from '../components/forms/MedicoForm';
 import { formatarTelefone } from '../utils/formatters';
+import { useUiStore } from '@/store/uiStore';
 
 interface Medico { id: number; nome_completo: string; funcao: string; telefone: string | null; observacoes: string | null; ativo: boolean; }
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Medicos() {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Cadastro de Médicos");
+  }, [setPageTitle]);
+
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ nome_completo: '' });

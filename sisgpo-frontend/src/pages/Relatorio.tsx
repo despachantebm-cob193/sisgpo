@@ -1,6 +1,6 @@
 // Arquivo: src/pages/Relatorio.tsx
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
 import Button from '@/components/ui/Button';
@@ -10,6 +10,7 @@ import Spinner from '@/components/ui/Spinner';
 import { Printer, User, Shield, Stethoscope, Plane, Car } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useUiStore } from '@/store/uiStore';
 
 // --- Interfaces para os dados do relatório ---
 interface ServicoDia { funcao: string; posto_graduacao: string; nome: string; }
@@ -39,6 +40,12 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: React.E
 );
 
 export default function Relatorio() {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Relatório Diário Consolidado");
+  }, [setPageTitle]);
+
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
   const [relatorio, setRelatorio] = useState<RelatorioData | null>(null);
   const [isLoading, setIsLoading] = useState(false);

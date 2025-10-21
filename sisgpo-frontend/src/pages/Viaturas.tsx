@@ -1,4 +1,4 @@
-﻿// Arquivo: frontend/src/pages/Viaturas.tsx (VERSÃƒO CORRIGIDA)
+// Arquivo: frontend/src/pages/Viaturas.tsx (VERSÃƒO CORRIGIDA)
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -13,12 +13,19 @@ import ViaturaForm from '../components/forms/ViaturaForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
+import { useUiStore } from '@/store/uiStore';
 
 interface Viatura { id: number; prefixo: string; cidade: string | null; obm: string | null; ativa: boolean; }
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Viaturas() {
+  const { setPageTitle } = useUiStore();
+
+  useEffect(() => {
+    setPageTitle("Viaturas");
+  }, [setPageTitle]);
+
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ prefixo: '' });
@@ -209,4 +216,3 @@ export default function Viaturas() {
     </div>
   );
 }
-
