@@ -10,6 +10,25 @@ const parseBoolean = (value, defaultValue = false) => {
   return ['true', '1', 'yes', 'on'].includes(normalized);
 };
 
+const parsePort = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const port = Number(value);
+  return Number.isFinite(port) ? port : undefined;
+};
+
+const sanitizeConnectionConfig = (config) => {
+  return Object.entries(config).reduce((result, [key, entryValue]) => {
+    if (entryValue === undefined || entryValue === null || entryValue === '') {
+      return result;
+    }
+    result[key] = entryValue;
+    return result;
+  }, {});
+};
+
 const isCloudPrimary =
   process.env.NODE_ENV === 'production' ||
   (process.env.DB_HOST || '').includes('neon.tech');
@@ -51,16 +70,23 @@ const createDbInstance = (connectionConfig, options = {}) => {
 
 const primaryDatabaseName = process.env.DB_DATABASE || process.env.DB_NAME;
 
+const primaryConnectionConfig = process.env.DATABASE_URL
+  ? { connectionString: process.env.DATABASE_URL }
+  : sanitizeConnectionConfig({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: primaryDatabaseName,
+      port: parsePort(process.env.DB_PORT) ?? 5432,
+    });
+
 const db = createDbInstance(
+  primaryConnectionConfig,
   {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: primaryDatabaseName,
-    port: Number(process.env.DB_PORT) || 5432,
-  },
-  {
-    useSsl: parseBoolean(process.env.DB_SSL, isCloudPrimary),
+    useSsl: parseBoolean(
+      process.env.DB_SSL,
+      isCloudPrimary || Boolean(process.env.DATABASE_URL)
+    ),
     migrations: {
       directory: path.join(__dirname, '..', 'database', 'migrations'),
     },
@@ -89,7 +115,7 @@ if (externalHost) {
       user: process.env.EXTERNAL_DB_USER,
       password: process.env.EXTERNAL_DB_PASSWORD,
       database: externalDatabaseName,
-      port: Number(process.env.EXTERNAL_DB_PORT) || 5432,
+      port: parsePort(process.env.EXTERNAL_DB_PORT) ?? 5432,
     },
     {
       isExternal: true,
