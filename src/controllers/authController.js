@@ -136,6 +136,7 @@ const authController = {
       const senha_hash = await bcrypt.hash(randomPassword, 10);
 
       const newUser = {
+        nome: name, // Adicionado para corrigir o erro de NOT NULL
         nome_completo: name,
         login: email.split('@')[0], // Usa a parte local do e-mail como login inicial
         email,
