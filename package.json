@@ -2,7 +2,7 @@
   "name": "sisgpo-api",
   "version": "1.0.0",
   "scripts": {
-    "dev": "dotenv -e .env -- nodemon src/server.js",
+    "dev": "dotenv -e .env -- ts-node-dev --respawn --transpile-only src/server.ts",
     "start": "node src/server.js",
     "start:prod": "node dist/server.js",
     "knex": "knex --knexfile knexfile.js",
