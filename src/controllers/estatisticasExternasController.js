@@ -90,7 +90,7 @@ const estatisticasExternasController = {
 
       // Erro genérico se nenhuma das condições acima for atendida
       return response.status(500).json({ message: 'Erro interno ao processar a requisição para o sistema externo.' });
-  },
+  }
 };
 
 module.exports = estatisticasExternasController;
