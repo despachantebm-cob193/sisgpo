@@ -1,16 +1,78 @@
+// Arquivo: src/app.ts (CORRIGIDO)
+import 'dotenv/config';
 import express from 'express';
-import verifySsoJwt from './middleware/verifySsoJwt';
+import 'express-async-errors';
+import cors from 'cors';
+import path from 'path';
+
+// --- Importação das Rotas ---
+// (Assumindo que os arquivos de rotas são .js, o import funciona)
+import authRoutes from './routes/authRoutes';
+import adminRoutes from './routes/adminRoutes';
+import publicRoutes from './routes/publicRoutes';
+import estatisticasExternasRoutes from './routes/estatisticasExternasRoutes'; 
+
+// --- Importação dos Middlewares ---
+import authMiddleware from './middlewares/authMiddleware';
+import errorMiddleware from './middlewares/errorMiddleware';
 
 const app = express();
 
+// DEFINE O CAMINHO CORRETO DA PASTA DE BUILD DO FRONTEND
+// __dirname não existe por padrão em módulos ES, mas 'tsc' deve lidar com isso.
+// Se der erro, trocaremos esta parte.
+const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
+
+// Configuração do CORS (Lendo a variável de ambiente)
+app.use(cors({
+  origin: process.env.FRONTEND_URL, // Use a variável que você configurou no Render
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
+
 app.use(express.json());
 
-// healthcheck
-app.get('/health', (_req, res) => res.json({ ok: true }));
-
-// exemplo de rota protegida
-app.get('/secure/ping', verifySsoJwt, (req, res) => {
-  res.json({ ok: true, who: (req as any).ssoPayload || null });
+// Rota leve para monitoramento de atividade (keep-alive)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'API is alive',
+    timestamp: new Date().toISOString()
+  });
 });
 
-export default app;
+app.get('/', (req, res) => {
+  res.json({ message: 'API do SISGPO está funcionando!' });
+});
+
+// --- REGISTRO DAS ROTAS DA API ---
+
+// Rotas de Autenticação (PÚBLICAS)
+app.use('/api/auth', authRoutes);
+
+// Rotas do Dashboard (PÚBLICAS)
+app.use('/api/public', publicRoutes);
+
+// Nova rota para a integração
+app.use('/api', estatisticasExternasRoutes);
+
+// Rotas de Administração (PROTEGIDAS)
+app.use('/api/admin', authMiddleware, adminRoutes);
+
+// ------------------------------------------------------------------------------------------
+// --- SERVINDO O FRONTEND (SPA HISTORY FALLBACK) ---
+// ------------------------------------------------------------------------------------------
+
+// 1. Serve os arquivos estáticos (CSS, JS, imagens)
+app.use(express.static(frontendPath));
+
+// 2. Rota Catch-All para o SPA (fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// Middleware de erro deve ser o último
+app.use(errorMiddleware);
+
+export default app; // Alterado de module.exports para export default
