@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "dotenv -e .env -- nodemon src/server.js",
     "start": "node src/server.js",
-    "start:prod": "node src/server.js",
+    "start:prod": "node dist/server.js",
     "knex": "knex --knexfile knexfile.js",
     "migrate:dev": "knex migrate:latest --env development",
     "migrate:prod": "knex migrate:latest --env production",
