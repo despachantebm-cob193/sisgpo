@@ -44,9 +44,9 @@
     "nodemon": "^2.0.22",
     "supertest": "^7.1.4",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=20 <21"
   }
 }
