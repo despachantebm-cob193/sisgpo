@@ -1,3 +1,4 @@
+import { useUiStore } from "../store/uiStore";
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import api from "../services/api";
@@ -174,6 +175,16 @@ const formatTime = (value?: string | null) => {
 };
 
 const DashboardOcorrencias: React.FC = () => {
+  const setPageTitle = useUiStore((state) => state.setPageTitle);
+
+  useEffect(() => {
+    setPageTitle("Dashboard Operacional (COCB)");
+
+    return () => {
+      setPageTitle("Página Inicial"); // Reset on unmount
+    };
+  }, [setPageTitle]);
+
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [selectedCrbm, setSelectedCrbm] = useState<string>("todos");
   const [expandedCrbms, setExpandedCrbms] = useState<Record<string, boolean>>({});
@@ -537,7 +548,6 @@ const DashboardOcorrencias: React.FC = () => {
 
   return (
     <div className="oc-dashboard-wrapper">
-      <h1>Dashboard Operacional (COCB)</h1>
 
       <section className="oc-card-grid">
         <div className="oc-card">

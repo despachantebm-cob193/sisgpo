@@ -23,9 +23,25 @@ const app = express();
 // Se der erro, trocaremos esta parte.
 const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
 
-// Configuração do CORS (Lendo a variável de ambiente)
+// Configuração do CORS (Lendo a variável de ambiente e permitindo localhost)
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+].filter(Boolean); // Remove valores nulos/undefined da lista
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Use a variável que você configurou no Render
+  origin: (origin, callback) => {
+    // Permite requisições sem 'origin' (ex: Postman, apps mobile)
+    if (!origin) return callback(null, true);
+    
+    // Se a origem da requisição estiver na lista de permitidas, autorize.
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Caso contrário, rejeite.
+    return callback(new Error('A política de CORS para este site não permite acesso a partir da sua origem.'), false);
+  },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   preflightContinue: false,
   optionsSuccessStatus: 204
