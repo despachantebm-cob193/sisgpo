@@ -9,6 +9,7 @@ interface ServicoInfo {
   funcao: string;
   nome_guerra: string | null;
   posto_graduacao: string | null;
+  telefone: string | null;
 }
 
 interface ServicoDiaCardProps {
@@ -73,6 +74,7 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
                 profissionais.map((p, index) => (
                   <div key={index} className="truncate" title={`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}>
                     {`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}
+                    {p.telefone && <p className="text-sm font-normal text-gray-500">{p.telefone}</p>}
                   </div>
                 ))
               ) : (

@@ -163,6 +163,8 @@ const DashboardOcorrencias: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [selectedCrbm, setSelectedCrbm] = useState<string>("todos");
   const [expandedCrbms, setExpandedCrbms] = useState<Record<string, boolean>>({});
+  const [expandedObms, setExpandedObms] = useState<Record<string, boolean>>({});
+  const [expandedObitos, setExpandedObitos] = useState<Record<string, boolean>>({});
   const [payload, setPayload] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -464,6 +466,20 @@ const DashboardOcorrencias: React.FC = () => {
     }));
   };
 
+  const handleToggleObm = (obmId: string) => {
+    setExpandedObms((prev) => ({
+      ...prev,
+      [obmId]: !prev[obmId],
+    }));
+  };
+
+  const handleToggleObito = (label: string) => {
+    setExpandedObitos((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
+
   const espelhoTotal = useMemo(() => {
     const summary = {
       counts: createEmptyCounts(espelhoColumns),
@@ -548,7 +564,7 @@ const DashboardOcorrencias: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {obitosResumo.rows.map((row) => (
+                {obitosResumo.rows.filter(row => row.quantidade > 0).map((row) => (
                   <tr key={row.label}>
                     <td>{row.label}</td>
                     <td>{row.quantidade}</td>
@@ -575,35 +591,61 @@ const DashboardOcorrencias: React.FC = () => {
             </table>
 
             <div className="oc-obitos-cards">
-              {obitosResumo.rows.map((row) => {
-                const registrosTexto =
-                  row.registros.length === 0
-                    ? "-"
-                    : row.registros
-                        .map(
-                          (registro) =>
-                            `(${registro.numero_ocorrencia || "N/A"}) - ${
-                              registro.obm_nome || "N/A"
-                            } (${registro.quantidade_vitimas || 0})`
-                        )
-                        .join("\n");
+              {obitosResumo.rows.filter(row => row.quantidade > 0).map((row) => {
+                const isExpanded = !!expandedObitos[row.label];
 
                 return (
-                  <div className="oc-obitos-card" key={row.label}>
-                    <div className="oc-card-row">
-                      <span className="oc-card-label">Natureza</span>
-                      <span className="oc-card-value">{row.label}</span>
-                    </div>
-                    <div className="oc-card-row">
-                      <span className="oc-card-label">Quantidade</span>
-                      <span className="oc-card-value">{row.quantidade}</span>
-                    </div>
-                    <div className="oc-card-row">
-                      <span className="oc-card-label">Registros</span>
-                      <span className="oc-card-value oc-card-value-multiline">
-                        {registrosTexto}
-                      </span>
-                    </div>
+                  <div className="oc-espelho-accordion" key={row.label}>
+                    <button
+                      type="button"
+                      className={`oc-espelho-accordion-header ${isExpanded ? "is-open" : ""}`}
+                      onClick={() => handleToggleObito(row.label)}
+                    >
+                      <div className="oc-espelho-accordion-title">
+                        <span className="oc-espelho-accordion-arrow">
+                          <ChevronDown />
+                        </span>
+                        <span>{row.label}</span>
+                      </div>
+                      <div className="oc-espelho-accordion-total">
+                        <span style={{
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold'
+                        }}>
+                          {row.quantidade}
+                        </span>
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="oc-espelho-accordion-body">
+                        <div className="oc-card-row">
+                          <span className="oc-card-label">REGISTROS INDIVIDUAIS</span>
+                          {row.registros.map((registro) => (
+                            <div key={registro.id} style={{ marginTop: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span className="oc-card-value" style={{ fontWeight: 'bold', color: '#90cdf4' }}>
+                                  RAI: {registro.numero_ocorrencia || "N/A"}
+                                </span>
+                                <span className="oc-card-value" style={{ fontWeight: 'bold', color: '#90cdf4' }}>
+                                  {registro.quantidade_vitimas || 0}
+                                </span>
+                              </div>
+                              <span className="oc-card-value" style={{ display: 'block', fontSize: '0.8rem' }}>
+                                {registro.obm_nome || "N/A"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -795,46 +837,60 @@ const DashboardOcorrencias: React.FC = () => {
                       </button>
                       {isExpanded && (
                         <div className="oc-espelho-accordion-body">
-                          {group.rows.map((row) => (
-                            <div className="oc-espelho-city-card" key={`${group.crbm}-${row.cidade}`}>
-                              <div className="oc-espelho-city-header">
-                                <div>
-                                  <div className="oc-espelho-city-name">{row.cidade}</div>
-                                  <div className="oc-espelho-city-subtitle">{group.crbm}</div>
-                                </div>
-                                <div className="oc-espelho-city-total">
-                                  <span>Total</span>
-                                  <span>{row.total}</span>
-                                </div>
-                              </div>
-                              <div className="oc-espelho-count-grid">
-                                {espelhoColumns.map((col) => (
-                                  <div className="oc-espelho-count-item" key={`${group.crbm}-${row.cidade}-${col.codigo}`}>
-                                    <span className="oc-espelho-count-label">{col.abreviacao}</span>
-                                    <span className="oc-espelho-count-value">
-                                      {row.counts[col.codigo] || 0}
+                          {group.rows.map((row) => {
+                            const obmId = `${group.crbm}-${row.cidade}`;
+                            const isObmExpanded = !!expandedObms[obmId];
+                            return (
+                              <div
+                                className="oc-espelho-accordion"
+                                key={obmId}
+                                style={{
+                                  borderColor: row.total > 0 ? "rgba(40, 167, 69, 0.7)" : "rgba(220, 53, 69, 0.7)",
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  className={`oc-espelho-accordion-header ${
+                                    isObmExpanded ? "is-open" : ""
+                                  }`}
+                                  onClick={() => handleToggleObm(obmId)}
+                                >
+                                  <div className="oc-espelho-accordion-title">
+                                    <span className="oc-espelho-accordion-arrow">
+                                      <ChevronDown />
                                     </span>
+                                    <span>{row.cidade}</span>
                                   </div>
-                                ))}
+                                  <div className="oc-espelho-accordion-total">
+                                    <span>Total</span>
+                                    <span>{row.total}</span>
+                                  </div>
+                                </button>
+                                {isObmExpanded && (
+                                  <div className="oc-espelho-accordion-body">
+                                    <div className="oc-espelho-count-list">
+                                      {espelhoColumns
+                                        .filter((col) => (row.counts[col.codigo] || 0) > 0)
+                                        .map((col) => (
+                                          <div
+                                            className="oc-espelho-count-row"
+                                            key={`${group.crbm}-${row.cidade}-${col.codigo}`}
+                                          >
+                                            <span className="oc-espelho-count-label">
+                                              {col.abreviacao}
+                                            </span>
+                                            <span className="oc-espelho-count-value">
+                                              {row.counts[col.codigo]}
+                                            </span>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
-                          <div className="oc-espelho-summary-card">
-                            <div className="oc-card-row">
-                              <span className="oc-card-label">Subtotal</span>
-                              <span className="oc-card-value">{group.subtotal.total}</span>
-                            </div>
-                            <div className="oc-espelho-count-grid">
-                              {espelhoColumns.map((col) => (
-                                <div className="oc-espelho-count-item" key={`${group.crbm}-subtotal-${col.codigo}`}>
-                                  <span className="oc-espelho-count-label">{col.abreviacao}</span>
-                                  <span className="oc-espelho-count-value">
-                                    {group.subtotal.counts[col.codigo] || 0}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                            );
+                          })}
+
                         </div>
                       )}
                     </div>

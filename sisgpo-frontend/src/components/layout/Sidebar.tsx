@@ -1,23 +1,19 @@
 import { useState, ReactNode } from 'react';
 import {
   ClipboardList,
-  FileStack,
   FileText,
   Home,
   LogOut,
-  Pyramid,
   Settings,
   Shield,
-  Plane,
   Truck,
   UserCheck,
-  UserPlus,
   Users,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
-  GaugeCircle, // Adicionado
   BellElectric,
+  X,
 } from 'lucide-react';
 import { TfiJoomla } from 'react-icons/tfi';
 import { GiSiren } from 'react-icons/gi';
@@ -44,7 +40,7 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { isSidebarCollapsed, toggleSidebar } = useUiStore();
+  const { isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, toggleMobileMenu } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
 
   const handleLogout = () => {
@@ -52,44 +48,47 @@ export default function Sidebar() {
     navigate('/login');
   };
 
+  const handleLinkClick = () => {
+    if (isMobileMenuOpen) {
+      toggleMobileMenu();
+    }
+  };
+
   const navLinkClass =
     'flex items-center p-2 text-gray-100 rounded-lg dark:text-white hover:bg-gray-700 dark:hover:bg-gray-700';
   const activeNavLinkClass = 'bg-gray-700 dark:bg-gray-700';
 
-  return (
-        <aside
-          id="logo-sidebar"
-          className={`flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-0 md:w-20' : 'w-64'} bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
-          aria-label="Sidebar"
-        >
-      <div className="h-full px-3 pb-4 overflow-y-auto bg-gray-800 dark:bg-gray-800">
-        <div
-          className={`relative flex h-16 items-center border-b border-gray-700 px-6 ${
-            isSidebarCollapsed ? 'justify-center' : 'justify-between'
-          }`}
-        >
-          {isSidebarCollapsed ? (
-            <TfiJoomla className="text-white text-3xl" />
-          ) : (
-            <div className="flex items-center">
-              <TfiJoomla className="text-white mr-2 text-2xl" />
-              <div>
-                <h1 className="text-xl font-bold text-white">SISGPO</h1>
-              </div>
+  const renderSidebarContent = (isCollapsed: boolean) => (
+    <div className="h-full px-3 pb-4 overflow-y-auto bg-gray-800 dark:bg-gray-800">
+      <div
+        className={`relative flex h-16 items-center border-b border-gray-700 px-6 ${isCollapsed ? 'justify-center' : 'justify-between'
+          }`}>
+        {isCollapsed ? (
+          <TfiJoomla className="text-white text-3xl" />
+        ) : (
+          <div className="flex items-center">
+            <TfiJoomla className="text-white mr-2 text-2xl" />
+            <div>
+              <h1 className="text-xl font-bold text-white">SISGPO</h1>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+        <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
+            <X size={24} className="text-white" />
+        </button>
+      </div>
 
-        <ul className="space-y-2 pt-4 font-medium">
+      <ul className="space-y-2 pt-4 font-medium">
           <li>
             <NavLink
               to="/app/dashboard"
+              onClick={handleLinkClick}
               className={({ isActive }) =>
                 `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
               }
             >
               <NavLinkContent
-                isCollapsed={isSidebarCollapsed}
+                isCollapsed={isCollapsed}
                 icon={<Home className="mr-3 h-6 w-6" />}
                 text="Dashboard"
               />
@@ -98,12 +97,13 @@ export default function Sidebar() {
           <li>
             <NavLink
               to="/app/dashboard-ocorrencias"
+              onClick={handleLinkClick}
               className={({ isActive }) =>
                 `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
               }
             >
               <NavLinkContent
-                isCollapsed={isSidebarCollapsed}
+                isCollapsed={isCollapsed}
                 icon={<GiSiren className="mr-3 h-6 w-6" />}
                 text="Ocorrências"
               />
@@ -114,40 +114,37 @@ export default function Sidebar() {
             <>
               <button
                 onClick={() => setIsAdminOpen(!isAdminOpen)}
-                className={`w-full flex justify-between items-center p-2 text-xs text-gray-400 ${
-                  isSidebarCollapsed ? 'hidden' : ''
-                }`}
+                className={`w-full flex justify-between items-center p-2 text-xs text-gray-400 ${isCollapsed ? 'hidden' : ''
+                  }`}
               >
                 ADMINISTRAÇÃO
                 <ChevronDown
-                  className={`transition-transform duration-200 ${
-                    isAdminOpen ? 'rotate-180' : ''
-                  }`}
+                  className={`transition-transform duration-200 ${isAdminOpen ? 'rotate-180' : ''
+                    }`}
                 />
               </button>
               <div
-                className={`transition-all duration-300 overflow-hidden ${
-                  !isSidebarCollapsed
+                className={`transition-all duration-300 overflow-hidden ${!isCollapsed
                     ? isAdminOpen
                       ? 'max-h-screen'
                       : 'max-h-0'
                     : 'max-h-screen'
-                }`}
+                  }`}
               >
                 <ul
-                  className={`space-y-2 font-medium ${
-                    !isSidebarCollapsed ? 'pl-4' : ''
-                  }`}
+                  className={`space-y-2 font-medium ${!isCollapsed ? 'pl-4' : ''
+                    }`}
                 >
                   <li>
                     <NavLink
                       to="/app/servico-dia"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<ClipboardList className="mr-3 h-6 w-6" />}
                         text="Serviço do Dia"
                       />
@@ -156,12 +153,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/militares"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<Users className="mr-3 h-6 w-6" />}
                         text="Militares"
                       />
@@ -170,12 +168,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/medicos"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<IoMedicalSharp className="mr-3 h-6 w-6" />}
                         text="Médicos"
                       />
@@ -184,12 +183,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/viaturas"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<MdFireTruck className="mr-3 h-6 w-6" />}
                         text="Viaturas"
                       />
@@ -198,12 +198,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/aeronaves"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<FaHelicopter className="mr-3 h-6 w-6" />}
                         text="Aeronaves"
                       />
@@ -212,12 +213,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/obms"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<BellElectric className="mr-3 h-6 w-6" />}
                         text="OBMs"
                       />
@@ -226,12 +228,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/plantoes"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<Shield className="mr-3 h-6 w-6" />}
                         text="Plantões"
                       />
@@ -240,12 +243,13 @@ export default function Sidebar() {
                   <li>
                     <NavLink
                       to="/app/usuarios"
+                      onClick={handleLinkClick}
                       className={({ isActive }) =>
                         `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
                       }
                     >
                       <NavLinkContent
-                        isCollapsed={isSidebarCollapsed}
+                        isCollapsed={isCollapsed}
                         icon={<UserCheck className="mr-3 h-6 w-6" />}
                         text="Usuários"
                       />
@@ -257,21 +261,21 @@ export default function Sidebar() {
           )}
 
           <p
-            className={`px-2 pt-2 text-xs text-gray-400 ${
-              isSidebarCollapsed ? 'hidden' : ''
-            }`}
+            className={`px-2 pt-2 text-xs text-gray-400 ${isCollapsed ? 'hidden' : ''
+              }`}
           >
             RELATÓRIOS
           </p>
           <li>
             <NavLink
               to="/app/relatorio"
+              onClick={handleLinkClick}
               className={({ isActive }) =>
                 `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
               }
             >
               <NavLinkContent
-                isCollapsed={isSidebarCollapsed}
+                isCollapsed={isCollapsed}
                 icon={<FileText className="mr-3 h-6 w-6" />}
                 text="Relatório de Escala"
               />
@@ -279,37 +283,69 @@ export default function Sidebar() {
           </li>
         </ul>
 
-        <div className="absolute bottom-0 left-0 justify-center p-4 space-y-2 w-full bg-gray-800 dark:bg-gray-800">
-          <button onClick={toggleSidebar} className={`${navLinkClass} w-full`}>
+      <div className="absolute bottom-0 left-0 justify-center p-4 space-y-2 w-full bg-gray-800 dark:bg-gray-800">
+        <button onClick={toggleSidebar} className={`${navLinkClass} w-full hidden md:flex`}>
+          <NavLinkContent
+            isCollapsed={isCollapsed}
+            icon={isCollapsed ? <ChevronsRight className="mr-3 h-6 w-6" /> : <ChevronsLeft className="mr-3 h-6 w-6" />}
+            text="Recolher"
+          />
+        </button>
+        <div className="p-2 border-t border-gray-700">
+          <NavLink
+            to="/app/perfil"
+            onClick={handleLinkClick}
+            className={({ isActive }) =>
+              `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+            }
+          >
             <NavLinkContent
-              isCollapsed={isSidebarCollapsed}
-              icon={isSidebarCollapsed ? <ChevronsRight className="mr-3 h-6 w-6" /> : <ChevronsLeft className="mr-3 h-6 w-6" />}
-              text="Recolher"
+              isCollapsed={isCollapsed}
+              icon={<Settings className="mr-3 h-6 w-6" />}
+              text={user?.login}
+            />
+          </NavLink>
+          <button onClick={handleLogout} className={`${navLinkClass} w-full`}>
+            <NavLinkContent
+              isCollapsed={isCollapsed}
+              icon={<LogOut className="mr-3 h-6 w-6" />}
+              text="Sair"
             />
           </button>
-          <div className="p-2 border-t border-gray-700">
-            <NavLink
-              to="/app/perfil"
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <NavLinkContent
-                isCollapsed={isSidebarCollapsed}
-                icon={<Settings className="mr-3 h-6 w-6" />}
-                text={user?.login}
-              />
-            </NavLink>
-            <button onClick={handleLogout} className={`${navLinkClass} w-full`}>
-              <NavLinkContent
-                isCollapsed={isSidebarCollapsed}
-                icon={<LogOut className="mr-3 h-6 w-6" />}
-                text="Sair"
-              />
-            </button>
-          </div>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
+          onClick={toggleMobileMenu}
+        ></div>
+      )}
+
+      {/* Sidebar for Mobile */}
+      <aside
+        id="logo-sidebar-mobile"
+        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 bg-gray-800 transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        aria-label="Sidebar"
+      >
+        {renderSidebarContent(false)}
+      </aside>
+
+      {/* Sidebar for Desktop */}
+      <aside
+        id="logo-sidebar-desktop"
+        className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
+          } bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
+        aria-label="Sidebar"
+      >
+        {renderSidebarContent(isSidebarCollapsed)}
+      </aside>
+    </>
   );
 }

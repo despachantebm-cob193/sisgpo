@@ -167,27 +167,42 @@ const dashboardController = {
   },
 
   getServicoDia: async (req, res) => {
-    const dataBusca = new Date().toISOString(); 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of today
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1); // Set to start of tomorrow
 
     try {
-      const servicosAtivos = await db('servico_dia as sd')
-        .where('sd.data_inicio', '<=', dataBusca)
-        .andWhere('sd.data_fim', '>=', dataBusca);
+      // Encontra o plantão ativo mais recente que abrange o dia atual
+      const latestActiveService = await db('servico_dia')
+        .where('data_inicio', '<=', tomorrow.toISOString()) // Starts before tomorrow
+        .andWhere('data_fim', '>=', today.toISOString())    // Ends after start of today
+        .orderBy('data_inicio', 'desc')
+        .first();
 
+      // Se nenhum serviço estiver ativo, retorna um array vazio
+      if (!latestActiveService) {
+        return res.status(200).json([]);
+      }
+
+      // Busca todos os registros que compartilham a mesma data de início do plantão mais recente
+      const servicosAtivos = await db('servico_dia as sd')
+        .where('sd.data_inicio', latestActiveService.data_inicio);
+        
       const militarIds = servicosAtivos.filter(s => s.pessoa_type === 'militar').map(s => s.pessoa_id);
       const civilIds = servicosAtivos.filter(s => s.pessoa_type === 'civil').map(s => s.pessoa_id);
 
       let militaresData = [];
       if (militarIds.length > 0) {
         militaresData = await db('militares as m')
-          .select('m.id', 'm.posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_guerra"))
+          .select('m.id', 'm.posto_graduacao', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_guerra"), 'm.telefone')
           .whereIn('m.id', militarIds);
       }
       
       let civisData = [];
       if (civilIds.length > 0) {
         civisData = await db('civis as c')
-          .select('c.id', 'c.nome_completo as nome_guerra', db.raw("'' as posto_graduacao"))
+          .select('c.id', 'c.nome_completo as nome_guerra', db.raw("'' as posto_graduacao"), 'c.telefone')
           .whereIn('c.id', civilIds);
       }
       
@@ -200,6 +215,7 @@ const dashboardController = {
           funcao: servico.funcao,
           nome_guerra: pessoaData?.nome_guerra || null,
           posto_graduacao: pessoaData?.posto_graduacao || null,
+          telefone: pessoaData?.telefone || null,
         };
       });
       
