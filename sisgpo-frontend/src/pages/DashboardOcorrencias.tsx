@@ -16,30 +16,6 @@ interface DashboardStats {
   ocorrenciasPorCrbm: NaturezaStat[];
 }
 
-interface Destaque {
-  id: number;
-  numero_ocorrencia?: string | null;
-  data_ocorrencia: string;
-  horario_ocorrencia?: string | null;
-  natureza_grupo?: string | null;
-  natureza_nome?: string | null;
-  endereco?: string | null;
-  bairro?: string | null;
-  cidade_nome?: string | null;
-  viaturas?: string | null;
-  veiculos_envolvidos?: string | null;
-  dados_vitimas?: string | null;
-  resumo_ocorrencia?: string | null;
-}
-
-interface PlantaoData {
-  ocorrenciasDestaque: Destaque[];
-  supervisorPlantao: {
-    usuario_id: number | null;
-    supervisor_nome: string | null;
-  } | null;
-}
-
 interface RelatorioRow {
   grupo: string;
   subgrupo: string;
@@ -81,7 +57,6 @@ interface EspelhoBaseEntry {
 interface DashboardResponse {
   data?: string;
   stats: DashboardStats;
-  plantao: PlantaoData;
   relatorio: RelatorioData;
   espelho?: EspelhoEntry[];
   espelhoBase?: EspelhoBaseEntry[];
@@ -225,8 +200,6 @@ const DashboardOcorrencias: React.FC = () => {
       cancelled = true;
     };
   }, [selectedDate]);
-
-  const destaque = payload?.plantao?.ocorrenciasDestaque?.[0] || null;
 
   const obitosResumo = useMemo(() => {
     const base = new Map(
@@ -557,59 +530,6 @@ const DashboardOcorrencias: React.FC = () => {
         <div className="oc-card">
           <h2>Total de Óbitos</h2>
           <div className="oc-value">{stats.totalObitos ?? 0}</div>
-        </div>
-        <div className="oc-card">
-          <h2>Supervisor de Plantão</h2>
-          <div className="oc-value" style={{ fontSize: "1.35rem" }}>
-            {payload.plantao?.supervisorPlantao?.supervisor_nome || "Não definido"}
-          </div>
-        </div>
-      </section>
-
-      <section className="oc-section">
-        <div className="oc-section-header">
-          <span className="oc-section-title">Ocorrências Detalhadas do Dia</span>
-          {destaque && (
-            <span>
-              Registro Nº {destaque.numero_ocorrencia || destaque.id} — {formatDate(destaque.data_ocorrencia)}
-            </span>
-          )}
-        </div>
-        <div className="oc-section-body">
-          {destaque ? (
-            <div className="oc-highlight-grid">
-              <div className="oc-highlight-block">
-                <span className="oc-highlight-label">Grupo</span>
-                <span className="oc-highlight-value">{destaque.natureza_grupo || "—"}</span>
-              </div>
-              <div className="oc-highlight-block">
-                <span className="oc-highlight-label">Natureza</span>
-                <span className="oc-highlight-value">{destaque.natureza_nome || "—"}</span>
-              </div>
-              <div className="oc-highlight-block">
-                <span className="oc-highlight-label">Horário</span>
-                <span className="oc-highlight-value">{formatTime(destaque.horario_ocorrencia)}</span>
-              </div>
-              <div className="oc-highlight-block">
-                <span className="oc-highlight-label">Endereço</span>
-                <span className="oc-highlight-value">{destaque.endereco || "—"}</span>
-              </div>
-              <div className="oc-highlight-block">
-                <span className="oc-highlight-label">Bairro</span>
-                <span className="oc-highlight-value">{destaque.bairro || "—"}</span>
-              </div>
-              <div className="oc-highlight-block">
-                <span className="oc-highlight-label">Cidade</span>
-                <span className="oc-highlight-value">{destaque.cidade_nome || "—"}</span>
-              </div>
-              <div className="oc-highlight-block" style={{ gridColumn: "1 / -1" }}>
-                <span className="oc-highlight-label">Resumo</span>
-                <span className="oc-highlight-value">{destaque.resumo_ocorrencia || "—"}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="oc-empty">Nenhuma ocorrência detalhada registrada para hoje.</div>
-          )}
         </div>
       </section>
 

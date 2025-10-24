@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Viaturas.tsx (VERSÃƒO CORRIGIDA)
+// Arquivo: frontend/src/pages/Viaturas.tsx (VERSÃO CORRIGIDA)
 
 import React, { useState, ChangeEvent, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -50,11 +50,11 @@ export default function Viaturas() {
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
       setPagination(response.data.pagination);
-    } catch (err) { toast.error('NÃ£o foi possÃ­vel carregar as viaturas.'); }
+    } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
     finally { setIsLoading(false); }
   }, [filters, currentPage]);
 
-  // --- INÃCIO DA CORREÃ‡ÃƒO ---
+  // --- INÍCIO DA CORREÇÃO ---
   const fetchLastUpload = useCallback(async () => {
     try {
       const response = await api.get('/api/admin/metadata/viaturas_last_upload');
@@ -65,14 +65,14 @@ export default function Viaturas() {
       }
       const parsedDate = new Date(value);
       if (Number.isNaN(parsedDate.getTime())) {
-        console.warn('Valor de upload invalido recebido:', value);
+        console.warn('Valor de upload inválido recebido:', value);
         setLastUpload(null);
         return;
       }
       setLastUpload(parsedDate.toLocaleString('pt-BR'));
     } catch (error: any) {
-      // Se o erro for 404 (NÃ£o Encontrado), Ã© um cenÃ¡rio esperado.
-      // Apenas definimos como nulo e nÃ£o mostramos um toast de erro.
+      // Se o erro for 404 (Não Encontrado), é um cenário esperado.
+      // Apenas definimos como nulo e não mostramos um toast de erro.
       if (error.response && error.response.status === 404) {
         setLastUpload(null);
       } else {
@@ -81,7 +81,7 @@ export default function Viaturas() {
       }
     }
   }, []);
-  // --- FIM DA CORREÃ‡ÃƒO ---
+  // --- FIM DA CORREÇÃO ---
 
   useEffect(() => { fetchData(); fetchLastUpload(); }, [fetchData, fetchLastUpload]);
 
@@ -118,7 +118,7 @@ export default function Viaturas() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/viaturas/${itemToDeleteId}`);
-      toast.success('Viatura excluÃ­da com sucesso!');
+      toast.success('Viatura excluída com sucesso!');
       fetchData();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir a viatura.'); }
     finally { setIsDeleting(false); handleCloseConfirmModal(); }
@@ -177,7 +177,7 @@ export default function Viaturas() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">AÃ§Ãµes</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -211,8 +211,8 @@ export default function Viaturas() {
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar ExclusÃ£o" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
-      <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÃ‡ÃƒO: Esta aÃ§Ã£o Ã© irreversÃ­vel e irÃ¡ apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
+      <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÇÃO: Esta ação é irreversível e irá apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
     </div>
   );
 }

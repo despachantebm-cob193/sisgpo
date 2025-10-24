@@ -57,13 +57,11 @@ export default function Sidebar() {
   const activeNavLinkClass = 'bg-gray-700 dark:bg-gray-700';
 
   return (
-    <aside
-      id="logo-sidebar"
-      className={`hidden md:flex md:flex-col md:fixed md:top-0 md:left-0 z-40 h-screen transition-all duration-300 ${
-        isSidebarCollapsed ? 'md:w-20' : 'md:w-64'
-      } bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
-      aria-label="Sidebar"
-    >
+        <aside
+          id="logo-sidebar"
+          className={`flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-0 md:w-20' : 'w-64'} bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
+          aria-label="Sidebar"
+        >
       <div className="h-full px-3 pb-4 overflow-y-auto bg-gray-800 dark:bg-gray-800">
         <div
           className={`relative flex h-16 items-center border-b border-gray-700 px-6 ${

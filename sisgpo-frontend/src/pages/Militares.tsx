@@ -16,6 +16,7 @@ import Pagination from '@/components/ui/Pagination';
 import Spinner from '@/components/ui/Spinner';
 
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
+import MilitarCard from '@/components/cards/MilitarCard';
 
 export default function Militares() {
   const { setPageTitle } = useUiStore();

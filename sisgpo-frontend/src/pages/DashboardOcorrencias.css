@@ -586,12 +586,42 @@
 
 @media (max-width: 768px) {
   .oc-dashboard-wrapper {
-    padding: 0 4px 4px;
+    padding: 0 2px 2px;
+    border-radius: 10px;
+  }
+
+  .oc-section {
+    margin-top: 16px;
+    border-radius: 10px;
+  }
+
+  .oc-card {
+    padding: 12px;
+    border-radius: 8px;
   }
 
   .oc-section-header,
   .oc-section-body {
-    padding: 16px;
+    padding: 12px;
+  }
+
+  .oc-highlight-block,
+  .oc-table,
+  .oc-error,
+  .oc-obitos-card,
+  .oc-relatorio-card,
+  .oc-espelho-summary-card,
+  .oc-espelho-city-card,
+  .oc-espelho-accordion,
+  .oc-espelho-count-item,
+  .oc-relatorio-item {
+    border-radius: 8px;
+  }
+
+  .oc-espelho-controls input,
+  .oc-espelho-controls select {
+    min-width: 0;
+    border-radius: 4px;
   }
 
   .oc-table-desktop {
@@ -612,10 +642,5 @@
 
   .oc-relatorio-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .oc-espelho-controls input,
-  .oc-espelho-controls select {
-    min-width: 0;
   }
 }
