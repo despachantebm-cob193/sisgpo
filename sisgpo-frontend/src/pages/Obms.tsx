@@ -42,11 +42,12 @@ export default function Obms() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Obm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isConfirmDeleteAllModalOpen, setIsConfirmDeleteAllModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -68,7 +69,9 @@ export default function Obms() {
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ nome: e.target.value }); setCurrentPage(1); };
   const handleOpenFormModal = (item: Obm | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
-  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+  const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
+  const handleDeleteAllClick = () => { setIsConfirmDeleteAllModalOpen(true); };
+  const handleCloseDeleteAllModal = () => setIsConfirmDeleteAllModalOpen(false);
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
 
   const handleSave = async (data: Omit<Obm, 'id'> & { id?: number }) => {
@@ -90,37 +93,60 @@ export default function Obms() {
     } finally { setIsSaving(false); }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!itemToDeleteId) return;
-    setIsDeleting(true);
-    try {
-      await api.delete(`/api/admin/obms/${itemToDeleteId}`);
+  const handleConfirmDelete = async () => {
+    if (!itemToDeleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/admin/obms/${itemToDeleteId}`);
       toast.success('OBM excluída com sucesso!');
       fetchData();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir OBM.'); }
     finally { setIsDeleting(false); handleCloseConfirmModal(); }
-  };
+  };
 
-  const handleUpload = async (file: File) => {
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const response = await api.post('/api/admin/obms/upload-csv', formData);
-      toast.success(response.data.message || 'Arquivo processado com sucesso!');
-      fetchData();
-    } catch (error: any) { toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.'); }
-    finally { setIsUploading(false); }
-  };
+  const handleConfirmDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      await api.delete('/api/admin/obms');
+      toast.success('Todas as OBMs foram excluídas com sucesso!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao excluir todas as OBMs.');
+    } finally {
+      setIsDeletingAll(false);
+      handleCloseDeleteAllModal();
+    }
+  };
+
+  const handleUpload = async (file: File) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await api.post('/api/admin/obms/upload-csv', formData);
+      const { message, errors } = response.data;
+      toast.success(message || 'Arquivo processado com sucesso!');
+      if (errors && Array.isArray(errors) && errors.length > 0) {
+        console.warn('Linhas ignoradas durante a importação de OBMs:', errors);
+        const preview = errors.slice(0, 3).join(' | ');
+        const remaining = errors.length > 3 ? ` ... (+${errors.length - 3} linhas)` : '';
+        toast.error(`Algumas linhas foram ignoradas: ${preview}${remaining}`);
+      }
+      fetchData();
+    } catch (error: any) { toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.'); }
+    finally { setIsUploading(false); }
+  };
 
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">OBMs</h2>
-        <Button onClick={() => handleOpenFormModal()}>Adicionar Nova OBM</Button>
-      </div>
-
+      			<div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900">OBMs</h2>
+              <div className="flex space-x-2">
+          <Button onClick={() => handleOpenFormModal()}>Adicionar Nova OBM</Button>
+          <Button onClick={handleDeleteAllClick} variant="danger">Excluir Todas as OBMs</Button>
+              </div>
+            </div>
       <FileUpload
         title="Atualizar Cidades/Telefones via Planilha"
         onUpload={handleUpload}
@@ -176,7 +202,15 @@ export default function Obms() {
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar OBM' : 'Adicionar Nova OBM'}>
         <ObmForm obmToEdit={itemToEdit} obmOptions={obmOptions} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta OBM?" isLoading={isDeleting} />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta OBM?" isLoading={isDeleting} />
+      <ConfirmationModal
+        isOpen={isConfirmDeleteAllModalOpen}
+        onClose={handleCloseDeleteAllModal}
+        onConfirm={handleConfirmDeleteAll}
+        title="Excluir Todas as OBMs"
+        message="Essa ação removerá todas as OBMs cadastradas. Deseja continuar?"
+        isLoading={isDeletingAll}
+      />
     </div>
   );
 }

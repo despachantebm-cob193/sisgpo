@@ -151,6 +151,7 @@ const obmController = {
     const csvContent = obmFile.data.toString('utf8');
     let updatedCount = 0;
     let createdCount = 0;
+    let skippedCount = 0;
 
     try {
       const records = await new Promise((resolve, reject) => {
@@ -179,7 +180,14 @@ const obmController = {
           .on('error', reject);
       });
 
-      const MAX_ABREVIATURA_LENGTH = 20;
+      const FIELD_LIMITS = {
+        abreviatura: { limit: 20, label: 'Abreviatura' },
+        nome: { limit: 100, label: 'Nome' },
+        cidade: { limit: 50, label: 'Cidade' },
+        telefone: { limit: 20, label: 'Telefone' },
+      };
+
+      const errors = [];
 
       for (let index = 0; index < records.length; index += 1) {
         const record = records[index];
@@ -190,15 +198,39 @@ const obmController = {
         const cidadeValor = record.cidade ? String(record.cidade).trim() : null;
         const telefoneValor = record.telefone ? String(record.telefone).trim() : null;
 
+        let hasError = false;
+
         if (!abreviaturaValor || !nomeValor) {
+          skippedCount += 1;
+          errors.push(`Linha ${lineNumber}: campos obrigatórios "abreviatura" e "nome" são necessários.`);
           continue;
         }
 
-        if (abreviaturaValor.length > MAX_ABREVIATURA_LENGTH) {
-          throw new AppError(
-            `Linha ${lineNumber}: abreviatura "${abreviaturaValor}" ultrapassa o limite de ${MAX_ABREVIATURA_LENGTH} caracteres.`,
-            400
+        const limitCheck = Object.entries({
+          abreviatura: abreviaturaValor,
+          nome: nomeValor,
+          cidade: cidadeValor,
+          telefone: telefoneValor,
+        }).find(([field, value]) => {
+          if (!value) return false;
+          const config = FIELD_LIMITS[field];
+          return config ? value.length > config.limit : false;
+        });
+
+        if (limitCheck) {
+          const [field, value] = limitCheck;
+          const config = FIELD_LIMITS[field];
+          errors.push(
+            `Linha ${lineNumber}: o campo "${config.label}" excede o limite de ${config.limit} caracteres (recebeu ${
+              value.length
+            }).`
           );
+          skippedCount += 1;
+          hasError = true;
+        }
+
+        if (hasError) {
+          continue;
         }
 
         const dadosOpm = {
@@ -225,7 +257,13 @@ const obmController = {
       }
 
       res.status(200).json({
-        message: `Arquivo processado! OBMs Criadas: ${createdCount}. OBMs Atualizadas: ${updatedCount}.`,
+        message: `Arquivo processado! OBMs Criadas: ${createdCount}. OBMs Atualizadas: ${updatedCount}. Registros ignorados: ${skippedCount}.`,
+        summary: {
+          created: createdCount,
+          updated: updatedCount,
+          skipped: skippedCount,
+        },
+        errors,
       });
     } catch (error) {
       console.error('ERRO AO PROCESSAR ARQUIVO CSV DE OBMs:', error);
@@ -240,6 +278,16 @@ const obmController = {
 
       throw new AppError('Erro ao processar o arquivo CSV. Verifique o formato.', 500);
     }
+  },
+
+  clearAll: async (_req, res) => {
+    const totalRemovidos = await db('obms').del();
+    res.status(200).json({
+      message:
+        totalRemovidos > 0
+          ? `Todas as OBMs foram removidas (${totalRemovidos} registros excluídos).`
+          : 'Nenhuma OBM encontrada para exclusão.',
+    });
   },
 };
 

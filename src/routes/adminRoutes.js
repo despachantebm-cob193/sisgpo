@@ -65,6 +65,7 @@ router.get('/obms/search', obmController.search);
 router.post('/obms', validate(obmValidator.create), obmController.create);
 router.put('/obms/:id', validate(obmValidator.update), obmController.update);
 router.delete('/obms/:id', obmController.delete);
+router.delete('/obms', obmController.clearAll);
 
 // --- ROTAS CRUD (Viaturas) ---
 router.get('/viaturas', viaturaController.getAll);
