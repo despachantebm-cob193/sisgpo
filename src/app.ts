@@ -27,10 +27,13 @@ const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:5173',
-].filter(Boolean); // Remove valores nulos/undefined da lista
+  'http://localhost:5174',
+  'http://localhost:3000', 
+].filter(Boolean); 
 
 app.use(cors({
   origin: (origin, callback) => {
+
     // Permite requisições sem 'origin' (ex: Postman, apps mobile)
     if (!origin) return callback(null, true);
     

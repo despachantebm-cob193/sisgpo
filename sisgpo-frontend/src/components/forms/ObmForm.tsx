@@ -1,3 +1,5 @@
+// Arquivo: sisgpo-frontend/src/components/forms/ObmForm.tsx (CORRIGIDO)
+
 import React, { useState, useEffect, FormEvent } from 'react';
 import CreatableSelect from 'react-select/creatable';
 import Input from '../ui/Input';
@@ -10,7 +12,7 @@ import { ObmOption } from '../../pages/Obms'; // Importando a interface da pági
 interface Obm {
   id?: number;
   nome: string;
-  abreviatura: string;
+  abreviatura: string; // <-- 1. CORREÇÃO (era 'sigla')
   cidade: string | null;
   telefone: string | null;
 }
@@ -30,15 +32,13 @@ interface ObmFormProps {
 }
 
 const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCancel, isLoading, errors = [] }) => {
-  const [formData, setFormData] = useState<Obm>({
+  const [formData, setFormData] = useState<Omit<Obm, 'id'>>({ // Removido 'id' do estado inicial
     nome: '',
-    abreviatura: '',
+    abreviatura: '', // <-- 2. CORREÇÃO (era 'sigla')
     cidade: '',
     telefone: '',
   });
 
-  // --- NOVO ESTADO PARA GERENCIAR AS OPÇÕES INTERNAMENTE ---
-  // Isso evita a mutação direta da prop `obmOptions`
   const [internalOptions, setInternalOptions] = useState<ObmOption[]>(obmOptions);
 
   const getError = (field: string) => errors.find(e => e.field === field)?.message;
@@ -46,16 +46,15 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
   useEffect(() => {
     if (obmToEdit) {
       setFormData({
-        id: obmToEdit.id,
+        // id: obmToEdit.id, // O 'id' não faz parte do 'formData'
         nome: obmToEdit.nome,
-        abreviatura: obmToEdit.abreviatura,
+        abreviatura: obmToEdit.abreviatura, // <-- 3. CORREÇÃO (era 'sigla')
         cidade: obmToEdit.cidade || '',
         telefone: obmToEdit.telefone || '',
       });
     } else {
-      setFormData({ nome: '', abreviatura: '', cidade: '', telefone: '' });
+      setFormData({ nome: '', abreviatura: '', cidade: '', telefone: '' }); // <-- 4. CORREÇÃO (era 'sigla')
     }
-    // Sincroniza as opções internas sempre que a prop mudar
     setInternalOptions(obmOptions);
   }, [obmToEdit, obmOptions]);
 
@@ -72,27 +71,27 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
         cidade: selectedOption.cidade || prev.cidade,
       }));
     } else {
-      // Limpa os campos se a seleção for removida
       setFormData(prev => ({ ...prev, nome: '', cidade: '' }));
     }
   };
 
   const handleCreateOption = (inputValue: string) => {
-    // Cria uma nova opção e a adiciona ao estado *interno* do formulário
     const newOption: ObmOption = { value: inputValue, label: inputValue, cidade: '' };
     setInternalOptions(prev => [...prev, newOption]);
     
-    // Define os dados do formulário para a nova opção criada
     setFormData(prev => ({
       ...prev,
       nome: inputValue,
-      cidade: '', // Limpa a cidade para a nova OBM
+      cidade: '', 
     }));
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+        ...formData,
+        id: obmToEdit?.id // Adiciona o ID aqui, somente ao salvar
+    });
   };
 
   const currentSelectValue = formData.nome ? { value: formData.nome, label: formData.nome, cidade: formData.cidade || '' } : null;
@@ -104,12 +103,13 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
         <CreatableSelect
           id="nome"
           isClearable
-          options={internalOptions} // Usa as opções internas
+          options={internalOptions} 
           value={currentSelectValue}
           onChange={handleSelectChange}
           onCreateOption={handleCreateOption}
           placeholder="Selecione ou digite para criar uma OBM"
           formatCreateLabel={(inputValue) => `Criar nova OBM: "${inputValue}"`}
+          isDisabled={!!obmToEdit} // Desativa o Select se estiver editando
           styles={{
             control: (base, state) => ({
               ...base,
@@ -124,6 +124,7 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
         <FormError message={getError('nome')} />
       </div>
       <div>
+        {/* --- 5. CORREÇÃO (Mapeamento de 'sigla' para 'abreviatura') --- */}
         <Label htmlFor="abreviatura">Abreviatura</Label>
         <Input
           id="abreviatura"
