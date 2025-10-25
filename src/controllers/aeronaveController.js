@@ -117,4 +117,8 @@ module.exports = {
   createAeronave,
   updateAeronave,
   deleteAeronave,
+  getAll: getAeronaves,
+  create: createAeronave,
+  update: updateAeronave,
+  delete: deleteAeronave,
 };

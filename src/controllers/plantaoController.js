@@ -221,7 +221,35 @@ const plantaoController = {
       }
     });
 
-    res.status(200).json({ message: 'Plantão atualizado com sucesso.' });
+    res.status(200).json({ message: 'Plantao atualizado com sucesso.' });
+  },
+
+  addViatura: async () => {
+    throw new AppError(
+      'O endpoint /plantoes/:id/add-viatura foi descontinuado. Utilize PUT /plantoes/:id para atualizar o plantao.',
+      410
+    );
+  },
+
+  removeViatura: async () => {
+    throw new AppError(
+      'O endpoint /plantoes/:plantaoId/remove-viatura/:viaturaId foi descontinuado. Utilize PUT /plantoes/:id para atualizar o plantao.',
+      410
+    );
+  },
+
+  addMilitar: async () => {
+    throw new AppError(
+      'O endpoint /plantoes/:id/add-militar foi descontinuado. Utilize PUT /plantoes/:id para atualizar o plantao.',
+      410
+    );
+  },
+
+  removeMilitar: async () => {
+    throw new AppError(
+      'O endpoint /plantoes/:plantaoId/remove-militar/:militarId foi descontinuado. Utilize PUT /plantoes/:id para atualizar o plantao.',
+      410
+    );
   },
 
   delete: async (req, res) => {

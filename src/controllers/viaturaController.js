@@ -49,6 +49,28 @@ exports.getAllSimple = async (req, res) => {
   return res.status(200).json({ data: viaturas });
 };
 
+exports.search = async (req, res) => {
+  const term = typeof req.query.term === 'string' ? req.query.term.trim() : '';
+
+  if (!term || term.length < 2) {
+    return res.status(200).json([]);
+  }
+
+  const viaturas = await db('viaturas')
+    .where('prefixo', 'ilike', `%${term}%`)
+    .orWhere('obm', 'ilike', `%${term}%`)
+    .orderBy('prefixo', 'asc')
+    .select('id', 'prefixo', 'obm', 'cidade', 'ativa');
+
+  const options = viaturas.map((viatura) => ({
+    value: viatura.id,
+    label: viatura.obm ? `${viatura.prefixo} - ${viatura.obm}` : viatura.prefixo,
+    viatura,
+  }));
+
+  return res.status(200).json(options);
+};
+
 exports.create = async (req, res) => {
   const { prefixo, ativa, cidade, obm, telefone } = req.body;
   const viaturaExists = await db('viaturas').where({ prefixo }).first();
@@ -101,4 +123,24 @@ exports.clearAll = async (req, res) => {
 exports.getAeronaves = async (req, res) => {
     const aeronaves = await db('aeronaves').where('ativa', true).select('id', 'prefixo').orderBy('prefixo', 'asc');
     return res.status(200).json({ data: aeronaves });
+};
+
+exports.toggleActive = async (req, res) => {
+  const { id } = req.params;
+
+  const viatura = await db('viaturas').where({ id }).first();
+  if (!viatura) {
+    throw new AppError('Viatura nǜo encontrada.', 404);
+  }
+
+  const novaSituacao = !viatura.ativa;
+
+  await db('viaturas')
+    .where({ id })
+    .update({ ativa: novaSituacao, updated_at: db.fn.now() });
+
+  return res.status(200).json({
+    message: novaSituacao ? 'Viatura ativada com sucesso.' : 'Viatura desativada com sucesso.',
+    viatura: { ...viatura, ativa: novaSituacao },
+  });
 };

@@ -33,6 +33,7 @@ const aeronaveController = require('../controllers/aeronaveController');
 const escalaAeronaveController = require('../controllers/escalaAeronaveController');
 const escalaCodecController = require('../controllers/escalaCodecController');
 const escalaMedicoController = require('../controllers/escalaMedicoController');
+const dashboardController = require('../controllers/dashboardController');
 
 // Controladores de Upload (Legados ou específicos)
 const viaturaFileController = require('../controllers/viaturaFileController');
@@ -52,16 +53,13 @@ router.use(fileUpload({
 }));
 
 // --- ROTAS DE UPLOAD DE ARQUIVOS ---
-router.post('/militares/upload-csv', militarFileController.uploadMilitaresCsv); // Usa o File Controller
-router.post('/viaturas/upload-csv', viaturaFileController.uploadViaturasCsv);   // Usa o File Controller
-
-// --- INÍCIO DA CORREÇÃO ---
-// A linha abaixo causava o erro. Deve usar 'obmController.uploadCsv'.
-router.post('/obms/upload-csv', obmController.uploadCsv); // <-- CORRIGIDO para usar o Controller principal
+router.post('/militares/upload-csv', militarFileController.upload);
+router.post('/viaturas/upload-csv', viaturaFileController.upload);  
+router.post('/obms/upload-csv', obmController.uploadCsv);
 // --- FIM DA CORREÇÃO ---
 
 
-// --- ROTAS CRUD (OBMs) ---
+// --- ROTAS CRUD (OBMs) ---\
 router.get('/obms', obmController.getAll);
 router.get('/obms/search', obmController.search);
 router.post('/obms', validate(obmValidator.create), obmController.create);
@@ -112,12 +110,12 @@ router.post('/users/:id/toggle-active', userController.toggleActive);
 // --- ROTAS CRUD (Plantões) ---
 router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
-router.post('/plantoes', validate(escalaValidator.validatePlantao), plantaoController.create);
-router.put('/plantoes/:id', validate(escalaValidator.validatePlantao), plantaoController.update);
+router.post('/plantoes', plantaoController.create);
+router.put('/plantoes/:id', plantaoController.update);
 router.delete('/plantoes/:id', plantaoController.delete);
-router.post('/plantoes/:id/add-viatura', validate(escalaValidator.validateViatura), plantaoController.addViatura);
+router.post('/plantoes/:id/add-viatura', plantaoController.addViatura);
 router.delete('/plantoes/:plantaoId/remove-viatura/:viaturaId', plantaoController.removeViatura);
-router.post('/plantoes/:id/add-militar', validate(escalaValidator.validateMilitar), plantaoController.addMilitar);
+router.post('/plantoes/:id/add-militar', plantaoController.addMilitar);
 router.delete('/plantoes/:plantaoId/remove-militar/:militarId', plantaoController.removeMilitar);
 
 // --- ROTAS CRUD (Escala Aeronaves) ---
@@ -140,6 +138,16 @@ router.get('/escala-medicos/:id', escalaMedicoController.getById);
 router.post('/escala-medicos', validate(escalaMedicoValidator.create), escalaMedicoController.create);
 router.put('/escala-medicos/:id', validate(escalaMedicoValidator.update), escalaMedicoController.update);
 router.delete('/escala-medicos/:id', escalaMedicoController.delete);
+
+// --- ROTAS DO DASHBOARD ADMIN ---
+router.get('/dashboard/stats', dashboardController.getStats);
+router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
+router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
+router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
+router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
+router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
+router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
+router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
 
 
 // --- ROTAS LEGADAS (Mantidas por enquanto) ---

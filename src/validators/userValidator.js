@@ -1,6 +1,4 @@
-// Arquivo: backend/src/validators/userValidator.js
-
-const Joi = require('joi');
+const { Joi } = require('express-validation');
 
 const createUserSchema = Joi.object({
   login: Joi.string().trim().min(3).max(50).required().messages({
@@ -111,9 +109,31 @@ const changePasswordSchema = Joi.object({
   }),
 });
 
-module.exports = {
-  createUserSchema,
-  updateUserSchema,
-  updateUserStatusSchema,
-  changePasswordSchema,
+const userValidator = {
+  create: {
+    body: createUserSchema,
+  },
+  update: {
+    params: Joi.object({
+      id: Joi.number().integer().required(),
+    }),
+    body: updateUserSchema,
+  },
+  updateStatus: {
+    params: Joi.object({
+      id: Joi.number().integer().required(),
+    }),
+    body: updateUserStatusSchema,
+  },
+  changePassword: {
+    body: changePasswordSchema,
+  },
+  schemas: {
+    create: createUserSchema,
+    update: updateUserSchema,
+    updateStatus: updateUserStatusSchema,
+    changePassword: changePasswordSchema,
+  },
 };
+
+module.exports = userValidator;

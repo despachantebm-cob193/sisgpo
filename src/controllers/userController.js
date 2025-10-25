@@ -23,6 +23,14 @@ const isLiteClient = () => {
   return client && ['sqlite3', 'better-sqlite3', 'sqlite'].includes(client);
 };
 
+const fetchAllUsers = async () => {
+  const users = await db('usuarios')
+    .select('*')
+    .orderBy('login', 'asc');
+
+  return users.map(sanitizeUser);
+};
+
 const userController = {
   /**
    * Altera a senha do usuario logado.
@@ -52,6 +60,17 @@ const userController = {
       });
 
     res.status(200).json({ message: 'Senha alterada com sucesso!' });
+  },
+
+  /**
+   * Lista todos os usuarios cadastrados.
+   */
+  getAll: async (_req, res) => {
+    const users = await fetchAllUsers();
+
+    res.status(200).json({
+      users,
+    });
   },
 
   /**
@@ -216,6 +235,38 @@ const userController = {
   },
 
   /**
+   * Alterna o status ativo/inativo de um usuario.
+   */
+  toggleActive: async (req, res) => {
+    const { id } = req.params;
+    const targetUserId = Number(id);
+
+    const user = await db('usuarios').where({ id: targetUserId }).first();
+    if (!user) {
+      throw new AppError('Usuario nao encontrado.', 404);
+    }
+
+    if (targetUserId === req.userId) {
+      throw new AppError('Nao e possivel desativar a propria conta.', 400);
+    }
+
+    const novoStatus = !user.ativo;
+
+    await db('usuarios')
+      .where({ id: targetUserId })
+      .update({ ativo: novoStatus, updated_at: db.fn.now() });
+
+    const updatedUser = await db('usuarios')
+      .where({ id: targetUserId })
+      .first();
+
+    res.status(200).json({
+      message: novoStatus ? 'Usuario reativado com sucesso!' : 'Usuario desativado com sucesso!',
+      user: sanitizeUser(updatedUser),
+    });
+  },
+
+  /**
    * Remove um usuario do sistema.
    */
   delete: async (req, res) => {
@@ -240,12 +291,10 @@ const userController = {
    * Lista todos os usuarios cadastrados.
    */
   list: async (_req, res) => {
-    const users = await db('usuarios')
-      .select('*') // Seleciona todos os campos para a função sanitize
-      .orderBy('login', 'asc');
+    const users = await fetchAllUsers();
 
     res.status(200).json({
-      users: users.map(sanitizeUser),
+      users,
     });
   },
 };

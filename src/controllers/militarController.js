@@ -122,6 +122,29 @@ const militarController = {
   },
 
   /**
+   * Alterna o status ativo/inativo de um militar.
+   */
+  toggleActive: async (req, res) => {
+    const { id } = req.params;
+
+    const militar = await db('militares').where({ id }).first();
+    if (!militar) {
+      throw new AppError('Militar nǜo encontrado.', 404);
+    }
+
+    const novoStatus = !militar.ativo;
+    const [militarAtualizado] = await db('militares')
+      .where({ id })
+      .update({ ativo: novoStatus, updated_at: db.fn.now() })
+      .returning('*');
+
+    res.status(200).json({
+      message: novoStatus ? 'Militar ativado com sucesso.' : 'Militar desativado com sucesso.',
+      militar: militarAtualizado,
+    });
+  },
+
+  /**
    * Deleta um militar.
    */
   delete: async (req, res) => {

@@ -87,4 +87,7 @@ const servicoDiaController = {
   }
 };
 
+servicoDiaController.getServicoDia = servicoDiaController.getByDate;
+servicoDiaController.updateServicoDia = servicoDiaController.save;
+
 module.exports = servicoDiaController;

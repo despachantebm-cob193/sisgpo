@@ -1,6 +1,4 @@
-﻿const Joi = require('joi');
-const AppError = require('../utils/AppError');
-const validationMiddleware = require('../middlewares/validationMiddleware');
+const { Joi } = require('express-validation');
 
 const createAeronaveSchema = Joi.object({
   prefixo: Joi.string().trim().min(1).required().messages({
@@ -21,20 +19,29 @@ const updateAeronaveSchema = Joi.object({
   ativa: Joi.boolean().optional(),
 })
   .min(1)
-  .options({ allowUnknown: true });
+  .messages({
+    'object.min': 'Informe ao menos um campo para atualizar.',
+  });
 
-const ensureValidIdParam = (req, res, next) => {
-  const parsedId = Number(req.params.id);
-  if (!Number.isInteger(parsedId) || parsedId <= 0) {
-    return next(new AppError('ID invalido.', 400));
-  }
-
-  req.params.id = parsedId;
-  return next();
+const aeronaveValidator = {
+  create: {
+    body: createAeronaveSchema,
+  },
+  update: {
+    params: Joi.object({
+      id: Joi.number().integer().positive().required(),
+    }),
+    body: updateAeronaveSchema,
+  },
+  delete: {
+    params: Joi.object({
+      id: Joi.number().integer().positive().required(),
+    }),
+  },
+  schemas: {
+    create: createAeronaveSchema,
+    update: updateAeronaveSchema,
+  },
 };
 
-module.exports = {
-  create: validationMiddleware(createAeronaveSchema),
-  update: [ensureValidIdParam, validationMiddleware(updateAeronaveSchema)],
-  delete: ensureValidIdParam,
-};
+module.exports = aeronaveValidator;

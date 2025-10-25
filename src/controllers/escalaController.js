@@ -115,4 +115,12 @@ const escalaController = {
   },
 };
 
+escalaController.getEscala = escalaController.getAllEscalas;
+escalaController.updateEscala = async () => {
+  throw new AppError(
+    'O endpoint /escala foi descontinuado. Utilize as rotas de /escala-medicos para gerenciar registros.',
+    410
+  );
+};
+
 module.exports = escalaController;

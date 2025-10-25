@@ -1,11 +1,9 @@
-// Arquivo: backend/src/validators/viaturaValidator.js (VERSÃO CORRIGIDA)
-
-const Joi = require('joi');
+const { Joi } = require('express-validation');
 
 const createViaturaSchema = Joi.object({
   prefixo: Joi.string().min(3).max(50).required().messages({
-    'string.empty': 'O prefixo é obrigatório.',
-    'any.required': 'O prefixo é obrigatório.',
+    'string.empty': 'O prefixo n\u00e3o pode ser vazio.',
+    'any.required': 'O prefixo \u00e9 obrigat\u00f3rio.',
   }),
   ativa: Joi.boolean().optional().default(true),
   cidade: Joi.string().max(100).optional().allow(null, ''),
@@ -19,9 +17,24 @@ const updateViaturaSchema = Joi.object({
   cidade: Joi.string().max(100).optional().allow(null, ''),
   obm: Joi.string().max(150).optional().allow(null, ''),
   telefone: Joi.string().max(20).optional().allow(null, ''),
-}).options({ allowUnknown: true }); // <-- CORREÇÃO: Mude de .unknown(false) para esta opção.
+})
+  .min(1)
+  .options({ allowUnknown: true });
 
-module.exports = {
-  createViaturaSchema,
-  updateViaturaSchema,
+const viaturaValidator = {
+  create: {
+    body: createViaturaSchema,
+  },
+  update: {
+    params: Joi.object({
+      id: Joi.number().integer().required(),
+    }),
+    body: updateViaturaSchema,
+  },
+  schemas: {
+    create: createViaturaSchema,
+    update: updateViaturaSchema,
+  },
 };
+
+module.exports = viaturaValidator;
