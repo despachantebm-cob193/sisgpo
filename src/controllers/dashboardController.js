@@ -23,12 +23,10 @@ const dashboardController = {
   getMetadataByKey: async (req, res) => {
     const { key } = req.params;
     const metadata = await db('metadata').where({ key }).first();
-    
     if (!metadata) {
-      return res.status(200).json(null);
+      return res.status(200).json({ key, value: null });
     }
-    
-    res.status(200).json(metadata);
+    return res.status(200).json(metadata);
   },
 
   /**

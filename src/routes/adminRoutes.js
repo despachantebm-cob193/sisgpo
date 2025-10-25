@@ -155,6 +155,7 @@ router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaSta
 router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
 router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
 router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
+router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
 
 // --- ROTAS LEGADAS (Mantidas por enquanto) ---
