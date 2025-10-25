@@ -15,7 +15,14 @@ import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
 import { useUiStore } from '@/store/uiStore';
 
-interface Viatura { id: number; prefixo: string; cidade: string | null; obm: string | null; ativa: boolean; }
+interface Viatura {
+  id: number;
+  prefixo: string;
+  cidade: string | null;
+  obm: string | null;
+  obm_abreviatura: string | null;
+  ativa: boolean;
+}
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
@@ -92,15 +99,48 @@ export default function Viaturas() {
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
 
-  const handleSave = async (data: Omit<Viatura, 'id'> & { id?: number }) => {
+  const handleSave = async (data: Omit<Viatura, 'id'> & { id?: number; previousObm?: string | null }) => {
     setIsSaving(true);
     setValidationErrors([]);
     const action = data.id ? 'atualizada' : 'criada';
-    const { id, ...payload } = data;
+    const { id, previousObm, ...payload } = data;
+    let applyToDuplicates = false;
+    let duplicateCount = 0;
+
+    if (id && previousObm && payload.obm && previousObm !== payload.obm) {
+      try {
+        const response = await api.get('/api/admin/viaturas/duplicates/count', {
+          params: { obm: previousObm, exclude_id: id },
+        });
+        const duplicates = Number(response.data?.count ?? 0);
+        duplicateCount = duplicates;
+        if (duplicates > 0) {
+          const confirmBulk = window.confirm(
+            `Encontramos ${duplicates} outra(s) viatura(s) com o mesmo valor de OBM (${previousObm}). Deseja aplicar esta mesma correção em todas elas?`
+          );
+          applyToDuplicates = confirmBulk;
+        }
+      } catch (countError) {
+        console.error('Falha ao verificar duplicidades de OBM antes de atualizar viaturas:', countError);
+        toast.error('Não foi possível verificar outras viaturas com a mesma OBM. Atualizando apenas esta viatura.');
+      }
+    }
+
     try {
-      if (id) await api.put(`/api/admin/viaturas/${id}`, payload);
-      else await api.post('/api/admin/viaturas', payload);
-      toast.success(`Viatura ${action} com sucesso!`);
+      if (id) {
+        await api.put(`/api/admin/viaturas/${id}`, {
+          ...payload,
+          previous_obm: previousObm ?? null,
+          applyToDuplicates,
+        });
+      } else {
+        await api.post('/api/admin/viaturas', payload);
+      }
+      if (applyToDuplicates && duplicateCount > 0) {
+        toast.success(`Viatura ${action} com sucesso! ${duplicateCount} registro(s) adicional(is) tambem foram atualizados.`);
+      } else {
+        toast.success(`Viatura ${action} com sucesso!`);
+      }
       handleCloseFormModal();
       fetchData();
     } catch (err: any) {
@@ -175,6 +215,7 @@ export default function Viaturas() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prefixo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sigla</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
@@ -182,12 +223,26 @@ export default function Viaturas() {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              <tr><td colSpan={6} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
             ) : viaturas.length > 0 ? (
               viaturas.map((viatura) => (
-                <tr key={viatura.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
+                <tr
+                  key={viatura.id}
+                  className={`block md:table-row border-b md:border-none p-4 md:p-0 ${
+                    viatura.obm_abreviatura ? '' : 'bg-yellow-50 md:bg-yellow-100'
+                  }`}
+                  title={viatura.obm_abreviatura ? undefined : 'Esta viatura ainda não está vinculada a uma sigla de OBM.'}
+                >
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Prefixo:">{viatura.prefixo}</td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 text-sm text-gray-500" data-label="OBM:">{viatura.obm || 'N/A'}</td>
+                  <td
+                    className={`block md:table-cell px-6 py-2 md:py-4 text-sm ${
+                      viatura.obm_abreviatura ? 'text-gray-500' : 'text-red-600 font-semibold'
+                    }`}
+                    data-label="Sigla:"
+                  >
+                    {viatura.obm_abreviatura || 'N/A'}
+                  </td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="Cidade:">{viatura.cidade || 'N/A'}</td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm" data-label="Status:">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -201,7 +256,7 @@ export default function Viaturas() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan={5} className="text-center py-10 text-gray-500">Nenhuma viatura encontrada.</td></tr>
+              <tr><td colSpan={6} className="text-center py-10 text-gray-500">Nenhuma viatura encontrada.</td></tr>
             )}
           </tbody>
         </table>

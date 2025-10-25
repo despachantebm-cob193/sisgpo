@@ -68,6 +68,7 @@ router.delete('/obms/:id', obmController.delete);
 router.delete('/obms', obmController.clearAll);
 
 // --- ROTAS CRUD (Viaturas) ---
+router.get('/viaturas/duplicates/count', viaturaController.countByObm);
 router.get('/viaturas', viaturaController.getAll);
 router.get('/viaturas/search', viaturaController.search);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);

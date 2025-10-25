@@ -2,6 +2,41 @@
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { normalizeText } = require('../utils/textUtils');
+
+const buildObmAbbreviationMap = (obms) => {
+  const map = new Map();
+
+  obms.forEach((obm) => {
+    const possibleKeys = new Set();
+    const nome = obm.nome || '';
+    const abreviatura = obm.abreviatura || '';
+
+    const pushKey = (value) => {
+      if (!value) return;
+      const normalized = normalizeText(value);
+      if (normalized) {
+        possibleKeys.add(normalized);
+      }
+    };
+
+    pushKey(nome);
+    pushKey(abreviatura);
+
+    if (nome.includes('-')) {
+      const firstSegment = nome.split('-')[0].trim();
+      pushKey(firstSegment);
+    }
+
+    possibleKeys.forEach((key) => {
+      if (!map.has(key)) {
+        map.set(key, abreviatura);
+      }
+    });
+  });
+
+  return map;
+};
 
 // Cada função é anexada diretamente ao objeto 'exports'
 // Isso garante que elas estarão disponíveis no momento da importação.
@@ -10,9 +45,20 @@ exports.getAll = async (req, res) => {
   const { page = 1, limit = 15, prefixo } = req.query;
   const offset = (page - 1) * limit;
 
-  const query = db('viaturas as v')
-    .leftJoin('obms as o', 'v.obm', 'o.nome')
-    .select('v.id', 'v.prefixo', 'v.ativa', 'v.cidade', 'v.obm', 'v.telefone', 'o.id as obm_id');
+  const query = db('viaturas as v')
+    .leftJoin('obms as o', function () {
+      this.on(db.raw('LOWER(v.obm)'), '=', db.raw('LOWER(o.nome)'));
+    })
+    .select(
+      'v.id',
+      'v.prefixo',
+      'v.ativa',
+      'v.cidade',
+      'v.obm',
+      'v.telefone',
+      'o.id as obm_id',
+      'o.abreviatura as obm_abreviatura'
+    );
 
   if (prefixo) {
     query.where('v.prefixo', 'ilike', `%${prefixo}%`);
@@ -21,7 +67,33 @@ exports.getAll = async (req, res) => {
   const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'v.id' }).first();
   const dataQuery = query.clone().orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
   
-  const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+  const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+
+  const needsFallback = data.some((viatura) => !viatura.obm_abreviatura && viatura.obm);
+  if (needsFallback) {
+    const obms = await db('obms').select('nome', 'abreviatura');
+    const obmMap = buildObmAbbreviationMap(obms);
+
+    data.forEach((viatura) => {
+      if (viatura.obm && !viatura.obm_abreviatura) {
+        const keysToTry = [];
+        const normalized = normalizeText(viatura.obm);
+        if (normalized) keysToTry.push(normalized);
+        if (viatura.obm.includes('-')) {
+          const firstSegment = viatura.obm.split('-')[0].trim();
+          const normalizedFirst = normalizeText(firstSegment);
+          if (normalizedFirst) keysToTry.push(normalizedFirst);
+        }
+
+        for (const key of keysToTry) {
+          if (obmMap.has(key)) {
+            viatura.obm_abreviatura = obmMap.get(key);
+            break;
+          }
+        }
+      }
+    });
+  }
   const totalRecords = parseInt(totalResult.count, 10);
   const totalPages = Math.ceil(totalRecords / limit);
 
@@ -35,9 +107,11 @@ exports.getAllSimple = async (req, res) => {
   const { obm } = req.query;
   const normalizedObm = obm ? String(obm).trim() : null;
 
-  const viaturasQuery = db('viaturas as v')
-    .leftJoin('obms as o', 'v.obm', 'o.nome')
-    .select('v.id', 'v.prefixo', 'v.obm', 'o.id as obm_id')
+  const viaturasQuery = db('viaturas as v')
+    .leftJoin('obms as o', function () {
+      this.on(db.raw('LOWER(v.obm)'), '=', db.raw('LOWER(o.nome)'));
+    })
+    .select('v.id', 'v.prefixo', 'v.obm', 'o.id as obm_id', 'o.abreviatura as obm_abreviatura')
     .where('v.ativa', true)
     .orderBy('v.prefixo', 'asc');
 
@@ -45,9 +119,56 @@ exports.getAllSimple = async (req, res) => {
     viaturasQuery.andWhere('v.obm', 'ilike', normalizedObm);
   }
 
-  const viaturas = await viaturasQuery;
-  return res.status(200).json({ data: viaturas });
+  const viaturas = await viaturasQuery;
+
+  const needsFallback = viaturas.some((viatura) => !viatura.obm_abreviatura && viatura.obm);
+  if (needsFallback) {
+    const obms = await db('obms').select('nome', 'abreviatura');
+    const obmMap = buildObmAbbreviationMap(obms);
+
+    viaturas.forEach((viatura) => {
+      if (viatura.obm && !viatura.obm_abreviatura) {
+        const keysToTry = [];
+        const normalized = normalizeText(viatura.obm);
+        if (normalized) keysToTry.push(normalized);
+        if (viatura.obm.includes('-')) {
+          const firstSegment = viatura.obm.split('-')[0].trim();
+          const normalizedFirst = normalizeText(firstSegment);
+          if (normalizedFirst) keysToTry.push(normalizedFirst);
+        }
+
+        for (const key of keysToTry) {
+          if (obmMap.has(key)) {
+            viatura.obm_abreviatura = obmMap.get(key);
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  return res.status(200).json({ data: viaturas });
 };
+
+exports.countByObm = async (req, res) => {
+  const obm = typeof req.query.obm === 'string' ? req.query.obm.trim() : '';
+  const excludeId = req.query.exclude_id;
+
+  if (!obm) {
+    return res.status(200).json({ count: 0 });
+  }
+
+  const query = db('viaturas').where('obm', obm);
+  if (excludeId) {
+    query.andWhere('id', '!=', excludeId);
+  }
+
+  const result = await query.count({ count: 'id' }).first();
+  const count = result && result.count !== undefined ? parseInt(result.count, 10) : 0;
+
+  return res.status(200).json({ count: Number.isNaN(count) ? 0 : count });
+};
+
 
 exports.search = async (req, res) => {
   const term = typeof req.query.term === 'string' ? req.query.term.trim() : '';
@@ -82,21 +203,46 @@ exports.create = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const { id } = req.params;
-  const { prefixo, ativa, cidade, obm, telefone } = req.body;
-  const viaturaAtual = await db('viaturas').where({ id }).first();
-  if (!viaturaAtual) {
-    throw new AppError('Viatura não encontrada.', 404);
-  }
+  const { id } = req.params;
+  const {
+    prefixo,
+    ativa,
+    cidade,
+    obm,
+    telefone,
+    applyToDuplicates,
+    previous_obm: previousObmPayload,
+  } = req.body;
 
-  if (prefixo && prefixo !== viaturaAtual.prefixo) {
-    const conflict = await db('viaturas').where({ prefixo }).andWhere('id', '!=', id).first();
-    if (conflict) throw new AppError('O novo prefixo já está em uso.', 409);
-  }
+  const viaturaAtual = await db('viaturas').where({ id }).first();
+  if (!viaturaAtual) {
+    throw new AppError('Viatura n�o encontrada.', 404);
+  }
 
-  const dadosAtualizacao = { prefixo, ativa, cidade, obm, telefone, updated_at: db.fn.now() };
-  const [viaturaAtualizada] = await db('viaturas').where({ id }).update(dadosAtualizacao).returning('*');
-  return res.status(200).json(viaturaAtualizada);
+  if (prefixo && prefixo !== viaturaAtual.prefixo) {
+    const conflict = await db('viaturas').where({ prefixo }).andWhere('id', '!=', id).first();
+    if (conflict) throw new AppError('O novo prefixo j� est� em uso.', 409);
+  }
+
+  const dadosAtualizacao = { prefixo, ativa, cidade, obm, telefone, updated_at: db.fn.now() };
+  const [viaturaAtualizada] = await db('viaturas').where({ id }).update(dadosAtualizacao).returning('*');
+
+  const previousObm = typeof previousObmPayload === 'string' ? previousObmPayload.trim() : null;
+  const shouldApplyBulk =
+    typeof applyToDuplicates === 'boolean'
+      ? applyToDuplicates
+      : typeof applyToDuplicates === 'string'
+        ? ['true', '1', 'on', 'yes'].includes(applyToDuplicates.toLowerCase())
+        : false;
+
+  if (shouldApplyBulk && previousObm && obm && previousObm !== obm) {
+    await db('viaturas')
+      .where('obm', previousObm)
+      .andWhereNot('id', id)
+      .update({ obm, updated_at: db.fn.now() });
+  }
+
+  return res.status(200).json(viaturaAtualizada);
 };
 
 exports.delete = async (req, res) => {
@@ -157,3 +303,6 @@ a }
     viatura: { ...viatura, ativa: novaSituacao },
   });
 };
+
+
+
