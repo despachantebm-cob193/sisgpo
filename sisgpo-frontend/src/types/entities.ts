@@ -1,4 +1,4 @@
-export interface Militar {
+﻿export interface Militar {
   id: number;
   matricula: string;
   nome_completo: string;
@@ -14,6 +14,16 @@ export interface Obm {
   id: number;
   nome: string;
   abreviatura: string;
+  cidade?: string | null;
+  telefone?: string | null;
+  crbm?: string | null;
+  obm_id?: number;
+}
+
+export interface ObmOption {
+  value: string;
+  label: string;
+  cidade: string;
 }
 
 export interface ValidationError {

@@ -7,15 +7,24 @@ const fs = require('fs');
 
 const viaturaFileController = {
   upload: async (req, res) => {
-    // A verificação agora é mais robusta
-    if (!req.file || !req.file.path) {
-      throw new AppError('Nenhum arquivo foi enviado ou o caminho do arquivo está ausente.', 400);
+    const uploaded =
+      req.file ||
+      (req.files && req.files.file
+        ? Array.isArray(req.files.file)
+          ? req.files.file[0]
+          : req.files.file
+        : null);
+
+    if (!uploaded) {
+      throw new AppError('Nenhum arquivo foi enviado.', 400);
     }
 
-    const filePath = req.file.path;
+    const filePath = uploaded.path || uploaded.tempFilePath || null;
     
     try {
-      const workbook = xlsx.readFile(filePath);
+      const workbook = filePath
+        ? xlsx.readFile(filePath)
+        : xlsx.read(uploaded.data, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
@@ -83,7 +92,7 @@ const viaturaFileController = {
       throw new AppError(error.message || "Ocorreu um erro inesperado durante a importação.", 500);
     } finally {
       // Garante que o arquivo temporário seja sempre excluído
-      if (fs.existsSync(filePath)) {
+      if (filePath && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
     }

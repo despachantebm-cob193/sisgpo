@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/ServicoDia.tsx
+// Arquivo: frontend/src/pages/ServicoDia.tsx (CORRIGIDO)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ import Label from '../components/ui/Label';
 import Spinner from '../components/ui/Spinner';
 import { Trash2 } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
+import ConfirmationModal from '../components/ui/ConfirmationModal'; // Importe o modal
 
 // Interfaces
 interface SelectOption {
@@ -39,7 +40,6 @@ export default function ServicoDia() {
     setPageTitle("Gerenciar Serviço de Dia");
   }, [setPageTitle]);
 
-  // Define o estado inicial para as datas de início e fim
   const hoje = new Date();
   const amanha = new Date(hoje);
   amanha.setDate(hoje.getDate() + 1);
@@ -50,6 +50,11 @@ export default function ServicoDia() {
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Estados do Modal e Deleção
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+
 
   // Funções de busca de militares e civis (sem alteração)
   const loadMilitarOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
@@ -62,6 +67,7 @@ export default function ServicoDia() {
 
   const loadCivilOptions = (inputValue: string, callback: (options: SelectOption[]) => void) => {
     if (!inputValue || inputValue.length < 2) return callback([]);
+    // NOTA: Verifique se a rota '/api/admin/civis' existe ou se foi renomeada para '/api/admin/medicos'
     api.get(`/api/admin/civis/search?term=${inputValue}`).then(res => {
       const options = res.data.map((o: any) => ({ ...o, pessoa_type: 'civil' }));
       callback(options);
@@ -126,11 +132,34 @@ export default function ServicoDia() {
     }
   };
 
-  // Nova função para limpar todos os campos de seleção
-  const handleClearAll = () => {
-    setServicos(prev => prev.map(s => ({ ...s, pessoas: [] })));
-    toast.success('Campos da escala limpos. Salve para confirmar.');
+  // Função que APENAS abre o modal
+  const handleOpenClearModal = () => {
+    setIsClearModalOpen(true);
   };
+
+  // Função que será chamada ao confirmar a deleção
+  const handleConfirmClear = async () => {
+    setIsDeleting(true);
+    try {
+      // Chama a nova rota DELETE, passando a data de início como parâmetro
+      await api.delete('/api/admin/servico-dia', {
+        params: {
+          data: new Date(dataInicio).toISOString()
+        }
+      });
+      
+      // Limpa o estado local para refletir a mudança
+      setServicos(prev => prev.map(s => ({ ...s, pessoas: [] })));
+      toast.success('Escala limpa com sucesso do sistema e do Dashboard.');
+      
+    } catch (error) {
+      toast.error('Erro ao limpar a escala.');
+    } finally {
+      setIsDeleting(false);
+      setIsClearModalOpen(false); // Fecha o modal
+    }
+  };
+
 
   return (
     <div>
@@ -180,16 +209,32 @@ export default function ServicoDia() {
           </div>
           <div className="mt-8 flex justify-end gap-4">
             {/* Botão de Limpar */}
-            <Button onClick={handleClearAll} disabled={isSaving} className="bg-red-600 hover:bg-red-700">
+            <Button 
+              onClick={handleOpenClearModal} 
+              disabled={isSaving || isDeleting} 
+              className="bg-red-600 hover:bg-red-700"
+            >
               <Trash2 className="w-4 h-4 mr-2" />
-              Limpar Escala
+              {isDeleting ? <Spinner /> : 'Limpar Escala'}
             </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving || isDeleting}>
               {isSaving ? <Spinner /> : 'Salvar Alterações'}
             </Button>
           </div>
         </div>
       )}
+
+      {/* --- INÍCIO DA CORREÇÃO --- */}
+      {/* A propriedade 'confirmButtonText' foi removida */}
+      <ConfirmationModal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        onConfirm={handleConfirmClear}
+        title="Limpar Escala do Dia"
+        message="Tem certeza que deseja limpar esta escala? Esta ação é irreversível e removerá todos os dados do Dashboard para este plantão."
+        isLoading={isDeleting}
+      />
+      {/* --- FIM DA CORREÇÃO --- */}
     </div>
   );
 }

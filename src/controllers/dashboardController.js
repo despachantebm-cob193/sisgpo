@@ -1,9 +1,9 @@
-// sisgpo/src/controllers/dashboardController.js (VERSÃO COMBINADA)
+﻿// sisgpo/src/controllers/dashboardController.js (VERS├âO COMBINADA)
 
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
-// Função auxiliar para extrair o tipo da viatura a partir do prefixo
+// Fun├º├úo auxiliar para extrair o tipo da viatura a partir do prefixo
 const getTipoViatura = (prefixo) => {
   if (!prefixo) return 'OUTROS';
   const partes = prefixo.split('-');
@@ -32,7 +32,7 @@ const dashboardController = {
   },
 
   /**
-   * Estatísticas gerais do dashboard.
+   * Estat├¡sticas gerais do dashboard.
    */
   getStats: async (req, res) => {
     try {
@@ -43,43 +43,49 @@ const dashboardController = {
       const totalMilitaresAtivos = await db('militares').where({ ativo: true }).count({ count: '*' }).first();
       const totalViaturasDisponiveis = await db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
       const totalObms = await db('obms').count({ count: '*' }).first();
-      const dateColumnChoices = [
-        { table: 'servico_dia', column: 'data_servico' },
-        { table: 'servico_dia', column: 'data_plantao' },
-        { table: 'servico_dia', column: 'data_inicio' },
-      ];
+      let totalMilitaresEmViaturasMesCount = 0;
+      try {
+        const dateColumnChoices = [
+          { table: 'servico_dia', column: 'data_servico' },
+          { table: 'servico_dia', column: 'data_plantao' },
+          { table: 'servico_dia', column: 'data_inicio' },
+        ];
 
-      let availableDateColumn = null;
-      for (const { table, column } of dateColumnChoices) {
-        // eslint-disable-next-line no-await-in-loop
-        const exists = await db.schema.hasColumn(table, column);
-        if (exists) {
-          availableDateColumn = column;
-          break;
+        let availableDateColumn = null;
+        for (const { table, column } of dateColumnChoices) {
+          // eslint-disable-next-line no-await-in-loop
+          const exists = await db.schema.hasColumn(table, column);
+          if (exists) {
+            availableDateColumn = column;
+            break;
+          }
         }
+
+        const totalMilitaresQuery = db('servico_dia').whereNotNull('viatura_id');
+
+        if (availableDateColumn) {
+          totalMilitaresQuery.whereBetween(availableDateColumn, [firstDayOfMonth, lastDayOfMonth]);
+        } else {
+          console.warn('[Dashboard] Coluna de data não encontrada em servico_dia; usando contagem total sem filtro de período.');
+        }
+
+        const total_militares_em_viaturas_mes = await totalMilitaresQuery
+          .count('id as total')
+          .first();
+        totalMilitaresEmViaturasMesCount = parseInt(total_militares_em_viaturas_mes?.total ?? 0, 10);
+      } catch (servicoDiaError) {
+        console.warn('[Dashboard] Falha ao calcular total_militares_em_viaturas_mes.', servicoDiaError?.message);
       }
-
-      const totalMilitaresQuery = db('servico_dia').whereNotNull('viatura_id');
-
-      if (availableDateColumn) {
-        totalMilitaresQuery.whereBetween(availableDateColumn, [firstDayOfMonth, lastDayOfMonth]);
-      } else {
-        console.warn('[Dashboard] Coluna de data não encontrada em servico_dia; usando contagem total sem filtro de período.');
-      }
-
-      const total_militares_em_viaturas_mes = await totalMilitaresQuery
-        .count('id as total')
-        .first();
 
       res.status(200).json({
         total_militares_ativos: parseInt(totalMilitaresAtivos.count, 10),
         total_viaturas_disponiveis: parseInt(totalViaturasDisponiveis.count, 10),
         total_obms: parseInt(totalObms.count, 10),
-        total_militares_em_viaturas_mes: total_militares_em_viaturas_mes.total,
+        total_militares_em_viaturas_mes: totalMilitaresEmViaturasMesCount,
       });
     } catch (error) {
-      console.error("ERRO AO BUSCAR ESTATÍSTICAS GERAIS:", error);
-      throw new AppError("Não foi possível carregar as estatísticas do dashboard.", 500);
+      console.error("ERRO AO BUSCAR ESTAT├ìSTICAS GERAIS:", error);
+      throw new AppError("N├úo foi poss├¡vel carregar as estat├¡sticas do dashboard.", 500);
     }
   },
 
@@ -95,8 +101,8 @@ const dashboardController = {
       const chartData = Object.values(stats).sort((a, b) => b.value - a.value);
       res.status(200).json(chartData);
     } catch (error) {
-      console.error("ERRO AO BUSCAR ESTATÍSTICAS DE VIATURAS POR TIPO:", error);
-      throw new AppError("Não foi possível carregar as estatísticas de viaturas por tipo.", 500);
+      console.error("ERRO AO BUSCAR ESTAT├ìSTICAS DE VIATURAS POR TIPO:", error);
+      throw new AppError("N├úo foi poss├¡vel carregar as estat├¡sticas de viaturas por tipo.", 500);
     }
   },
 
@@ -109,8 +115,8 @@ const dashboardController = {
       }));
       res.status(200).json(formattedData);
     } catch (error) {
-      console.error("ERRO AO BUSCAR ESTATÍSTICAS DE MILITARES:", error);
-      throw new AppError("Não foi possível carregar as estatísticas dos militares.", 500);
+      console.error("ERRO AO BUSCAR ESTAT├ìSTICAS DE MILITARES:", error);
+      throw new AppError("N├úo foi poss├¡vel carregar as estat├¡sticas dos militares.", 500);
     }
   },
 
@@ -125,7 +131,7 @@ const dashboardController = {
       
       const stats = viaturasAtivas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
-        const nomeLocal = vtr.local_final || 'OBM Não Informada';
+        const nomeLocal = vtr.local_final || 'OBM N├úo Informada';
         if (!acc[tipo]) { acc[tipo] = { tipo: tipo, quantidade: 0, obms: {} }; }
         acc[tipo].quantidade++;
         if (!acc[tipo].obms[nomeLocal]) { acc[tipo].obms[nomeLocal] = []; }
@@ -136,8 +142,8 @@ const dashboardController = {
       const resultadoFinal = Object.values(stats).map(item => ({ ...item, obms: Object.entries(item.obms).map(([nome, prefixos]) => ({ nome, prefixos })) })).sort((a, b) => a.tipo.localeCompare(b.tipo));
       res.status(200).json(resultadoFinal);
     } catch (error) {
-      console.error("ERRO AO BUSCAR ESTATÍSTICAS DETALHADAS DE VIATURAS:", error);
-      throw new AppError("Não foi possível carregar as estatísticas detalhadas de viaturas.", 500);
+      console.error("ERRO AO BUSCAR ESTAT├ìSTICAS DETALHADAS DE VIATURAS:", error);
+      throw new AppError("N├úo foi poss├¡vel carregar as estat├¡sticas detalhadas de viaturas.", 500);
     }
   },
 
@@ -161,8 +167,8 @@ const dashboardController = {
       });
       res.status(200).json(resultadoFinal);
     } catch (error) {
-      console.error("ERRO AO BUSCAR ESTATÍSTICAS DE VIATURAS POR OBM:", error);
-      throw new AppError("Não foi possível carregar as estatísticas de viaturas por OBM.", 500);
+      console.error("ERRO AO BUSCAR ESTAT├ìSTICAS DE VIATURAS POR OBM:", error);
+      throw new AppError("N├úo foi poss├¡vel carregar as estat├¡sticas de viaturas por OBM.", 500);
     }
   },
 
@@ -173,19 +179,19 @@ const dashboardController = {
     tomorrow.setDate(today.getDate() + 1); // Set to start of tomorrow
 
     try {
-      // Encontra o plantão ativo mais recente que abrange o dia atual
+      // Encontra o plant├úo ativo mais recente que abrange o dia atual
       const latestActiveService = await db('servico_dia')
         .where('data_inicio', '<=', tomorrow.toISOString()) // Starts before tomorrow
         .andWhere('data_fim', '>=', today.toISOString())    // Ends after start of today
         .orderBy('data_inicio', 'desc')
         .first();
 
-      // Se nenhum serviço estiver ativo, retorna um array vazio
+      // Se nenhum servi├ºo estiver ativo, retorna um array vazio
       if (!latestActiveService) {
         return res.status(200).json([]);
       }
 
-      // Busca todos os registros que compartilham a mesma data de início do plantão mais recente
+      // Busca todos os registros que compartilham a mesma data de in├¡cio do plant├úo mais recente
       const servicosAtivos = await db('servico_dia as sd')
         .where('sd.data_inicio', latestActiveService.data_inicio);
         
@@ -221,13 +227,20 @@ const dashboardController = {
       
       res.status(200).json(resultadoFinal);
     } catch (error) {
-      console.error("ERRO AO BUSCAR SERVIÇO DO DIA:", error);
-      throw new AppError("Não foi possível carregar os dados do serviço de dia.", 500);
+      console.error("ERRO AO BUSCAR SERVI├çO DO DIA:", error);
+      throw new AppError("N├úo foi poss├¡vel carregar os dados do servi├ºo de dia.", 500);
     }
   },
 
   getEscalaAeronaves: async (req, res) => {
     try {
+      const hasAeronavesTable = await db.schema.hasTable('aeronaves');
+      const hasEscalaTable = await db.schema.hasTable('escala_aeronaves');
+
+      if (!hasAeronavesTable || !hasEscalaTable) {
+        return res.status(200).json([]);
+      }
+
       const dataBusca = new Date().toISOString().split('T')[0];
       const escala = await db('escala_aeronaves as ea')
         .leftJoin('aeronaves as a', 'ea.aeronave_id', 'a.id')
@@ -235,49 +248,49 @@ const dashboardController = {
         .leftJoin('militares as p2', 'ea.segundo_piloto_id', 'p2.id')
         .where('ea.data', dataBusca)
         .select(
-          'a.prefixo', 
-          'a.tipo_asa', 
-          'ea.status', 
-          db.raw("COALESCE(p1.posto_graduacao || ' ' || NULLIF(TRIM(p1.nome_guerra), ''), p1.posto_graduacao || ' ' || p1.nome_completo, 'N/A') as primeiro_piloto"), 
+          'a.prefixo',
+          'a.tipo_asa',
+          'ea.status',
+          db.raw("COALESCE(p1.posto_graduacao || ' ' || NULLIF(TRIM(p1.nome_guerra), ''), p1.posto_graduacao || ' ' || p1.nome_completo, 'N/A') as primeiro_piloto"),
           db.raw("COALESCE(p2.posto_graduacao || ' ' || NULLIF(TRIM(p2.nome_guerra), ''), p2.posto_graduacao || ' ' || p2.nome_completo, 'N/A') as segundo_piloto")
         )
         .orderBy('a.prefixo', 'asc');
+
       res.status(200).json(escala);
     } catch (error) {
       console.error("ERRO AO BUSCAR ESCALA DE AERONAVES:", error);
       throw new AppError("Não foi possível carregar a escala de aeronaves.", 500);
     }
   },
-
   getEscalaCodec: async (req, res) => {
     try {
+      const hasEscalaCodecTable = await db.schema.hasTable('escala_codec');
+
+      if (!hasEscalaCodecTable) {
+        return res.status(200).json([]);
+      }
+
       const dataBusca = new Date().toISOString().split('T')[0];
       const escala = await db('escala_codec as ec')
         .join('militares as m', 'ec.militar_id', 'm.id')
         .where('ec.data', dataBusca)
         .select(
-          'ec.turno', 
-          'ec.ordem_plantonista', 
+          'ec.turno',
+          'ec.ordem_plantonista',
           db.raw("m.posto_graduacao || ' ' || COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_plantonista")
         )
         .orderBy('ec.turno', 'asc')
         .orderBy('ec.ordem_plantonista', 'asc');
+
       res.status(200).json(escala);
     } catch (error) {
       console.error("ERRO AO BUSCAR ESCALA DO CODEC:", error);
       throw new AppError("Não foi possível carregar a escala do CODEC.", 500);
     }
   },
-
-  // ====================================================================
-  // == NOVA FUNÇÃO PARA A INTEGRAÇÃO ==
-  // ====================================================================
-  /**
-   * Fornece dados consolidados do dashboard para sistemas externos.
-   */
   getDashboardData: async (req, res) => {
     try {
-      // Usando 'db' que já foi importado no topo do arquivo
+      // Usando 'db' que j├í foi importado no topo do arquivo
       const [totalMilitares] = await db('militares').count('id as total');
       const [totalViaturas] = await db('viaturas').count('id as total');
       const [totalObms] = await db('obms').count('id as total');
@@ -289,7 +302,7 @@ const dashboardController = {
         .groupBy('obms.abreviatura')
         .orderBy('total', 'desc');
   
-      // Usando a função auxiliar `getTipoViatura` já existente
+      // Usando a fun├º├úo auxiliar `getTipoViatura` j├í existente
       const todasViaturas = await db('viaturas').select('prefixo');
       const tiposDeViaturaAgregado = todasViaturas.reduce((acc, vtr) => {
         const tipo = getTipoViatura(vtr.prefixo);
@@ -311,9 +324,9 @@ const dashboardController = {
   
       return res.json(dashboardData);
     } catch (error) {
-      console.error('Erro ao buscar dados do dashboard para integração:', error);
-      // Usando o AppError já importado
-      throw new AppError("Erro interno ao buscar dados do dashboard para integração.", 500);
+      console.error('Erro ao buscar dados do dashboard para integra├º├úo:', error);
+      // Usando o AppError j├í importado
+      throw new AppError("Erro interno ao buscar dados do dashboard para integra├º├úo.", 500);
     }
   },
 };

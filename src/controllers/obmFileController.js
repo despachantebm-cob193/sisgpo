@@ -8,14 +8,24 @@ const path = require('path');
 
 const obmFileController = {
   upload: async (req, res) => {
-    if (!req.file) {
+    const uploaded =
+      req.file ||
+      (req.files && req.files.file
+        ? Array.isArray(req.files.file)
+          ? req.files.file[0]
+          : req.files.file
+        : null);
+
+    if (!uploaded) {
       throw new AppError('Nenhum arquivo foi enviado.', 400);
     }
 
-    const filePath = req.file.path;
+    const filePath = uploaded.path || uploaded.tempFilePath || null;
 
     try {
-      const workbook = xlsx.readFile(filePath);
+      const workbook = filePath
+        ? xlsx.readFile(filePath)
+        : xlsx.read(uploaded.data, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
@@ -69,7 +79,9 @@ const obmFileController = {
       console.error("Erro durante a importação de OBMs:", error);
       throw new AppError(error.message || "Ocorreu um erro inesperado durante a importação.", 500);
     } finally {
-      fs.unlinkSync(filePath);
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
   },
 };

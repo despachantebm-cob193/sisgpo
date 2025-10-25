@@ -1,4 +1,4 @@
-// Arquivo: src/routes/adminRoutes.js (VERIFICADO NOVAMENTE)
+// Arquivo: src/routes/adminRoutes.js (VERSÃO CORRIGIDA)
 
 const { Router } = require('express');
 const { validate } = require('express-validation');
@@ -20,7 +20,7 @@ const escalaCodecValidator = require('../validators/escalaCodecValidator');
 const escalaMedicoValidator = require('../validators/escalaMedicoValidator');
 
 // Controladores
-const obmController = require('../controllers/obmController'); // <-- Importa o OBM Controller principal
+const obmController = require('../controllers/obmController');
 const viaturaController = require('../controllers/viaturaController');
 const militarController = require('../controllers/militarController');
 const userController = require('../controllers/userController');
@@ -38,7 +38,7 @@ const dashboardController = require('../controllers/dashboardController');
 // Controladores de Upload (Legados ou específicos)
 const viaturaFileController = require('../controllers/viaturaFileController');
 const militarFileController = require('../controllers/militarFileController');
-const obmFileController = require('../controllers/obmFileController'); // <-- Este é o antigo, não deve ser usado para upload
+const obmFileController = require('../controllers/obmFileController'); 
 
 const router = Router();
 
@@ -73,6 +73,12 @@ router.get('/viaturas/search', viaturaController.search);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
 router.post('/viaturas', validate(viaturaValidator.create), viaturaController.create);
 router.put('/viaturas/:id', validate(viaturaValidator.update), viaturaController.update);
+
+// --- INÍCIO DA CORREÇÃO ---
+// A Rota Específica (clear-all) DEVE vir ANTES da Rota Genérica (:id)
+router.delete('/viaturas/clear-all', viaturaController.clearAll); 
+// --- FIM DA CORREÇÃO ---
+
 router.delete('/viaturas/:id', viaturaController.delete);
 router.post('/viaturas/:id/toggle-active', viaturaController.toggleActive);
 
@@ -156,7 +162,9 @@ router.get('/escala', escalaController.getEscala);
 router.put('/escala', escalaController.updateEscala);
 
 router.get('/servico-dia', servicoDiaController.getServicoDia);
-router.put('/servico-dia', servicoDiaController.updateServicoDia);
+router.post('/servico-dia', servicoDiaController.updateServicoDia); // Corrigido de PUT para POST
+router.delete('/servico-dia', servicoDiaController.deleteServicoDia); // Adicionado
+
 
 // --- ROTA DE RELATÓRIO ---
 router.get('/relatorio/diario', relatorioController.getRelatorioDiario);

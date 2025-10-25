@@ -4,19 +4,28 @@ const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const servicoDiaController = {
-  // Função para buscar os dados do serviço com base em uma data
-  getByDate: async (req, res) => {
+  // Função para buscar os dados (código da resposta anterior, sem mudanças)
+  getByDate: async (req, res, next) => {
     const { data } = req.query;
-    // Se nenhuma data for fornecida, usa a data atual
     const dataBusca = data ? new Date(data).toISOString() : new Date().toISOString();
 
     try {
-      // Busca registros onde a data de busca está entre o início e o fim do plantão
-      const servicos = await db('servico_dia')
+      // 1. Encontrar o data_inicio MAIS RECENTE do plantão ativo
+      const ultimoPlantao = await db('servico_dia')
         .where('data_inicio', '<=', dataBusca)
-        .andWhere('data_fim', '>=', dataBusca);
+        .andWhere('data_fim', '>=', dataBusca)
+        .orderBy('data_inicio', 'desc')
+        .first('data_inicio'); 
 
-      // O restante da lógica para buscar e juntar os dados de militares e civis permanece o mesmo...
+      if (!ultimoPlantao) {
+        return res.status(200).json([]);
+      }
+
+      // 2. Buscar TODOS os registros que pertencem a ESSE plantão específico
+      const servicos = await db('servico_dia')
+        .where({ data_inicio: ultimoPlantao.data_inicio }); 
+
+      // ... (o resto da função getByDate continua igual)
       const servicoMilitares = servicos.filter(s => s.pessoa_type === 'militar');
       const servicoCivis = servicos.filter(s => s.pessoa_type === 'civil');
 
@@ -47,21 +56,20 @@ const servicoDiaController = {
       res.status(200).json(resultadoFinal);
     } catch (error) {
       console.error("ERRO AO BUSCAR SERVIÇO DO DIA:", error);
-      throw new AppError("Não foi possível carregar os dados do serviço de dia.", 500);
+      next(new AppError("Não foi possível carregar os dados do serviço de dia.", 500));
     }
   },
 
-  // Função para salvar ou atualizar a escala
-  save: async (req, res) => {
+  // Função para salvar (código da resposta anterior, sem mudanças)
+  save: async (req, res, next) => {
     const { data_inicio, data_fim, servicos } = req.body;
 
     if (!data_inicio || !data_fim || !servicos || !Array.isArray(servicos)) {
-      throw new AppError('Formato de dados inválido. Data de início, fim e lista de serviços são obrigatórios.', 400);
+      return next(new AppError('Formato de dados inválido. Data de início, fim e lista de serviços são obrigatórios.', 400));
     }
 
     try {
       await db.transaction(async trx => {
-        // Deleta os registros existentes para o mesmo período para evitar duplicatas
         await trx('servico_dia').where({ data_inicio }).del();
 
         const servicosParaInserir = servicos
@@ -82,12 +90,51 @@ const servicoDiaController = {
       res.status(200).json({ message: 'Serviço do dia salvo com sucesso!' });
     } catch (error) {
       console.error("ERRO AO SALVAR SERVIÇO DO DIA:", error);
-      throw new AppError("Ocorreu um erro ao salvar o serviço do dia.", 500);
+      next(new AppError("Ocorreu um erro ao salvar o serviço do dia.", 500));
+    }
+  },
+
+  // --- INÍCIO DA NOVA FUNÇÃO ---
+  // Função para DELETAR a escala com base na data
+  deleteByDate: async (req, res, next) => {
+    const { data } = req.query; // Pega a data de início do plantão
+    if (!data) {
+      return next(new AppError('A data é obrigatória para excluir a escala.', 400));
+    }
+
+    const dataBusca = new Date(data).toISOString();
+
+    try {
+      // 1. Encontrar o data_inicio do plantão ativo para essa data
+      // Usamos a mesma lógica do 'getByDate' para garantir que estamos deletando o plantão correto
+      const ultimoPlantao = await db('servico_dia')
+        .where('data_inicio', '<=', dataBusca)
+        .andWhere('data_fim', '>=', dataBusca)
+        .orderBy('data_inicio', 'desc')
+        .first('data_inicio');
+
+      if (!ultimoPlantao) {
+        // Não há plantão para excluir, o que não é um erro
+        return res.status(200).json({ message: 'Nenhuma escala ativa encontrada para esta data.' });
+      }
+
+      // 2. Deletar TODOS os registros que pertencem a ESSE plantão
+      await db('servico_dia')
+        .where({ data_inicio: ultimoPlantao.data_inicio })
+        .del();
+
+      res.status(200).json({ message: 'Escala do dia limpa com sucesso!' });
+    } catch (error) {
+      console.error("ERRO AO DELETAR SERVIÇO DO DIA:", error);
+      next(new AppError("Ocorreu um erro ao limpar a escala do dia.", 500));
     }
   }
+  // --- FIM DA NOVA FUNÇÃO ---
 };
 
 servicoDiaController.getServicoDia = servicoDiaController.getByDate;
 servicoDiaController.updateServicoDia = servicoDiaController.save;
+// --- ADICIONAR ESTA LINHA ---
+servicoDiaController.deleteServicoDia = servicoDiaController.deleteByDate;
 
 module.exports = servicoDiaController;
