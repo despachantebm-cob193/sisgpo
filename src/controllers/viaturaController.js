@@ -112,14 +112,11 @@ exports.getAllSimple = async (req, res) => {
       this.on(db.raw('LOWER(v.obm)'), '=', db.raw('LOWER(o.nome)'));
     })
     .select('v.id', 'v.prefixo', 'v.obm', 'o.id as obm_id', 'o.abreviatura as obm_abreviatura')
-    .where('v.ativa', true)
-    .orderBy('v.prefixo', 'asc');
+    .where('v.ativa', true)
+    .orderBy('v.prefixo', 'asc');
 
-  if (normalizedObm) {
-    viaturasQuery.andWhere('v.obm', 'ilike', normalizedObm);
-  }
-
-  const viaturas = await viaturasQuery;
+  const viaturasRaw = await viaturasQuery;
+  let viaturas = viaturasRaw;
 
   const needsFallback = viaturas.some((viatura) => !viatura.obm_abreviatura && viatura.obm);
   if (needsFallback) {
@@ -147,7 +144,36 @@ exports.getAllSimple = async (req, res) => {
     });
   }
 
-  return res.status(200).json({ data: viaturas });
+  let viaturasFiltradas = viaturas;
+  if (normalizedObm) {
+    const normalizedTarget = normalizeText(normalizedObm);
+    const normalizedTargetBase = normalizedTarget.includes(' - ')
+      ? normalizedTarget.split('-')[0].trim()
+      : normalizedTarget;
+
+    viaturasFiltradas = viaturas.filter((viatura) => {
+      const candidatos = [
+        viatura.obm,
+        viatura.obm_abreviatura,
+      ];
+
+    const valoresNormalizados = candidatos
+      .filter((valor) => Boolean(valor))
+      .map((valor) => normalizeText(valor));
+
+      return valoresNormalizados.some((valor) => {
+        if (!valor) return false;
+        return (
+          valor === normalizedTarget ||
+          valor === normalizedTargetBase ||
+          valor.includes(normalizedTarget) ||
+          valor.includes(normalizedTargetBase)
+        );
+      });
+    });
+  }
+
+  return res.status(200).json({ data: viaturasFiltradas });
 };
 
 exports.countByObm = async (req, res) => {
@@ -216,12 +242,12 @@ exports.update = async (req, res) => {
 
   const viaturaAtual = await db('viaturas').where({ id }).first();
   if (!viaturaAtual) {
-    throw new AppError('Viatura n�o encontrada.', 404);
+    throw new AppError('Viatura n�o encontrada.', 404);
   }
 
   if (prefixo && prefixo !== viaturaAtual.prefixo) {
     const conflict = await db('viaturas').where({ prefixo }).andWhere('id', '!=', id).first();
-    if (conflict) throw new AppError('O novo prefixo j� est� em uso.', 409);
+    if (conflict) throw new AppError('O novo prefixo j� est� em uso.', 409);
   }
 
   const dadosAtualizacao = { prefixo, ativa, cidade, obm, telefone, updated_at: db.fn.now() };

@@ -172,7 +172,7 @@ const dashboardController = {
     try {
       const [obms, viaturas] = await Promise.all([
         db('obms')
-          .select('id', 'nome', 'abreviatura')
+          .select('id', 'nome', 'abreviatura', 'crbm')
           .orderBy('abreviatura', 'asc'),
         db('viaturas as v')
           .leftJoin('obms as o', function () {
@@ -263,6 +263,7 @@ const dashboardController = {
           nome: obm.abreviatura || obm.nome,
           quantidade: prefixos.length,
           prefixos: prefixos.sort((a, b) => a.localeCompare(b)),
+          crbm: obm.crbm || null,
         };
       });
 

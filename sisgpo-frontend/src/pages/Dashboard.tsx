@@ -32,7 +32,7 @@ interface ChartStat { name: string; value: number; }
 interface Obm { id: number; abreviatura: string; nome: string; }
 interface ObmGrupo { nome: string; prefixos: string[]; }
 interface ViaturaStatAgrupada { tipo: string; quantidade: number; obms: ObmGrupo[]; }
-interface ViaturaPorObmStat { id: number; nome: string; quantidade: number; prefixos: string[]; }
+interface ViaturaPorObmStat { id: number; nome: string; quantidade: number; prefixos: string[]; crbm: string | null; }
 
 // Corrigido da etapa anterior
 interface ServicoInfo { 
