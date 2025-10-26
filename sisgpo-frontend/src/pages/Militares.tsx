@@ -75,7 +75,7 @@ export default function Militares() {
     formData.append('file', file);
 
     try {
-      await api.post('/api/admin/militares/upload', formData, {
+      await api.post('/api/admin/militares/upload-csv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       toast.success('Arquivo enviado com sucesso! A atualização será processada em segundo plano.');

@@ -222,7 +222,7 @@ exports.create = async (req, res) => {
   const { prefixo, ativa, cidade, obm, telefone } = req.body;
   const viaturaExists = await db('viaturas').where({ prefixo }).first();
   if (viaturaExists) {
-    throw new AppError('Prefixo já cadastrado no sistema.', 409);
+    throw new AppError('Prefixo ja cadastrado no sistema.', 409);
   }
   const [novaViatura] = await db('viaturas').insert({ prefixo, ativa, cidade, obm, telefone }).returning('*');
   return res.status(201).json(novaViatura);
@@ -275,7 +275,7 @@ exports.delete = async (req, res) => {
   const { id } = req.params;
   const result = await db('viaturas').where({ id }).del();
   if (result === 0) {
-    throw new AppError('Viatura não encontrada.', 404);
+    throw new AppError('Viatura nao encontrada.', 404);
   }
   return res.status(204).send();
 };
@@ -316,7 +316,7 @@ exports.toggleActive = async (req, res) => {
   const viatura = await db('viaturas').where({ id }).first();
   if (!viatura) {
     throw new AppError('Viatura nǜo encontrada.', 404);
-a }
+
 
   const novaSituacao = !viatura.ativa;
 
