@@ -311,24 +311,21 @@ exports.getAeronaves = async (req, res) => {
 };
 
 exports.toggleActive = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params;
 
-  const viatura = await db('viaturas').where({ id }).first();
-  if (!viatura) {
-    throw new AppError('Viatura nǜo encontrada.', 404);
+  const viatura = await db('viaturas').where({ id }).first();
+  if (!viatura) {
+    throw new AppError('Viatura nao encontrada.', 404);
+  }
 
+  const novaSituacao = !viatura.ativa;
 
-  const novaSituacao = !viatura.ativa;
+  await db('viaturas')
+    .where({ id })
+    .update({ ativa: novaSituacao, updated_at: db.fn.now() });
 
-  await db('viaturas')
-    .where({ id })
-    .update({ ativa: novaSituacao, updated_at: db.fn.now() });
-
-  return res.status(200).json({
-    message: novaSituacao ? 'Viatura ativada com sucesso.' : 'Viatura desativada com sucesso.',
-    viatura: { ...viatura, ativa: novaSituacao },
-  });
+  return res.status(200).json({
+    message: novaSituacao ? 'Viatura ativada com sucesso.' : 'Viatura desativada com sucesso.',
+    viatura: { ...viatura, ativa: novaSituacao },
+  });
 };
-
-
-
