@@ -9,7 +9,7 @@
     "migrate:dev": "knex migrate:latest --env development",
     "migrate:prod": "knex migrate:latest --env production",
     "seed:prod": "knex seed:run --env production",
-    "build": "tsc",
+    "build": "tsc && cd sisgpo-frontend && npm install && npm run build",
     "render:build": "npm install",
     "test:setup": "cross-env NODE_ENV=test knex migrate:latest --env test",
     "test": "cross-env NODE_ENV=test npm run test:setup && cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
