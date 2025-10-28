@@ -9,7 +9,7 @@ const createViaturaSchema = Joi.object({
   cidade: Joi.string().max(100).optional().allow(null, ''),
   obm: Joi.string().max(150).optional().allow(null, ''),
   telefone: Joi.string().max(20).optional().allow(null, ''),
-});
+}).options({ allowUnknown: true });
 
 const updateViaturaSchema = Joi.object({
   prefixo: Joi.string().min(3).max(50).optional(),
