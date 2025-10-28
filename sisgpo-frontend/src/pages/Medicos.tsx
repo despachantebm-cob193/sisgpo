@@ -42,7 +42,7 @@ export default function Medicos() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(currentPage), limit: '20', ...filters });
-      const response = await api.get<ApiResponse<Medico>>(`/api/admin/civis?${params.toString()}`);
+      const response = await api.get<ApiResponse<Medico>>(`/api/admin/medicos?${params.toString()}`);
       setMedicos(response.data.data || []);
       setPagination(response.data.pagination);
     } catch (err) { toast.error('Não foi possível carregar o cadastro de médicos.'); }
@@ -62,8 +62,8 @@ export default function Medicos() {
     setIsSaving(true);
     const action = data.id ? 'atualizado' : 'criado';
     try {
-      if (data.id) await api.put(`/api/admin/civis/${data.id}`, data);
-      else await api.post('/api/admin/civis', data);
+      if (data.id) await api.put(`/api/admin/medicos/${data.id}`, data);
+      else await api.post('/api/admin/medicos', data);
       toast.success(`Médico ${action} com sucesso!`);
       handleCloseFormModal();
       fetchData();
@@ -75,7 +75,7 @@ export default function Medicos() {
     if (!itemToDeleteId) return;
     setIsDeleting(true);
     try {
-      await api.delete(`/api/admin/civis/${itemToDeleteId}`);
+      await api.delete(`/api/admin/medicos/${itemToDeleteId}`);
       toast.success('Registro excluído!');
       fetchData();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir o registro.'); }

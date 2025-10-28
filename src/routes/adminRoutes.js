@@ -28,7 +28,7 @@ const plantaoController = require('../controllers/plantaoController');
 const relatorioController = require('../controllers/relatorioController');
 const escalaController = require('../controllers/escalaController');
 const servicoDiaController = require('../controllers/servicoDiaController');
-// const medicoController = require('../controllers/medicoController'); // Comentado
+const medicoController = require('../controllers/medicoController');
 const aeronaveController = require('../controllers/aeronaveController');
 const escalaAeronaveController = require('../controllers/escalaAeronaveController');
 const escalaCodecController = require('../controllers/escalaCodecController');
@@ -69,6 +69,7 @@ router.delete('/obms', obmController.clearAll);
 
 // --- ROTAS CRUD (Viaturas) ---
 router.get('/viaturas/duplicates/count', viaturaController.countByObm);
+router.get('/viaturas/simple', viaturaController.getAllSimple);
 router.get('/viaturas', viaturaController.getAll);
 router.get('/viaturas/search', viaturaController.search);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
@@ -92,15 +93,15 @@ router.delete('/militares/:id', militarController.delete);
 router.post('/militares/:id/toggle-active', militarController.toggleActive);
 
 // --- ROTAS CRUD (Medicos - Antigos Civis) ---
-// Comentado pois o 'medicoController' não existe
-/*
 router.get('/medicos', medicoController.getAll);
 router.get('/medicos/search', medicoController.search);
 router.post('/medicos', medicoController.create);
 router.put('/medicos/:id', medicoController.update);
 router.delete('/medicos/:id', medicoController.delete);
 router.post('/medicos/:id/toggle-active', medicoController.toggleActive);
-*/
+
+// --- ROTAS LEGADAS PARA CIVIS (SUPORTE AOS FORMULÁRIOS ANTIGOS) ---
+router.get('/civis/search', escalaMedicoController.searchCivis);
 
 // --- ROTAS CRUD (Aeronaves) ---
 router.get('/aeronaves', aeronaveController.getAll);

@@ -30,7 +30,7 @@ const buildObmAbbreviationMap = (obms) => {
 
     possibleKeys.forEach((key) => {
       if (!map.has(key)) {
-        map.set(key, abreviatura);
+        map.set(key, { id: obm.id, abreviatura: obm.abreviatura });
       }
     });
   });
@@ -71,7 +71,7 @@ exports.getAll = async (req, res) => {
 
   const needsFallback = data.some((viatura) => !viatura.obm_abreviatura && viatura.obm);
   if (needsFallback) {
-    const obms = await db('obms').select('nome', 'abreviatura');
+    const obms = await db('obms').select('id', 'nome', 'abreviatura');
     const obmMap = buildObmAbbreviationMap(obms);
 
     data.forEach((viatura) => {
@@ -87,7 +87,9 @@ exports.getAll = async (req, res) => {
 
         for (const key of keysToTry) {
           if (obmMap.has(key)) {
-            viatura.obm_abreviatura = obmMap.get(key);
+            const obmData = obmMap.get(key);
+            viatura.obm_id = obmData.id;
+            viatura.obm_abreviatura = obmData.abreviatura;
             break;
           }
         }
@@ -118,13 +120,13 @@ exports.getAllSimple = async (req, res) => {
   const viaturasRaw = await viaturasQuery;
   let viaturas = viaturasRaw;
 
-  const needsFallback = viaturas.some((viatura) => !viatura.obm_abreviatura && viatura.obm);
+  const needsFallback = viaturas.some((viatura) => !viatura.obm_id && viatura.obm);
   if (needsFallback) {
-    const obms = await db('obms').select('nome', 'abreviatura');
+    const obms = await db('obms').select('id', 'nome', 'abreviatura');
     const obmMap = buildObmAbbreviationMap(obms);
 
     viaturas.forEach((viatura) => {
-      if (viatura.obm && !viatura.obm_abreviatura) {
+      if (viatura.obm && !viatura.obm_id) {
         const keysToTry = [];
         const normalized = normalizeText(viatura.obm);
         if (normalized) keysToTry.push(normalized);
@@ -136,7 +138,9 @@ exports.getAllSimple = async (req, res) => {
 
         for (const key of keysToTry) {
           if (obmMap.has(key)) {
-            viatura.obm_abreviatura = obmMap.get(key);
+            const obmData = obmMap.get(key);
+            viatura.obm_id = obmData.id;
+            viatura.obm_abreviatura = obmData.abreviatura;
             break;
           }
         }

@@ -141,12 +141,15 @@ const searchCivis = async (req, res) => {
   const civis = await db('civis')
     .where('nome_completo', 'ilike', `%${term}%`)
     .andWhere('ativo', true)
-    .select('id', 'nome_completo', 'funcao')
+    .whereNull('entrada_servico')
+    .whereNull('saida_servico')
+    .select('id', 'nome_completo', 'funcao', 'telefone', 'medico_id')
+    .orderBy('nome_completo', 'asc')
     .limit(15);
 
   const options = civis.map((c) => ({
     value: c.id,
-    label: c.nome_completo,
+    label: c.funcao ? `${c.nome_completo} (${c.funcao})` : c.nome_completo,
     civil: c,
   }));
   res.status(200).json(options);
@@ -179,6 +182,7 @@ const createEscala = async (req, res) => {
   } = req.body;
 
   let baseDados;
+  let medicoId = null;
 
   if (civil_id) {
     const civil = await db('civis').where({ id: civil_id }).first();
@@ -192,6 +196,7 @@ const createEscala = async (req, res) => {
       observacoes: observacoes !== undefined ? normalizeOptionalText(observacoes) : civil.observacoes,
       ativo: civil.ativo,
     };
+    medicoId = civil.medico_id || null;
   } else {
     if (!nome_completo || !funcao) {
       throw new AppError('Informe os dados do medico ou selecione um registro existente.', 400);
@@ -203,11 +208,13 @@ const createEscala = async (req, res) => {
       observacoes: normalizeOptionalText(observacoes),
       ativo: typeof ativo === 'boolean' ? ativo : true,
     };
+    medicoId = null;
   }
 
   const [novaEscala] = await db('civis')
     .insert({
       ...baseDados,
+      medico_id: medicoId,
       entrada_servico,
       saida_servico,
       status_servico,

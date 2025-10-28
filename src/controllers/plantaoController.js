@@ -129,7 +129,26 @@ const plantaoController = {
 
     if (all === 'true') {
         const plantoes = await baseSelectQuery.orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
-        return res.status(200).json({ data: plantoes, pagination: null });
+        const plantaoIds = plantoes.map(p => p.id);
+        const guarnicoes = await db('plantoes_militares as pm')
+          .join('militares as m', 'pm.militar_id', 'm.id')
+          .select('pm.plantao_id', 'm.nome_guerra', 'pm.funcao')
+          .whereIn('pm.plantao_id', plantaoIds);
+
+        const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
+          if (!acc[militar.plantao_id]) {
+            acc[militar.plantao_id] = [];
+          }
+          acc[militar.plantao_id].push(militar);
+          return acc;
+        }, {});
+
+        const plantoesComGuarnicao = plantoes.map(plantao => ({
+          ...plantao,
+          guarnicao: guarnicaoMap[plantao.id] || [],
+        }));
+
+        return res.status(200).json({ data: plantoesComGuarnicao, pagination: null });
     }
 
     const page = parseInt(req.query.page, 10) || 1;
@@ -140,11 +159,31 @@ const plantaoController = {
     const dataQuery = baseSelectQuery.clone().orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
 
     const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+
+    const plantaoIds = data.map(p => p.id);
+    const guarnicoes = await db('plantoes_militares as pm')
+      .join('militares as m', 'pm.militar_id', 'm.id')
+      .select('pm.plantao_id', 'm.nome_guerra', 'pm.funcao')
+      .whereIn('pm.plantao_id', plantaoIds);
+
+    const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
+      if (!acc[militar.plantao_id]) {
+        acc[militar.plantao_id] = [];
+      }
+      acc[militar.plantao_id].push(militar);
+      return acc;
+    }, {});
+
+    const dataComGuarnicao = data.map(plantao => ({
+      ...plantao,
+      guarnicao: guarnicaoMap[plantao.id] || [],
+    }));
+
     const totalRecords = parseInt(totalResult.count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
     res.status(200).json({
-      data,
+      data: dataComGuarnicao,
       pagination: { currentPage: Number(page), perPage: Number(limit), totalPages, totalRecords },
     });
   },

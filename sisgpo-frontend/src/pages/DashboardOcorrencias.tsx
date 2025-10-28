@@ -76,15 +76,7 @@ const normalizeKey = (value?: string | null) =>
     .trim()
     .toLowerCase();
 
-const OBITOS_ORDER = [
-  "ACIDENTE DE TRÂNSITO",
-  "ACIDENTES COM VIATURAS",
-  "AFOGAMENTO OU CADÁVER",
-  "ARMA DE FOGO/BRANCA/AGRESSÃO",
-  "AUTO EXTERMÍNIO",
-  "MAL SÚBITO",
-  "OUTROS",
-];
+
 
 interface EspelhoColumn {
   codigo: string;
@@ -204,36 +196,36 @@ const DashboardOcorrencias: React.FC = () => {
   }, [selectedDate]);
 
   const obitosResumo = useMemo(() => {
-    const base = new Map(
-      OBITOS_ORDER.map((label) => [
-        label,
-        {
-          label,
+    const obitos = payload?.relatorio?.obitos || [];
+    if (obitos.length === 0) {
+      return { rows: [], total: 0, totalRegistros: 0 };
+    }
+
+    const base = new Map<string, {
+      label: string;
+      quantidade: number;
+      registros: ObitoRegistro[];
+    }>();
+
+    obitos.forEach((registro) => {
+      const key = registro.natureza_nome || "OUTROS";
+      if (!base.has(key)) {
+        base.set(key, {
+          label: key,
           quantidade: 0,
-          registros: [] as ObitoRegistro[],
-        },
-      ])
-    );
-
-    const findKey = (value?: string | null) => {
-      if (!value) return "OUTROS";
-      const normalized = normalizeText(value);
-      const found = OBITOS_ORDER.find((label) => normalizeText(label) === normalized);
-      return found || "OUTROS";
-    };
-
-    (payload?.relatorio?.obitos || []).forEach((registro) => {
-      const key = findKey(registro.natureza_nome);
-      const bucket = base.get(key);
-      if (!bucket) return;
+          registros: [],
+        });
+      }
+      const bucket = base.get(key)!;
       bucket.quantidade += registro.quantidade_vitimas || 0;
       bucket.registros.push(registro);
     });
 
-    const rows = OBITOS_ORDER.map((label) => base.get(label) || { label, quantidade: 0, registros: [] });
+    const rows = Array.from(base.values()).sort((a, b) => a.label.localeCompare(b.label));
     const total = rows.reduce((sum, row) => sum + row.quantidade, 0);
+    const totalRegistros = rows.reduce((sum, row) => sum + row.registros.length, 0);
 
-    return { rows, total };
+    return { rows, total, totalRegistros };
   }, [payload?.relatorio?.obitos]);
 
   const espelhoColumns = useMemo<EspelhoColumn[]>(() => {
@@ -549,13 +541,13 @@ const DashboardOcorrencias: React.FC = () => {
         </div>
       </section>
 
-      <section className="oc-section">
+      <section className="oc-section" data-testid="relatorio-obitos">
         <div className="oc-section-header">
           <span className="oc-section-title">Relatório de Óbitos do Dia</span>
         </div>
         <div className="oc-section-body">
           <div className="oc-table-wrapper">
-            <table className="oc-obitos-table oc-table-desktop">
+            <table className="oc-obitos-table oc-table-desktop" data-testid="obitos-desktop">
               <thead>
                 <tr>
                   <th>Natureza</th>
@@ -564,7 +556,7 @@ const DashboardOcorrencias: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {obitosResumo.rows.filter(row => row.quantidade > 0).map((row) => (
+                {obitosResumo.rows.map((row) => (
                   <tr key={row.label}>
                     <td>{row.label}</td>
                     <td>{row.quantidade}</td>
@@ -582,79 +574,103 @@ const DashboardOcorrencias: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                <tr className="oc-obitos-total-row">
-                  <td>TOTAL</td>
-                  <td>{obitosResumo.total}</td>
-                  <td></td>
-                </tr>
+                {obitosResumo.rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="oc-empty">
+                      Nenhum óbito registrado no dia.
+                    </td>
+                  </tr>
+                ) : (
+                  <tr className="oc-obitos-total-row">
+                    <td>TOTAL</td>
+                    <td>{obitosResumo.total}</td>
+                    <td>
+                      {obitosResumo.rows
+                        .flatMap((row) => row.registros)
+                        .map(
+                          (registro) =>
+                            `(${registro.numero_ocorrencia || "N/A"}) - ${
+                              registro.obm_nome || "N/A"
+                            }`
+                        )
+                        .join("; ")}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
 
-            <div className="oc-obitos-cards">
-              {obitosResumo.rows.filter(row => row.quantidade > 0).map((row) => {
-                const isExpanded = !!expandedObitos[row.label];
+            <div className="oc-obitos-cards" data-testid="obitos-mobile">
+              {obitosResumo.rows.length > 0 ? (
+                obitosResumo.rows.map((row) => {
+                  const isExpanded = !!expandedObitos[row.label];
 
-                return (
-                  <div className="oc-espelho-accordion" key={row.label}>
-                    <button
-                      type="button"
-                      className={`oc-espelho-accordion-header ${isExpanded ? "is-open" : ""}`}
-                      onClick={() => handleToggleObito(row.label)}
-                    >
-                      <div className="oc-espelho-accordion-title">
-                        <span className="oc-espelho-accordion-arrow">
-                          <ChevronDown />
-                        </span>
-                        <span>{row.label}</span>
-                      </div>
-                      <div className="oc-espelho-accordion-total">
-                        <span style={{
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          borderRadius: '50%',
-                          width: '24px',
-                          height: '24px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.8rem',
-                          fontWeight: 'bold'
-                        }}>
-                          {row.quantidade}
-                        </span>
-                      </div>
-                    </button>
-                    {isExpanded && (
-                      <div className="oc-espelho-accordion-body">
-                        <div className="oc-card-row">
-                          <span className="oc-card-label">REGISTROS INDIVIDUAIS</span>
-                          {row.registros.map((registro) => (
-                            <div key={registro.id} style={{ marginTop: '10px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span className="oc-card-value" style={{ fontWeight: 'bold', color: '#90cdf4' }}>
-                                  RAI: {registro.numero_ocorrencia || "N/A"}
-                                </span>
-                                <span className="oc-card-value" style={{ fontWeight: 'bold', color: '#90cdf4' }}>
-                                  {registro.quantidade_vitimas || 0}
+                  return (
+                    <div className="oc-espelho-accordion" key={row.label}>
+                      <button
+                        type="button"
+                        className={`oc-espelho-accordion-header ${isExpanded ? "is-open" : ""}`}
+                        onClick={() => handleToggleObito(row.label)}
+                      >
+                        <div className="oc-espelho-accordion-title">
+                          <span className="oc-espelho-accordion-arrow">
+                            <ChevronDown />
+                          </span>
+                          <span>{row.label}</span>
+                        </div>
+                        <div className="oc-espelho-accordion-total">
+                          <span style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold'
+                          }}>
+                            {row.quantidade}
+                          </span>
+                        </div>
+                      </button>
+                      {isExpanded && (
+                        <div className="oc-espelho-accordion-body">
+                          <div className="oc-card-row">
+                            <span className="oc-card-label">REGISTROS INDIVIDUAIS</span>
+                            {row.registros.map((registro) => (
+                              <div key={registro.id} style={{ marginTop: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span className="oc-card-value" style={{ fontWeight: 'bold', color: '#90cdf4' }}>
+                                    RAI: {registro.numero_ocorrencia || "N/A"}
+                                  </span>
+                                  <span className="oc-card-value" style={{ fontWeight: 'bold', color: '#90cdf4' }}>
+                                    {registro.quantidade_vitimas || 0}
+                                  </span>
+                                </div>
+                                <span className="oc-card-value" style={{ display: 'block', fontSize: '0.8rem' }}>
+                                  {registro.obm_nome || "N/A"}
                                 </span>
                               </div>
-                              <span className="oc-card-value" style={{ display: 'block', fontSize: '0.8rem' }}>
-                                {registro.obm_nome || "N/A"}
-                              </span>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="oc-empty">Nenhum óbito registrado no dia.</div>
+              )}
+              {obitosResumo.rows.length > 0 && (
+                <div className="oc-obitos-card oc-obitos-card-total">
+                  <div className="oc-card-row">
+                    <span className="oc-card-label">Total</span>
+                    <span className="oc-card-value">{obitosResumo.total}</span>
                   </div>
-                );
-              })}
-              <div className="oc-obitos-card oc-obitos-card-total">
-                <div className="oc-card-row">
-                  <span className="oc-card-label">Total</span>
-                  <span className="oc-card-value">{obitosResumo.total}</span>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -85,13 +85,13 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         viatura_id: plantaoToEdit.viatura_id,
         obm_id: plantaoToEdit.obm_id,
         observacoes: plantaoToEdit.observacoes,
-        guarnicao: plantaoToEdit.guarnicao.map(m => ({
+        guarnicao: plantaoToEdit.guarnicao?.map(m => ({
           militar_id: m.militar_id,
           nome_completo: `${m.posto_graduacao} ${m.nome_guerra}`,
           posto_graduacao: m.posto_graduacao,
           funcao: m.funcao,
           telefone: m.telefone ? formatarTelefoneInput(m.telefone) : '',
-        })),
+        })) || [],
       });
     } else {
       setFormData(getInitialFormData());
@@ -203,7 +203,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
           >
             <option value="">Selecione uma viatura</option>
-            {viaturas.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
+            {viaturas?.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
           </select>
         </div>
       </div>

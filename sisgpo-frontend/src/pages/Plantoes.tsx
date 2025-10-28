@@ -22,7 +22,7 @@ import EscalaCodecForm from '@/components/forms/EscalaCodecForm';
 import { useUiStore } from '@/store/uiStore';
 
 // --- Interfaces ---
-export interface Plantao { id: number; data_plantao: string; viatura_prefixo: string; obm_abreviatura: string; }
+export interface Plantao { id: number; data_plantao: string; viatura_prefixo: string; obm_abreviatura: string; guarnicao: { nome_guerra: string; funcao: string }[]; }
 export interface Viatura { id: number; prefixo: string; obm_id: number | null; }
 export interface PlantaoDetalhado { id: number; data_plantao: string; viatura_id: number; obm_id: number | null; observacoes: string; guarnicao: { militar_id: number; funcao: string; nome_guerra: string; posto_graduacao: string; telefone: string | null; }[]; }
 interface PaginationState { currentPage: number; totalPages: number; }
@@ -82,17 +82,25 @@ export default function Plantoes() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number; type: ActiveTab } | null>(null);
 
+  const fetchViaturas = useCallback(async () => {
+      try {
+        // Assegura que o tipo esperado é um array de Viaturas
+        const viaturasRes = await api.get<ApiResponse<Viatura>>('/api/admin/viaturas/simple');
+        // Adiciona fallback para array vazio caso a resposta não venha como esperado
+        setViaturas(viaturasRes.data.data || []);
+      } catch (err) {
+        toast.error('Não foi possível carregar a lista de viaturas.');
+        setViaturas([]); // Garante que seja um array vazio em caso de erro
+      }
+    }, []);
+
   const fetchPlantoes = useCallback(async () => {
     setIsLoadingPlantoes(true);
     try {
       const params = new URLSearchParams({ page: String(currentPlantaoPage), limit: '15', ...filters });
-      const [plantoesRes, viaturasRes] = await Promise.all([
-        api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`),
-        api.get<ApiResponse<Viatura>>('/api/admin/viaturas/simple'),
-      ]);
+      const plantoesRes = await api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`);
       setPlantoes(plantoesRes.data.data);
       setPlantaoPagination(plantoesRes.data.pagination);
-      setViaturas(viaturasRes.data.data);
     } catch (err) { toast.error('Não foi possível carregar os plantões.'); }
     finally { setIsLoadingPlantoes(false); }
   }, [filters, currentPlantaoPage]);
@@ -101,8 +109,8 @@ export default function Plantoes() {
     setIsLoadingEscalaMedicos(true);
     try {
       const params = new URLSearchParams(filters);
-      const response = await api.get<EscalaMedico[]>(`/api/admin/escala-medicos?${params.toString()}`);
-      setEscalaMedicos(response.data);
+      const response = await api.get<ApiResponse<EscalaMedico>>(`/api/admin/escala-medicos?${params.toString()}`);
+      setEscalaMedicos(response.data.data || []);
     } catch (err) { toast.error('Não foi possível carregar a escala de médicos.'); }
     finally { setIsLoadingEscalaMedicos(false); }
   }, [filters]);
@@ -126,6 +134,10 @@ export default function Plantoes() {
     } catch (err) { toast.error('Não foi possível carregar a escala do CODEC.'); }
     finally { setIsLoadingCodec(false); }
   }, [filters]);
+
+  useEffect(() => {
+    fetchViaturas();
+  }, [fetchViaturas]);
 
   useEffect(() => {
     switch (activeTab) {
@@ -325,6 +337,7 @@ export default function Plantoes() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Viatura</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Militar(es) Escalado(s)</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
                     </tr>
@@ -334,6 +347,11 @@ export default function Plantoes() {
                       <tr key={p.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(p.data_plantao)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Viatura:">{p.viatura_prefixo}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Militar(es) Escalado(s):">
+                          {p.guarnicao && p.guarnicao.length > 0 
+                            ? p.guarnicao.map(m => `${m.nome_guerra} (${m.funcao})`).join(', ') 
+                            : 'Sem militar escalado'}
+                        </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center space-x-4">
                           <button onClick={() => {}} className="text-indigo-600 hover:text-indigo-800"><Edit size={18}/></button>
@@ -364,7 +382,7 @@ export default function Plantoes() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 md:divide-y-0">
-                    {escalaMedicos.map(e => (
+                    {escalaMedicos?.map(e => (
                       <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_completo}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Entrada:">{formatDateTime(e.entrada_servico)}</td>
