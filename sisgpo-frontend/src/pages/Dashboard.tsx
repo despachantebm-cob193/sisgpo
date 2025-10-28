@@ -27,7 +27,7 @@ import CodecCard from '@/components/dashboard/CodecCard';
 // Interfaces
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
-interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; total_militares_em_viaturas_mes: number; }
+interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; }
 interface ChartStat { name: string; value: number; }
 interface Obm { id: number; abreviatura: string; nome: string; }
 interface ObmGrupo { nome: string; prefixos: string[]; }
@@ -74,23 +74,35 @@ export default function Dashboard() {
   }, [setPageTitle]);
 
   // Funções de busca de dados (sem alteração)
-  const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true);
-    const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
-    try {
-      const params = new URLSearchParams();
-      if (isLoggedInArea && selectedObm) params.append('obm_id', selectedObm);
-      const queryString = params.toString();
-      const [ statsRes, viaturaTipoRes, militarStatsRes, viaturaDetailRes, viaturaPorObmRes, servicoDiaRes, escalaAeronavesRes, escalaCodecRes ] = await Promise.all([
-        api.get<DashboardStats>(`${apiPrefix}/dashboard/stats?${queryString}`),
-        api.get<ChartStat[]>(`${apiPrefix}/dashboard/viatura-stats-por-tipo?${queryString}`),
-        api.get<ChartStat[]>(`${apiPrefix}/dashboard/militar-stats?${queryString}`),
-        api.get<ViaturaStatAgrupada[]>(`${apiPrefix}/dashboard/viatura-stats-detalhado?${queryString}`),
-        api.get<ViaturaPorObmStat[]>(`${apiPrefix}/dashboard/viatura-stats-por-obm`),
-        api.get<ServicoInfo[]>(`${apiPrefix}/dashboard/servico-dia`),
-        api.get<Aeronave[]>(`${apiPrefix}/dashboard/escala-aeronaves`),
-        api.get<PlantonistaCodec[]>(`${apiPrefix}/dashboard/escala-codec`)
-      ]);
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
+    try {
+      const params = new URLSearchParams();
+      if (isLoggedInArea && selectedObm) {
+        params.append('obm_id', selectedObm);
+      }
+      const queryString = params.toString();
+      const qs = queryString ? `?${queryString}` : '';
+      const [
+        statsRes,
+        viaturaTipoRes,
+        militarStatsRes,
+        viaturaDetailRes,
+        viaturaPorObmRes,
+        servicoDiaRes,
+        escalaAeronavesRes,
+        escalaCodecRes,
+      ] = await Promise.all([
+        api.get<DashboardStats>(`${apiPrefix}/stats${qs}`),
+        api.get<ChartStat[]>(`${apiPrefix}/viatura-stats-por-tipo${qs}`),
+        api.get<ChartStat[]>(`${apiPrefix}/militar-stats${qs}`),
+        api.get<ViaturaStatAgrupada[]>(`${apiPrefix}/viatura-stats-detalhado${qs}`),
+        api.get<ViaturaPorObmStat[]>(`${apiPrefix}/viatura-stats-por-obm${qs}`),
+        api.get<ServicoInfo[]>(`${apiPrefix}/servico-dia${qs}`),
+        api.get<Aeronave[]>(`${apiPrefix}/escala-aeronaves${qs}`),
+        api.get<PlantonistaCodec[]>(`${apiPrefix}/escala-codec${qs}`),
+      ]);
       setStats(statsRes.data || null);
       setViaturaTipoStats(Array.isArray(viaturaTipoRes.data) ? viaturaTipoRes.data : []);
       setMilitarStats(Array.isArray(militarStatsRes.data) ? militarStatsRes.data : []);
@@ -156,7 +168,6 @@ export default function Dashboard() {
           <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
           {/* ▼▼▼ LINHA CORRIGIDA (letra 't' removida) ▼▼▼ */}
           <StatCard title="OBMs Cadastradas" value={stats?.total_obms ?? 0} description="Total de unidades operacionais." isLoading={isLoading} />
-          <StatCard title="Militares em Viaturas (Mês)" value={stats?.total_militares_em_viaturas_mes ?? 0} description="Militares escalados em viaturas no mês." isLoading={isLoading} />
         </div>
       </div>
 

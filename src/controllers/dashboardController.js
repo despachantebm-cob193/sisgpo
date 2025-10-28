@@ -42,46 +42,11 @@ const dashboardController = {
       const totalMilitaresAtivos = await db('militares').where({ ativo: true }).count({ count: '*' }).first();
       const totalViaturasDisponiveis = await db('viaturas').where({ ativa: true }).count({ count: '*' }).first();
       const totalObms = await db('obms').count({ count: '*' }).first();
-      let totalMilitaresEmViaturasMesCount = 0;
-
-      try {
-        const dateColumnChoices = [
-          { table: 'servico_dia', column: 'data_servico' },
-          { table: 'servico_dia', column: 'data_plantao' },
-          { table: 'servico_dia', column: 'data_inicio' },
-        ];
-
-        let availableDateColumn = null;
-        for (const { table, column } of dateColumnChoices) {
-          // eslint-disable-next-line no-await-in-loop
-          const exists = await db.schema.hasColumn(table, column);
-          if (exists) {
-            availableDateColumn = column;
-            break;
-          }
-        }
-
-        const totalMilitaresQuery = db('servico_dia').whereNotNull('viatura_id');
-
-        if (availableDateColumn) {
-          totalMilitaresQuery.whereBetween(availableDateColumn, [firstDayOfMonth, lastDayOfMonth]);
-        } else {
-          console.warn('[Dashboard] Coluna de data não encontrada em servico_dia; usando contagem total sem filtro de período.');
-        }
-
-        const totalMilitaresEmViaturasMes = await totalMilitaresQuery
-          .count('id as total')
-          .first();
-        totalMilitaresEmViaturasMesCount = parseInt(totalMilitaresEmViaturasMes?.total ?? 0, 10);
-      } catch (servicoDiaError) {
-        console.warn('[Dashboard] Falha ao calcular total_militares_em_viaturas_mes.', servicoDiaError?.message);
-      }
 
       res.status(200).json({
-        total_militares_ativos: parseInt(totalMilitaresAtivos.count, 10),
-        total_viaturas_disponiveis: parseInt(totalViaturasDisponiveis.count, 10),
-        total_obms: parseInt(totalObms.count, 10),
-        total_militares_em_viaturas_mes: totalMilitaresEmViaturasMesCount,
+        total_militares_ativos: parseInt(totalMilitaresAtivos.count ?? 0, 10),
+        total_viaturas_disponiveis: parseInt(totalViaturasDisponiveis.count ?? 0, 10),
+        total_obms: parseInt(totalObms.count ?? 0, 10),
       });
     } catch (error) {
       console.error('ERRO AO BUSCAR ESTATÍSTICAS GERAIS:', error);

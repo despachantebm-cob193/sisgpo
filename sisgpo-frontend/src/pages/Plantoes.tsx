@@ -133,10 +133,12 @@ export default function Plantoes() {
   const fetchPlantoes = useCallback(async () => {
     setIsLoadingPlantoes(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPlantaoPage), limit: '15', ...filters });
+      const filteredFilters = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ''));
+      const params = new URLSearchParams({ page: String(currentPlantaoPage), limit: '15', ...filteredFilters });
       const plantoesRes = await api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`);
       setPlantoes(plantoesRes.data.data);
       setPlantaoPagination(plantoesRes.data.pagination);
+
     } catch (err) { toast.error('Não foi possível carregar os plantões.'); }
     finally { setIsLoadingPlantoes(false); }
   }, [filters, currentPlantaoPage]);

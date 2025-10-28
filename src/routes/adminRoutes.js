@@ -126,6 +126,7 @@ router.post('/plantoes/:id/add-viatura', plantaoController.addViatura);
 router.delete('/plantoes/:plantaoId/remove-viatura/:viaturaId', plantaoController.removeViatura);
 router.post('/plantoes/:id/add-militar', plantaoController.addMilitar);
 router.delete('/plantoes/:plantaoId/remove-militar/:militarId', plantaoController.removeMilitar);
+router.get('/plantoes/total-militares', plantaoController.getTotalMilitaresPlantao);
 
 // --- ROTAS CRUD (Escala Aeronaves) ---
 router.get('/escala-aeronaves', escalaAeronaveController.getAll);

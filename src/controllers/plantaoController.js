@@ -315,7 +315,54 @@ const plantaoController = {
       throw new AppError('Plantão não encontrado.', 404);
     }
     res.status(204).send();
+  },
+
+  getTotalMilitaresPlantao: async (req, res) => {
+    try {
+      let { data_inicio, data_fim, obm_id } = req.query;
+
+      // Clean and validate filters
+      const parsedDataInicio = (typeof data_inicio === 'string' && data_inicio.trim() !== '') ? data_inicio.trim() : null;
+      const parsedDataFim = (typeof data_fim === 'string' && data_fim.trim() !== '') ? data_fim.trim() : null;
+      const parsedObmId = parsePositiveInt(obm_id);
+
+      const query = db('plantoes_militares as pm')
+        .join('plantoes as p', 'pm.plantao_id', 'p.id');
+
+      // Apply OBM filter if present
+      if (parsedObmId) {
+        query.where('p.obm_id', parsedObmId);
+      }
+
+      // Apply date filters
+      if (parsedDataInicio && parsedDataFim) {
+        query.whereBetween('p.data_plantao', [parsedDataInicio, parsedDataFim]);
+      } else if (parsedDataInicio) {
+        query.where('p.data_plantao', '>=', parsedDataInicio);
+      } else if (parsedDataFim) {
+        query.where('p.data_plantao', '<=', parsedDataFim);
+      } else {
+        // Fallback to current day if no date filters are provided
+        const hoje = new Date().toISOString().split('T')[0];
+        query.whereBetween('p.data_plantao', [hoje, hoje]);
+      }
+
+      const result = await query.countDistinct('pm.militar_id as total').first();
+      const totalMilitares = parseInt(result?.total ?? 0, 10);
+
+      res.status(200).json({ totalMilitares });
+    } catch (error) {
+      console.error('ERRO AO BUSCAR TOTAL DE MILITARES EM PLANTÃO:', error);
+      throw new AppError('Não foi possível carregar o total de militares em plantão.', 500);
+    }
   }
+
 };
 
 module.exports = plantaoController;
+
+
+
+
+
+

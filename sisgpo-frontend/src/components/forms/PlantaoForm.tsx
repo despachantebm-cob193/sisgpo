@@ -54,11 +54,11 @@ const formatarTelefoneInput = (value: string): string => {
 const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSave, onCancel, isLoading }) => {
   const getInitialGuarnicaoMembro = (): GuarnicaoMembro => ({
     militar_id: null,
-    nome_completo: null,
+    nome_completo: '',
     nome_exibicao: 'Selecione um militar...',
-    posto_graduacao: null,
+    posto_graduacao: '',
     funcao: '',
-    telefone: null,
+    telefone: '',
   });
 
   const getInitialFormData = (): PlantaoFormData => ({
@@ -85,9 +85,9 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
             militar_id: m.militar_id,
             nome_completo: exibicao,
             nome_exibicao: exibicao,
-            posto_graduacao: m.posto_graduacao,
+            posto_graduacao: m.posto_graduacao ?? '',
             funcao: m.funcao,
-            telefone: m.telefone ? formatarTelefoneInput(m.telefone) : null,
+            telefone: m.telefone ? formatarTelefoneInput(m.telefone) : '',
           };
         }) || [],
       });
@@ -112,8 +112,9 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         militar_id: selectedOption.value,
         nome_completo: exibicao,
         nome_exibicao: exibicao,
-        posto_graduacao: selectedOption.militar.posto_graduacao,
-        telefone: selectedOption.militar.telefone ? formatarTelefoneInput(selectedOption.militar.telefone) : null,
+        posto_graduacao: selectedOption.militar.posto_graduacao ?? '',
+        funcao: novaGuarnicao[index].funcao, // Manter função existente
+        telefone: selectedOption.militar.telefone ? formatarTelefoneInput(selectedOption.militar.telefone) : '',
       };
     } else {
       novaGuarnicao[index] = getInitialGuarnicaoMembro();
@@ -240,7 +241,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
                       id={`telefone-${index}`}
                       type="text"
                       placeholder="(XX) XXXX-XXXX"
-                      value={membro.telefone}
+                      value={membro.telefone ?? ''}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => handleGuarnicaoInputChange(index, 'telefone', e.target.value)}
                       maxLength={14}
                       disabled={!membro.militar_id}

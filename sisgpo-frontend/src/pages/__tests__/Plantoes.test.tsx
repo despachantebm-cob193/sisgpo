@@ -58,6 +58,9 @@ describe("Plantoes", () => {
         if (url.startsWith('/api/admin/viaturas/simple')) {
             return Promise.resolve({ data: { data: [] } });
         }
+        if (url.startsWith('/api/admin/plantoes/total-militares')) {
+            return Promise.resolve({ data: { totalMilitares: 2 } }); // Mock a value
+        }
         return Promise.resolve({ data: { data: [] } });
     });
   });
@@ -100,5 +103,15 @@ describe("Plantoes", () => {
 
     // Check if the form is populated with data from the detailed mock
     expect(await screen.findByDisplayValue("Observacao de teste")).toBeInTheDocument();
+  });
+
+  it("should display the total number of military personnel in shifts", async () => {
+    render(<Plantoes />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Total de Militares Escalados (Período Filtrado):")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("2")).toBeInTheDocument(); // Assert the mocked value
   });
 });

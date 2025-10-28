@@ -150,4 +150,39 @@ describe("Testes de Integração para a Rota /plantoes", () => {
 
     plantaoId = null; // Evita limpeza duplicada no afterAll
   });
+
+  it("GET /plantoes/total-militares - Deve retornar o total de militares em plantões com filtros", async () => {
+    // Criar um plantão para a data atual com militares
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString().split('T')[0];
+
+    const [tempPlantao] = await db('plantoes').insert({
+      nome: 'PLANTAO-TEMP',
+      tipo: 'VIATURA',
+      data_inicio: todayIso,
+      data_fim: todayIso,
+      data_plantao: todayIso,
+      viatura_id: viaturaId,
+      obm_id: obmId,
+      observacoes: 'Plantao temporario para total militares'
+    }).returning('id');
+
+    await db('plantoes_militares').insert([
+      { plantao_id: tempPlantao.id, militar_id: militarId1, funcao: 'Motorista' },
+      { plantao_id: tempPlantao.id, militar_id: militarId2, funcao: 'Comandante' }
+    ]);
+
+    const response = await request(app)
+      .get(`/api/admin/plantoes/total-militares?data_inicio=${todayIso}&data_fim=${todayIso}&obm_id=${obmId}`)
+      .set("Authorization", `Bearer ${authToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('totalMilitares');
+    expect(response.body.totalMilitares).toBe(2); // 2 distinct militares
+
+    // Limpar dados temporários
+    await db('plantoes_militares').where({ plantao_id: tempPlantao.id }).del();
+    await db('plantoes').where({ id: tempPlantao.id }).del();
+  });
 });

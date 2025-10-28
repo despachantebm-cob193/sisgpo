@@ -23,11 +23,11 @@ beforeAll(async () => {
       cidade: 'Goiânia'
     }).returning('id');
 
-    await trx('militares').insert([
+    const [militar1, militar2] = await trx('militares').insert([
       { matricula: 'DASH1111', nome_completo: 'Militar Dashboard 1', nome_guerra: 'Dash1', posto_graduacao: 'Soldado', ativo: true, obm_id: obm.id },
       { matricula: 'DASH2222', nome_completo: 'Militar Dashboard 2', nome_guerra: 'Dash2', posto_graduacao: 'Cabo', ativo: true, obm_id: obm.id },
       { matricula: 'DASH3333', nome_completo: 'Militar Dashboard 3', nome_guerra: 'Dash3', posto_graduacao: 'Soldado', ativo: false, obm_id: obm.id }
-    ]);
+    ]).returning('id');
 
     await trx('viaturas').insert([
       { prefixo: 'VTR-DASH-01', ativa: true, cidade: 'Goiânia', obm: '1º BBM', telefone: '123' },
@@ -49,20 +49,19 @@ describe("Testes de Integração para a Rota /dashboard", () => {
 
   it("GET /dashboard/stats - Deve retornar as estatísticas gerais do sistema", async () => {
     const response = await request(app)
-      .get("/api/admin/dashboard/stats")
+      .get("/api/dashboard/stats")
       .set("Authorization", `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.total_militares_ativos).toBe(2);
     expect(response.body.total_viaturas_disponiveis).toBe(2);
-    expect(response.body).toHaveProperty("total_obms");
-    expect(response.body).toHaveProperty("total_plantoes_mes");
+    expect(response.body.total_obms).toBe(1);
   });
 
   // --- CORREÇÃO APLICADA AQUI ---
   it("GET /dashboard/viatura-stats-por-tipo - Deve retornar a distribuição de viaturas por tipo", async () => {
     const response = await request(app)
-      .get("/api/admin/dashboard/viatura-stats-por-tipo") // URL corrigida
+      .get("/api/dashboard/viatura-stats-por-tipo") // URL corrigida
       .set("Authorization", `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
@@ -77,7 +76,7 @@ describe("Testes de Integração para a Rota /dashboard", () => {
 
   it("GET /dashboard/militar-stats - Deve retornar a distribuição de militares por posto/graduação", async () => {
     const response = await request(app)
-      .get("/api/admin/dashboard/militar-stats")
+      .get("/api/dashboard/militar-stats")
       .set("Authorization", `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
