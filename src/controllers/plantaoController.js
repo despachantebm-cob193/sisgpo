@@ -130,50 +130,67 @@ const plantaoController = {
     if (all === 'true') {
         const plantoes = await baseSelectQuery.orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
         const plantaoIds = plantoes.map(p => p.id);
-        const guarnicoes = await db('plantoes_militares as pm')
-          .join('militares as m', 'pm.militar_id', 'm.id')
-          .select('pm.plantao_id', 'm.nome_guerra', 'pm.funcao')
-          .whereIn('pm.plantao_id', plantaoIds);
-
-        const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
-          if (!acc[militar.plantao_id]) {
-            acc[militar.plantao_id] = [];
-          }
-          acc[militar.plantao_id].push(militar);
-          return acc;
-        }, {});
-
-        const plantoesComGuarnicao = plantoes.map(plantao => ({
-          ...plantao,
-          guarnicao: guarnicaoMap[plantao.id] || [],
-        }));
-
-        return res.status(200).json({ data: plantoesComGuarnicao, pagination: null });
-    }
-
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
-    const offset = (page - 1) * limit;
-
-    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'p.id' }).first();
-    const dataQuery = baseSelectQuery.clone().orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
-
-    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
-
-    const plantaoIds = data.map(p => p.id);
-    const guarnicoes = await db('plantoes_militares as pm')
-      .join('militares as m', 'pm.militar_id', 'm.id')
-      .select('pm.plantao_id', 'm.nome_guerra', 'pm.funcao')
-      .whereIn('pm.plantao_id', plantaoIds);
-
-    const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
-      if (!acc[militar.plantao_id]) {
-        acc[militar.plantao_id] = [];
-      }
-      acc[militar.plantao_id].push(militar);
-      return acc;
-    }, {});
-
+                const guarnicoes = await db('plantoes_militares as pm')
+                  .join('militares as m', 'pm.militar_id', 'm.id')
+                  .select(
+                    'pm.plantao_id',
+                    'pm.militar_id',
+                    'pm.funcao',
+                    'm.posto_graduacao',
+                    'm.nome_guerra',
+                    'm.nome_completo',
+                    db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"),
+                    'm.telefone'
+                  )
+                  .whereIn('pm.plantao_id', plantaoIds);
+        
+                const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
+                  if (!acc[militar.plantao_id]) {
+                    acc[militar.plantao_id] = [];
+                  }
+                  acc[militar.plantao_id].push(militar);
+                  return acc;
+                }, {});
+        
+                const plantoesComGuarnicao = plantoes.map(plantao => ({
+                  ...plantao,
+                  guarnicao: guarnicaoMap[plantao.id] || [],
+                }));
+        
+                return res.status(200).json({ data: plantoesComGuarnicao, pagination: null });
+            }
+        
+            const page = parseInt(req.query.page, 10) || 1;
+            const limit = parseInt(req.query.limit, 10) || 20;
+            const offset = (page - 1) * limit;
+        
+            const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'p.id' }).first();
+            const dataQuery = baseSelectQuery.clone().orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
+        
+            const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
+        
+            const plantaoIds = data.map(p => p.id);
+            const guarnicoes = await db('plantoes_militares as pm')
+              .join('militares as m', 'pm.militar_id', 'm.id')
+              .select(
+                    'pm.plantao_id',
+                    'pm.militar_id',
+                    'pm.funcao',
+                    'm.posto_graduacao',
+                    'm.nome_guerra',
+                    'm.nome_completo',
+                    db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"),
+                    'm.telefone'
+              )
+              .whereIn('pm.plantao_id', plantaoIds);
+        
+            const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
+              if (!acc[militar.plantao_id]) {
+                    acc[militar.plantao_id] = [];
+              }
+              acc[militar.plantao_id].push(militar);
+              return acc;
+            }, {});
     const dataComGuarnicao = data.map(plantao => ({
       ...plantao,
       guarnicao: guarnicaoMap[plantao.id] || [],
@@ -198,7 +215,7 @@ const plantaoController = {
     
     const guarnicao = await db('plantoes_militares as pm')
       .join('militares as m', 'pm.militar_id', 'm.id')
-      .select('pm.militar_id', 'pm.funcao', 'm.nome_guerra', 'm.posto_graduacao', 'm.telefone') // Adicionado 'telefone'
+      .select('pm.militar_id', 'pm.funcao', 'm.nome_guerra', 'm.posto_graduacao', 'm.nome_completo', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"), 'm.telefone')
       .where('pm.plantao_id', id);
       
     res.status(200).json({ ...plantao, guarnicao });

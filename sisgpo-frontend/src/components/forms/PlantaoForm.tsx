@@ -10,28 +10,21 @@ import { Trash2 } from 'lucide-react';
 import api from '../../services/api';
 
 // Importando os tipos do arquivo da página para garantir consistência
-import { Viatura, PlantaoDetalhado } from '../../pages/Plantoes';
+import { Viatura, PlantaoDetalhado, GuarnicaoMembro } from '../../pages/Plantoes';
 
-// --- Interfaces específicas para o formulário ---
-interface Militar {
-  id: number;
-  nome_completo: string;
-  posto_graduacao: string;
-  nome_guerra: string;
-  telefone: string | null;
-}
 interface MilitarOption {
   value: number;
   label: string;
-  militar: Militar;
+  militar: {
+    id: number;
+    posto_graduacao: string | null;
+    nome_guerra: string | null;
+    nome_completo: string | null;
+    nome_exibicao: string;
+    telefone: string | null;
+  };
 }
-interface GuarnicaoMembro {
-  militar_id: number | null;
-  nome_completo: string;
-  posto_graduacao: string;
-  funcao: string;
-  telefone: string;
-}
+
 interface PlantaoFormData {
   id?: number;
   data_plantao: string;
@@ -61,10 +54,11 @@ const formatarTelefoneInput = (value: string): string => {
 const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSave, onCancel, isLoading }) => {
   const getInitialGuarnicaoMembro = (): GuarnicaoMembro => ({
     militar_id: null,
-    nome_completo: 'Selecione um militar...',
-    posto_graduacao: '',
+    nome_completo: null,
+    nome_exibicao: 'Selecione um militar...',
+    posto_graduacao: null,
     funcao: '',
-    telefone: '',
+    telefone: null,
   });
 
   const getInitialFormData = (): PlantaoFormData => ({
@@ -85,13 +79,17 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         viatura_id: plantaoToEdit.viatura_id,
         obm_id: plantaoToEdit.obm_id,
         observacoes: plantaoToEdit.observacoes,
-        guarnicao: plantaoToEdit.guarnicao?.map(m => ({
-          militar_id: m.militar_id,
-          nome_completo: `${m.posto_graduacao} ${m.nome_guerra}`,
-          posto_graduacao: m.posto_graduacao,
-          funcao: m.funcao,
-          telefone: m.telefone ? formatarTelefoneInput(m.telefone) : '',
-        })) || [],
+        guarnicao: plantaoToEdit.guarnicao?.map(m => {
+          const exibicao = (m.nome_exibicao || m.nome_completo || m.nome_guerra || '').trim();
+          return {
+            militar_id: m.militar_id,
+            nome_completo: exibicao,
+            nome_exibicao: exibicao,
+            posto_graduacao: m.posto_graduacao,
+            funcao: m.funcao,
+            telefone: m.telefone ? formatarTelefoneInput(m.telefone) : null,
+          };
+        }) || [],
       });
     } else {
       setFormData(getInitialFormData());
@@ -108,12 +106,14 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
   const handleMilitarSelectChange = (index: number, selectedOption: MilitarOption | null) => {
     const novaGuarnicao = [...formData.guarnicao];
     if (selectedOption) {
+      const exibicao = (selectedOption.militar.nome_exibicao || selectedOption.label || selectedOption.militar.nome_completo || selectedOption.militar.nome_guerra || '').trim();
       novaGuarnicao[index] = {
         ...novaGuarnicao[index],
         militar_id: selectedOption.value,
-        nome_completo: selectedOption.militar.nome_completo,
+        nome_completo: exibicao,
+        nome_exibicao: exibicao,
         posto_graduacao: selectedOption.militar.posto_graduacao,
-        telefone: selectedOption.militar.telefone ? formatarTelefoneInput(selectedOption.militar.telefone) : '',
+        telefone: selectedOption.militar.telefone ? formatarTelefoneInput(selectedOption.militar.telefone) : null,
       };
     } else {
       novaGuarnicao[index] = getInitialGuarnicaoMembro();
@@ -226,7 +226,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
                     defaultOptions
                     isClearable
                     placeholder="Nome, guerra ou matrícula..."
-                    value={membro.militar_id ? { value: membro.militar_id, label: membro.nome_completo } : null}
+                    value={membro.militar_id ? { value: membro.militar_id, label: membro.nome_exibicao } : null}
                     onChange={(option) => handleMilitarSelectChange(index, option as MilitarOption)}
                     noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Digite pelo menos 2 caracteres' : 'Nenhum militar encontrado'}
                   />
@@ -284,3 +284,4 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 };
 
 export default PlantaoForm;
+export { PlantaoForm };

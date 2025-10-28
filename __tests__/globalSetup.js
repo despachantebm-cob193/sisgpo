@@ -22,6 +22,9 @@ module.exports = async () => {
     const senhaHash = await bcrypt.hash(senhaPlana, salt);
     await db('usuarios').insert({
       login: 'admin',
+      nome: 'admin',
+      email: 'admin@test.com',
+      nome_completo: 'Admin Teste',
       senha_hash: senhaHash,
       perfil: 'admin',
       ativo: true,

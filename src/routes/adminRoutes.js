@@ -148,16 +148,7 @@ router.post('/escala-medicos', validate(escalaMedicoValidator.create), escalaMed
 router.put('/escala-medicos/:id', validate(escalaMedicoValidator.update), escalaMedicoController.update);
 router.delete('/escala-medicos/:id', escalaMedicoController.delete);
 
-// --- ROTAS DO DASHBOARD ADMIN ---
-router.get('/dashboard/stats', dashboardController.getStats);
-router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
-router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
-router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
-router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
-router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
-router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
-router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
-router.get('/metadata/:key', dashboardController.getMetadataByKey);
+
 
 
 // --- ROTAS LEGADAS (Mantidas por enquanto) ---

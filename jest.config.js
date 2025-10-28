@@ -1,6 +1,9 @@
 module.exports = {
+  transform: {
+    '^.+\\.tsx?$': 'ts-jest',
+  },
   testEnvironment: 'node',
-  testMatch: ['**/__tests__/**/*.test.js'],
+  testMatch: ['**/__tests__/**/*.test.[jt]s?(x)'],
   globalSetup: './__tests__/globalSetup.js',
   globalTeardown: './__tests__/teardown.js',
   setupFilesAfterEnv: [],

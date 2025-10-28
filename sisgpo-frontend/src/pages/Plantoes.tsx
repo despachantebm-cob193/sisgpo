@@ -22,9 +22,35 @@ import EscalaCodecForm from '@/components/forms/EscalaCodecForm';
 import { useUiStore } from '@/store/uiStore';
 
 // --- Interfaces ---
-export interface Plantao { id: number; data_plantao: string; viatura_prefixo: string; obm_abreviatura: string; guarnicao: { nome_guerra: string; funcao: string }[]; }
+export interface GuarnicaoMembro {
+  militar_id: number;
+  funcao: string;
+  nome_guerra: string | null;
+  nome_completo: string | null;
+  nome_exibicao: string;
+  posto_graduacao: string | null;
+  telefone: string | null;
+  plantao_id?: number;
+}
+
+export interface Plantao {
+  id: number;
+  data_plantao: string;
+  viatura_prefixo: string;
+  obm_abreviatura: string;
+  guarnicao: GuarnicaoMembro[];
+}
+
 export interface Viatura { id: number; prefixo: string; obm_id: number | null; }
-export interface PlantaoDetalhado { id: number; data_plantao: string; viatura_id: number; obm_id: number | null; observacoes: string; guarnicao: { militar_id: number; funcao: string; nome_guerra: string; posto_graduacao: string; telefone: string | null; }[]; }
+
+export interface PlantaoDetalhado {
+  id: number;
+  data_plantao: string;
+  viatura_id: number;
+  obm_id: number | null;
+  observacoes: string;
+  guarnicao: GuarnicaoMembro[];
+}
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 interface EscalaMedico { id: number; civil_id: number; nome_completo: string; funcao: string; entrada_servico: string; saida_servico: string; status_servico: string; }
@@ -81,6 +107,16 @@ export default function Plantoes() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number; type: ActiveTab } | null>(null);
+
+  const handleEditClick = async (plantaoId: number) => {
+    try {
+      const response = await api.get<PlantaoDetalhado>(`/api/admin/plantoes/${plantaoId}`);
+      setPlantaoToEdit(response.data);
+      setIsPlantaoModalOpen(true);
+    } catch (err) {
+      toast.error('Não foi possível carregar os dados do plantão para edição.');
+    }
+  };
 
   const fetchViaturas = useCallback(async () => {
       try {
@@ -338,6 +374,7 @@ export default function Plantoes() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Viatura</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Militar(es) Escalado(s)</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Funcoes</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBM</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
                     </tr>
@@ -348,13 +385,18 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(p.data_plantao)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Viatura:">{p.viatura_prefixo}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Militar(es) Escalado(s):">
-                          {p.guarnicao && p.guarnicao.length > 0 
-                            ? p.guarnicao.map(m => `${m.nome_guerra} (${m.funcao})`).join(', ') 
+                          {p.guarnicao.length
+                            ? p.guarnicao.map(m => (m.nome_exibicao || m.nome_completo || '').trim()).filter(Boolean).join(', ')
                             : 'Sem militar escalado'}
+                        </td>
+                        <td className="block md:table-cell px-6 py-2 md-py-4" data-label="Funcoes:">
+                          {p.guarnicao && p.guarnicao.length > 0
+                            ? p.guarnicao.map(m => m.funcao).join(', ')
+                            : 'Sem funcao definida'}
                         </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center space-x-4">
-                          <button onClick={() => {}} className="text-indigo-600 hover:text-indigo-800"><Edit size={18}/></button>
+                          <button aria-label="Editar" onClick={() => handleEditClick(p.id)} className="text-indigo-600 hover:text-indigo-800"><Edit size={18}/></button>
                           <button onClick={() => handleDeleteClick(p.id, 'plantoes')} className="text-red-600 hover:text-red-800"><Trash2 size={18}/></button>
                         </td>
                       </tr>

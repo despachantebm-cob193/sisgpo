@@ -76,7 +76,7 @@ export default function Dashboard() {
   // Funções de busca de dados (sem alteração)
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
-    const apiPrefix = isLoggedInArea ? '/api/admin' : '/api/public';
+    const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
     try {
       const params = new URLSearchParams();
       if (isLoggedInArea && selectedObm) params.append('obm_id', selectedObm);
@@ -91,14 +91,14 @@ export default function Dashboard() {
         api.get<Aeronave[]>(`${apiPrefix}/dashboard/escala-aeronaves`),
         api.get<PlantonistaCodec[]>(`${apiPrefix}/dashboard/escala-codec`)
       ]);
-      setStats(statsRes.data);
-      setViaturaTipoStats(viaturaTipoRes.data);
-      setMilitarStats(militarStatsRes.data);
-      setViaturaDetailStats(viaturaDetailRes.data);
-      setViaturaPorObmStats(viaturaPorObmRes.data);
-      setServicoDia(servicoDiaRes.data);
-      setEscalaAeronaves(escalaAeronavesRes.data);
-      setEscalaCodec(escalaCodecRes.data);
+      setStats(statsRes.data || null);
+      setViaturaTipoStats(Array.isArray(viaturaTipoRes.data) ? viaturaTipoRes.data : []);
+      setMilitarStats(Array.isArray(militarStatsRes.data) ? militarStatsRes.data : []);
+      setViaturaDetailStats(Array.isArray(viaturaDetailRes.data) ? viaturaDetailRes.data : []);
+      setViaturaPorObmStats(Array.isArray(viaturaPorObmRes.data) ? viaturaPorObmRes.data : []);
+      setServicoDia(Array.isArray(servicoDiaRes.data) ? servicoDiaRes.data : []);
+      setEscalaAeronaves(Array.isArray(escalaAeronavesRes.data) ? escalaAeronavesRes.data : []);
+      setEscalaCodec(Array.isArray(escalaCodecRes.data) ? escalaCodecRes.data : []);
       setError(null);
     } catch (err) {
       setError('Não foi possível carregar os dados do dashboard.');
@@ -113,10 +113,10 @@ export default function Dashboard() {
       const fetchAdminData = async () => {
         try {
           const [obmsRes, metadataRes] = await Promise.all([
-            api.get<ApiResponse<Obm>>('/api/admin/obms?limit=500'),
-            api.get('/api/admin/metadata/viaturas_last_upload')
+            api.get<ApiResponse<Obm>>('/api/dashboard/obms?limit=500'),
+            api.get('/api/dashboard/metadata/viaturas_last_upload')
           ]);
-          setObms(obmsRes.data.data);
+          setObms(obmsRes.data && Array.isArray(obmsRes.data.data) ? obmsRes.data.data : []);
           setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
         } catch (err) { /* Não mostra erro para dados opcionais */ }
       };
@@ -148,7 +148,7 @@ export default function Dashboard() {
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </Button>
-M           </div>
+          </div>
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

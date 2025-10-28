@@ -10,7 +10,8 @@ import path from 'path';
 import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
 import publicRoutes from './routes/publicRoutes';
-import estatisticasExternasRoutes from './routes/estatisticasExternasRoutes'; 
+import estatisticasExternasRoutes from './routes/estatisticasExternasRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 // --- Importação dos Middlewares ---
 import authMiddleware from './middlewares/authMiddleware';
@@ -69,6 +70,9 @@ app.get('/', (req, res) => {
 
 // Rotas de Autenticação (PÚBLICAS)
 app.use('/api/auth', authRoutes);
+
+// Rotas do Dashboard (PROTEGIDAS POR AUTENTICAÇÃO)
+app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 
 // Rotas do Dashboard (PÚBLICAS)
 app.use('/api/public', publicRoutes);

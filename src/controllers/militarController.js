@@ -54,11 +54,17 @@ const militarController = {
         .select('id', 'matricula', 'nome_completo', 'posto_graduacao', 'nome_guerra', 'telefone')
         .limit(15);
 
-      const options = militares.map(m => ({
-        value: m.id,
-        label: `${m.posto_graduacao} ${m.nome_guerra || m.nome_completo} (${m.matricula})`,
-        militar: m,
-      }));
+      const options = militares.map(m => {
+        const nomeExibicao = (m.nome_guerra && m.nome_guerra.trim().length > 0)
+          ? m.nome_guerra.trim()
+          : (m.nome_completo ? m.nome_completo.trim() : '');
+
+        return {
+          value: m.id,
+          label: nomeExibicao, // Apenas o nome para exibição no select
+          militar: { ...m, nome_exibicao: nomeExibicao }, // Passa o objeto militar completo e o nome de exibição
+        };
+      });
 
       res.status(200).json(options);
     } catch (error) {
