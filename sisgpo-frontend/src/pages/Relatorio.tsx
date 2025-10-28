@@ -1,4 +1,4 @@
-// Arquivo: src/pages/Relatorio.tsx
+// Arquivo: src/pages/Relatorio.tsx (CORRIGIDO com Code-Splitting)
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -8,8 +8,8 @@ import Input from '@/components/ui/Input';
 import Label from '@/components/ui/Label';
 import Spinner from '@/components/ui/Spinner';
 import { Printer, User, Shield, Stethoscope, Plane, Car } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// import jsPDF from 'jspdf'; <-- REMOVIDO
+// import html2canvas from 'html2canvas'; <-- REMOVIDO
 import { useUiStore } from '@/store/uiStore';
 
 // --- Interfaces para os dados do relatório ---
@@ -75,7 +75,15 @@ export default function Relatorio() {
     toast.loading('Gerando PDF...', { id: 'pdf-toast' });
 
     try {
-      // --- INÍCIO DA CORREÇÃO DEFINITIVA ---
+      // --- INÍCIO DA CORREÇÃO (Code Splitting) ---
+      // Importa as bibliotecas dinamicamente APENAS no momento do clique.
+      // Isso move o código de 'jspdf' e 'html2canvas' para arquivos separados
+      // que só são baixados quando esta função é executada.
+      const { default: jsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+      // --- FIM DA CORREÇÃO (Code Splitting) ---
+
+      // --- INÍCIO DA CORREÇÃO DEFINITIVA (Preservada do seu código original) ---
       // Usamos "as any" para contornar a verificação de tipo estrita do TypeScript,
       // já que a biblioteca em tempo de execução aceita a propriedade 'scale'.
       const canvas = await html2canvas(relatorioRef.current, {
