@@ -49,7 +49,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return isAdmin ? <>{children}</> : <Navigate to="/app/dashboard" replace />;
 };
 
-const router = createBrowserRouter([
+export const router = createBrowserRouter([
   {
     path: '/',
     element: <PublicLayout />,
@@ -103,4 +103,4 @@ const router = createBrowserRouter([
   },
 ]);
 
-export default router;
+

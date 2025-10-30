@@ -38,6 +38,19 @@ interface RelatorioData {
   obitos?: ObitoRegistro[];
 }
 
+interface TransformedNatureza {
+  subgrupo: string;
+  totalNatureza: number;
+  totals: Record<string, number>;
+}
+
+interface TransformedGroup {
+  grupo: string;
+  totalGroup: number;
+  rows: RelatorioRow[];
+  naturezas: TransformedNatureza[];
+}
+
 interface EspelhoEntry {
   cidade_nome: string;
   crbm_nome: string;
@@ -94,6 +107,32 @@ const CRBM_FIELD_MAPPINGS = Array.from({ length: 9 }, (_, index) => {
     keys: [display, `${number}\u00B0 CRBM`, `${number} CRBM`],
   };
 });
+
+const RELATORIO_METRIC_LABELS = [
+  "Diurno",
+  "Noturno",
+  "Total Capital",
+  ...CRBM_FIELD_MAPPINGS.map((field) => field.display),
+  "Total Geral",
+];
+
+const resolveCrbmValue = (
+  row: RelatorioRow,
+  mapping: (typeof CRBM_FIELD_MAPPINGS)[number]
+) => {
+  for (const key of mapping.keys) {
+    const value = row[key];
+    if (value != null) {
+      return value;
+    }
+  }
+  return 0;
+};
+
+const normalizeMetricValue = (value: number | string | null | undefined): number => {
+  const numeric = Number(value ?? 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
 
 const ESPELHO_LAYOUT: Array<Omit<EspelhoColumn, "codigo">> = [
   { grupo: "Resgate", subgrupo: "Resgate - Salvamento em Emergências", abreviacao: "RESGATE" },
@@ -157,6 +196,7 @@ const DashboardOcorrencias: React.FC = () => {
   const [expandedCrbms, setExpandedCrbms] = useState<Record<string, boolean>>({});
   const [expandedObms, setExpandedObms] = useState<Record<string, boolean>>({});
   const [expandedObitos, setExpandedObitos] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [payload, setPayload] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -489,35 +529,81 @@ const DashboardOcorrencias: React.FC = () => {
   }, [filteredEspelho, espelhoColumns]);
 
   const groupedRelatorio = useMemo(() => {
-    const estatisticas = Array.isArray(payload?.relatorio?.estatisticas) ? payload?.relatorio?.estatisticas : [];
-    const groups = new Map<string, { rows: RelatorioRow[]; totalGroup: number }>();
+    const estatisticasRaw = payload?.relatorio?.estatisticas;
+    const estatisticas = Array.isArray(estatisticasRaw) ? estatisticasRaw : [];
+    const groupsMap = new Map<string, TransformedGroup>();
+
+    const addMetric = (
+      natureza: TransformedNatureza,
+      label: string,
+      rawValue: number | string | null | undefined
+    ) => {
+      const value = normalizeMetricValue(rawValue);
+      natureza.totals[label] = (natureza.totals[label] ?? 0) + value;
+    };
+
     estatisticas.forEach((row) => {
       const grupo = row.grupo || "Estatísticas";
-      if (!groups.has(grupo)) {
-        groups.set(grupo, { rows: [], totalGroup: 0 });
-      }
-      const groupData = groups.get(grupo)!;
-      groupData.rows.push(row);
-      groupData.totalGroup += Number(row.total_geral || 0);
-    });
-    return Array.from(groups.entries()).map(([grupo, data]) => ({
-      grupo,
-      rows: data.rows,
-      totalGroup: data.totalGroup,
-    }));
-  }, [payload?.relatorio?.estatisticas]);
+      const subgrupo = row.subgrupo || "Outros";
 
-  const resolveCrbmValue = (
-    row: RelatorioRow,
-    mapping: (typeof CRBM_FIELD_MAPPINGS)[number]
-  ) => {
-    for (const key of mapping.keys) {
-      if (row[key] != null) {
-        return row[key];
+      if (!groupsMap.has(grupo)) {
+        groupsMap.set(grupo, {
+          grupo,
+          totalGroup: 0,
+          rows: [],
+          naturezas: [],
+        });
       }
-    }
-    return 0;
-  };
+      const groupData = groupsMap.get(grupo)!;
+      groupData.rows.push(row);
+
+      let naturezaData = groupData.naturezas.find((n) => n.subgrupo === subgrupo);
+      if (!naturezaData) {
+        naturezaData = {
+          subgrupo,
+          totalNatureza: 0,
+          totals: {},
+        };
+        groupData.naturezas.push(naturezaData);
+      }
+
+      addMetric(naturezaData, "Diurno", row.diurno as number | string | null | undefined);
+      addMetric(naturezaData, "Noturno", row.noturno as number | string | null | undefined);
+      addMetric(
+        naturezaData,
+        "Total Capital",
+        row.total_capital as number | string | null | undefined
+      );
+
+      CRBM_FIELD_MAPPINGS.forEach((field) => {
+        addMetric(naturezaData, field.display, resolveCrbmValue(row, field));
+      });
+
+      addMetric(
+        naturezaData,
+        "Total Geral",
+        row.total_geral as number | string | null | undefined
+      );
+
+      const totalGeralValue = normalizeMetricValue(
+        row.total_geral as number | string | null | undefined
+      );
+      naturezaData.totalNatureza += totalGeralValue;
+      groupData.totalGroup += totalGeralValue;
+    });
+
+    const sortedGroups = Array.from(groupsMap.values()).sort((a, b) =>
+      a.grupo.localeCompare(b.grupo, "pt-BR")
+    );
+    sortedGroups.forEach((group) => {
+      group.rows.sort((a, b) =>
+        (a.subgrupo || "").localeCompare(b.subgrupo || "", "pt-BR")
+      );
+      group.naturezas.sort((a, b) => a.subgrupo.localeCompare(b.subgrupo, "pt-BR"));
+    });
+
+    return sortedGroups;
+  }, [payload?.relatorio?.estatisticas]);
 
   if (loading) {
     return <div className="oc-loading">Carregando dashboard operacional...</div>;
@@ -971,43 +1057,58 @@ const DashboardOcorrencias: React.FC = () => {
                 </table>
               </div>
               <div className="oc-relatorio-cards">
-                {groupedRelatorio.map(({ grupo, rows, totalGroup }) => (
-                  <div className="oc-relatorio-group" key={grupo}>
-                    <div className="oc-relatorio-group-title flex justify-between items-center">{grupo} <span className="text-sm font-normal text-gray-400">Total: {totalGroup}</span></div>
-                    {rows.map((row) => {
-                      const baseMetrics = [
-                        { label: "Diurno", value: row.diurno },
-                        { label: "Noturno", value: row.noturno },
-                        { label: "Total Capital", value: row.total_capital },
-                        ...CRBM_FIELD_MAPPINGS.map((field) => ({
-                          label: field.display,
-                          value: resolveCrbmValue(row, field),
-                        })),
-                        { label: "Total Geral", value: row.total_geral },
-                      ];
-
-                      return (
-                        <div className="oc-relatorio-card" key={`${grupo}-${row.subgrupo}`}>
-                          <div className="oc-card-row">
-                            <span className="oc-card-label">Natureza</span>
-                            <span className="oc-card-value">{row.subgrupo}</span>
-                          </div>
-                          <div className="oc-relatorio-metrics">
-                            {baseMetrics.map((metric) => (
-                              <div
-                                className="oc-relatorio-item"
-                                key={`${grupo}-${row.subgrupo}-${metric.label}`}
-                              >
-                                <span className="oc-relatorio-label">{metric.label}</span>
-                                <span className="oc-relatorio-value">{metric.value ?? 0}</span>
-                              </div>
-                            ))}
-                          </div>
+                {groupedRelatorio.map((group) => {
+                  const isGroupExpanded = !!expandedGroups[group.grupo];
+                  return (
+                    <div className="oc-relatorio-accordion" key={group.grupo}>
+                      <button
+                        type="button"
+                        className={`oc-relatorio-accordion-header ${isGroupExpanded ? "is-open" : ""}`}
+                        onClick={() => setExpandedGroups(prev => ({ ...prev, [group.grupo]: !prev[group.grupo] }))}
+                      >
+                        <div className="oc-relatorio-accordion-title">
+                          <span className="oc-relatorio-accordion-arrow">
+                            <ChevronDown />
+                          </span>
+                          <span>{group.grupo}</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                        <div className="oc-relatorio-accordion-total">
+                          <span>Total</span>
+                          <span>{group.totalGroup}</span>
+                        </div>
+                      </button>
+                      {isGroupExpanded && (
+                        <div className="oc-relatorio-accordion-body">
+                          {group.naturezas.map((natureza) => (
+                            <div className="oc-relatorio-natureza-card" key={natureza.subgrupo}>
+                              <div className="oc-card-row">
+                                <span className="oc-card-label">Natureza</span>
+                                <span className="oc-card-value">{natureza.subgrupo}</span>
+                              </div>
+                              <div className="oc-relatorio-accordion-total">
+                                <span>Total</span>
+                                <span>{natureza.totalNatureza}</span>
+                              </div>
+                              <div className="oc-relatorio-metrics">
+                                {RELATORIO_METRIC_LABELS.map((label) => (
+                                  <div
+                                    className="oc-relatorio-item"
+                                    key={`${group.grupo}-${natureza.subgrupo}-${label}`}
+                                  >
+                                    <span className="oc-relatorio-label">{label}</span>
+                                    <span className="oc-relatorio-value">
+                                      {natureza.totals[label] ?? 0}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

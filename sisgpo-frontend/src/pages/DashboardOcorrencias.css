@@ -541,110 +541,149 @@
   gap: 16px;
 }
 
-.oc-relatorio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background-color: rgba(26, 32, 44, 0.9);
-  border: 1px solid rgba(74, 85, 104, 0.7);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+.oc-relatorio-accordion {
+  background-color: transparent;
+  border-radius: 14px;
+  border: 1px solid rgba(74, 85, 104, 0.55);
+  overflow: hidden;
 }
 
-.oc-relatorio-group-title {
-  font-weight: 700;
+.oc-relatorio-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 18px;
+  background-color: rgba(26, 32, 44, 0.95);
+  color: #f7fafc;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #f6ad55;
+  font-weight: 600;
+  gap: 14px;
+  border: none;
+  cursor: pointer;
 }
 
-.oc-relatorio-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.oc-relatorio-accordion-header:is(:hover, :focus-visible) {
+  background-color: rgba(45, 55, 72, 0.95);
+}
+
+.oc-relatorio-accordion-title {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-top: 12px;
 }
 
-.oc-relatorio-item {
+.oc-relatorio-accordion-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background-color: rgba(45, 55, 72, 0.65);
+}
+
+.oc-relatorio-accordion-arrow svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.oc-relatorio-accordion-header.is-open .oc-relatorio-accordion-arrow svg {
+  transform: rotate(180deg);
+}
+
+.oc-relatorio-accordion-total {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-weight: 600;
+  color: #f7fafc;
+}
+
+.oc-relatorio-accordion-total span:first-child {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cbd5f5;
+}
+
+.oc-relatorio-accordion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background-color: rgba(17, 24, 39, 0.65);
+}
+
+.oc-relatorio-natureza-card {
   background-color: rgba(45, 55, 72, 0.8);
   border: 1px solid rgba(74, 85, 104, 0.6);
   border-radius: 10px;
-  padding: 10px;
-  gap: 4px;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.oc-relatorio-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oc-relatorio-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(74, 85, 104, 0.35);
+}
+
+.oc-relatorio-item:last-child {
+  border-bottom: none;
 }
 
 .oc-relatorio-label {
-  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: #a0aec0;
+  font-size: 0.7rem;
 }
 
 .oc-relatorio-value {
   font-weight: 600;
   color: #f7fafc;
+  white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-  .oc-dashboard-wrapper {
-    padding: 0 2px 2px;
-    border-radius: 10px;
-  }
-
-  .oc-section {
-    margin-top: 16px;
-    border-radius: 10px;
-  }
-
-  .oc-card {
-    padding: 12px;
-    border-radius: 8px;
-  }
-
-  .oc-section-header,
-  .oc-section-body {
-    padding: 12px;
-  }
-
-  .oc-highlight-block,
-  .oc-table,
-  .oc-error,
-  .oc-obitos-card,
-  .oc-relatorio-card,
-  .oc-espelho-summary-card,
-  .oc-espelho-city-card,
-  .oc-espelho-accordion,
-  .oc-espelho-count-item,
-  .oc-relatorio-item {
-    border-radius: 8px;
-  }
-
-  .oc-espelho-controls input,
-  .oc-espelho-controls select {
-    min-width: 0;
-    border-radius: 4px;
-  }
-
+@media (max-width: 1024px) {
   .oc-table-desktop {
     display: none;
   }
 
-  .oc-obitos-cards,
-  .oc-espelho-cards,
+  .oc-relatorio-table {
+    display: none;
+  }
+
   .oc-relatorio-cards {
     display: flex;
     flex-direction: column;
     gap: 16px;
   }
 
-  .oc-espelho-count-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .oc-espelho-table {
+    display: none;
   }
 
-  .oc-relatorio-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .oc-espelho-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
 }

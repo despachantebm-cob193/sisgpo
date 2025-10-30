@@ -7,7 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import router from './router'; // <<< CORREÇÃO AQUI: importe sem as chaves {}
+import { router } from './router';
 import './index.css';
 
 const rootElement = document.getElementById('root');
