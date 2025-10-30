@@ -21,13 +21,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       <div className="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center pb-3 border-b">
           <h3 className="text-2xl font-bold">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-3xl font-bold"
-            aria-label="Fechar"
-          >
-            &times;
-          </button>
         </div>
         <div className="mt-5">
           {/* O conteúdo (children) do modal será renderizado aqui */}

@@ -6,11 +6,13 @@ import { useUiStore } from '../../store/uiStore';
 import Header from './Header';
 
 const AppLayout: React.FC = () => {
-  const { isSidebarCollapsed, toggleMobileMenu } = useUiStore();
+  const { isSidebarCollapsed, toggleMobileMenu, isMobileMenuOpen } = useUiStore();
 
   return (
     <div className="relative min-h-screen bg-gray-100">
-      <Sidebar />
+      <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:block`}>
+        <Sidebar />
+      </div>
 
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30">
