@@ -78,7 +78,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <ul className="space-y-2 pt-4 font-medium">
+      <ul className="space-y-2 pt-4 font-medium pb-24">
           <li>
             <NavLink
               to="/app/dashboard"
