@@ -157,14 +157,14 @@ export default function Relatorio() {
 
           <Section title="Serviço de Dia" icon={User}>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
-              {relatorio.servicoDia.map((s, i) => (
+              {relatorio.servicoDia?.map((s, i) => (
                 <div key={i}><strong>{s.funcao}:</strong> {s.posto_graduacao} {s.nome}</div>
               ))}
             </div>
           </Section>
 
           <Section title="Escala de Médicos" icon={Stethoscope}>
-            {relatorio.escalaMedicos.length > 0 ? (
+            {relatorio.escalaMedicos?.length > 0 ? (
               <ul className="list-disc list-inside space-y-1">
                 {relatorio.escalaMedicos.map((m, i) => (
                   <li key={i}>
@@ -176,7 +176,7 @@ export default function Relatorio() {
           </Section>
 
           <Section title="Escala de Aeronaves" icon={Plane}>
-            {relatorio.escalaAeronaves.length > 0 ? (
+            {relatorio.escalaAeronaves?.length > 0 ? (
               <ul className="space-y-2">
                 {relatorio.escalaAeronaves.map((a, i) => (
                   <li key={i}>
@@ -188,7 +188,7 @@ export default function Relatorio() {
           </Section>
 
           <Section title="Escala CODEC" icon={Shield}>
-            {relatorio.escalaCodec.length > 0 ? (
+            {relatorio.escalaCodec?.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-semibold">Turno Diurno</h4>
@@ -207,7 +207,7 @@ export default function Relatorio() {
           </Section>
 
           <Section title="Plantões de Viaturas" icon={Car}>
-            {relatorio.plantoesVTR.length > 0 ? (
+            {relatorio.plantoesVTR?.length > 0 ? (
               <div className="space-y-4">
                 {relatorio.plantoesVTR.map((p) => (
                   <div key={p.id} className="p-2 border-l-4 border-indigo-200">

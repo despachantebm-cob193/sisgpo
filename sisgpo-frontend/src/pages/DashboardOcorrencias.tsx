@@ -489,16 +489,22 @@ const DashboardOcorrencias: React.FC = () => {
   }, [filteredEspelho, espelhoColumns]);
 
   const groupedRelatorio = useMemo(() => {
-    const estatisticas = payload?.relatorio?.estatisticas || [];
-    const groups = new Map<string, RelatorioRow[]>();
+    const estatisticas = Array.isArray(payload?.relatorio?.estatisticas) ? payload?.relatorio?.estatisticas : [];
+    const groups = new Map<string, { rows: RelatorioRow[]; totalGroup: number }>();
     estatisticas.forEach((row) => {
       const grupo = row.grupo || "Estatísticas";
       if (!groups.has(grupo)) {
-        groups.set(grupo, []);
+        groups.set(grupo, { rows: [], totalGroup: 0 });
       }
-      groups.get(grupo)!.push(row);
+      const groupData = groups.get(grupo)!;
+      groupData.rows.push(row);
+      groupData.totalGroup += Number(row.total_geral || 0);
     });
-    return Array.from(groups.entries());
+    return Array.from(groups.entries()).map(([grupo, data]) => ({
+      grupo,
+      rows: data.rows,
+      totalGroup: data.totalGroup,
+    }));
   }, [payload?.relatorio?.estatisticas]);
 
   const resolveCrbmValue = (
@@ -912,22 +918,7 @@ const DashboardOcorrencias: React.FC = () => {
                     </div>
                   );
                 })}
-                <div className="oc-espelho-summary-card oc-espelho-summary-card-total">
-                  <div className="oc-card-row">
-                    <span className="oc-card-label">Total Geral</span>
-                    <span className="oc-card-value">{espelhoTotal.total}</span>
-                  </div>
-                  <div className="oc-espelho-count-grid">
-                    {espelhoColumns.map((col) => (
-                      <div className="oc-espelho-count-item" key={`overall-card-${col.codigo}`}>
-                        <span className="oc-espelho-count-label">{col.abreviacao}</span>
-                        <span className="oc-espelho-count-value">
-                          {espelhoTotal.counts[col.codigo] || 0}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+
               </div>
             </>
           )}
@@ -959,7 +950,7 @@ const DashboardOcorrencias: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {groupedRelatorio.map(([grupo, rows]) =>
+                    {groupedRelatorio.map(({ grupo, rows }) =>
                       rows.map((row, index) => (
                         <tr key={`${grupo}-${row.subgrupo}`}>
                           {index === 0 && <td rowSpan={rows.length}>{grupo}</td>}
@@ -980,9 +971,9 @@ const DashboardOcorrencias: React.FC = () => {
                 </table>
               </div>
               <div className="oc-relatorio-cards">
-                {groupedRelatorio.map(([grupo, rows]) => (
+                {groupedRelatorio.map(({ grupo, rows, totalGroup }) => (
                   <div className="oc-relatorio-group" key={grupo}>
-                    <div className="oc-relatorio-group-title">{grupo}</div>
+                    <div className="oc-relatorio-group-title flex justify-between items-center">{grupo} <span className="text-sm font-normal text-gray-400">Total: {totalGroup}</span></div>
                     {rows.map((row) => {
                       const baseMetrics = [
                         { label: "Diurno", value: row.diurno },

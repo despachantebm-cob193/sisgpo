@@ -295,8 +295,8 @@ exports.clearAll = async (req, res, next) => { // Adicionado 'next'
   try {
     // 1. Usar .del() em vez de TRUNCATE.
     // As regras 'onDelete' nas migrações cuidarão das tabelas relacionadas.
-    await db('viaturas').del();
-
+        await db('plantoes').del();
+        await db('viaturas').del();
     // 2. Limpar os metadados
     await db('metadata').where({ key: 'viaturas_last_upload' }).del();
 
