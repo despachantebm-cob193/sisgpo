@@ -59,9 +59,10 @@ export default function Sidebar() {
   const activeNavLinkClass = 'bg-gray-700 dark:bg-gray-700';
 
   const renderSidebarContent = (isCollapsed: boolean) => (
-    <div className="h-full px-3 pb-4 overflow-y-auto bg-gray-800 dark:bg-gray-800">
+    <div className="h-full flex flex-col bg-gray-800 dark:bg-gray-800">
+    <div className="px-3">
       <div
-        className={`relative flex h-16 items-center border-b border-gray-700 px-6 ${isCollapsed ? 'justify-center' : 'justify-between'
+        className={`relative flex h-16 items-center border-b border-gray-700 ${isCollapsed ? 'justify-center' : 'justify-between'
           }`}>
         {isCollapsed ? (
           <TfiJoomla className="text-white text-3xl" />
@@ -77,8 +78,10 @@ export default function Sidebar() {
             <X size={24} className="text-white" />
         </button>
       </div>
+    </div>
 
-      <ul className="space-y-2 pt-4 font-medium pb-24">
+      <div className="flex-1 px-3 overflow-y-auto">
+        <ul className="space-y-2 pt-4 font-medium pb-24">
           <li>
             <NavLink
               to="/app/dashboard"
@@ -282,8 +285,9 @@ export default function Sidebar() {
             </NavLink>
           </li>
         </ul>
+      </div>
 
-      <div className="absolute bottom-0 left-0 justify-center p-4 space-y-2 w-full bg-gray-800 dark:bg-gray-800">
+      <div className="px-3 pb-4 justify-center space-y-2 w-full bg-gray-800 dark:bg-gray-800 border-t border-gray-700">
         <button onClick={toggleSidebar} className={`${navLinkClass} w-full hidden md:flex`}>
           <NavLinkContent
             isCollapsed={isCollapsed}
