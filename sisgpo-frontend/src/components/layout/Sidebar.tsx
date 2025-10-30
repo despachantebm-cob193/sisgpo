@@ -295,7 +295,7 @@ export default function Sidebar() {
             text="Recolher"
           />
         </button>
-        <div className="p-2 border-t border-gray-700">
+        <div className="p-2 border-t border-gray-700 flex flex-col space-y-2">
           <NavLink
             to="/app/perfil"
             onClick={handleLinkClick}
