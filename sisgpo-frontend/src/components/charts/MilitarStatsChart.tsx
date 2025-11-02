@@ -18,13 +18,13 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 const MilitarStatsChart: React.FC<MilitarStatsChartProps> = ({ data, isLoading }) => {
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md flex flex-col">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Efetivo por Posto/Grad.</h3>
+    <div className="bg-cardSlate p-4 rounded-lg shadow-md flex flex-col">
+      <h3 className="text-lg font-semibold text-textMain mb-4">Efetivo por Posto/Grad.</h3>
       {isLoading ? (
         <div className="h-full flex justify-center items-center min-h-[200px]"><Spinner /></div>
       ) : !data || data.length === 0 ? (
         <div className="h-full flex justify-center items-center min-h-[200px]">
-          <p className="text-gray-500">Nenhum dado encontrado.</p>
+          <p className="text-textSecondary">Nenhum dado encontrado.</p>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>

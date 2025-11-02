@@ -119,11 +119,11 @@ const MedicoForm: React.FC<MedicoFormProps> = ({ medicoToEdit, onSave, onCancel,
           value={formData.observacoes || ''}
           onChange={handleChange}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+          className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
         />
       </div>
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">
+        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">
           Cancelar
         </Button>
         <Button type="submit" disabled={isLoading}>
@@ -135,3 +135,4 @@ const MedicoForm: React.FC<MedicoFormProps> = ({ medicoToEdit, onSave, onCancel,
 };
 
 export default MedicoForm;
+

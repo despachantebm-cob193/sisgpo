@@ -2,38 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Layout em Grid para a aplicação, com a sidebar e o header fixos.
-*/
-.app-grid {
-  display: grid;
-  /* Define as colunas: a primeira para a sidebar e a segunda para o conteúdo */
-  grid-template-columns: 256px 1fr; /* 256px é a largura da sua sidebar */
-  /* Define as linhas: a primeira para o header e a segunda para o conteúdo principal */
-  grid-template-rows: 64px 1fr; /* 64px é a altura do seu header */
-  height: 100vh; /* Ocupa a altura total da tela */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-textMain;
+  }
+
+  a {
+    @apply text-tagBlue;
+  }
+
+  ::selection {
+    background-color: theme('colors.tagBlue');
+    color: theme('colors.textMain');
+  }
 }
 
-/* A sidebar ocupa a primeira coluna, da primeira à última linha */
+@layer components {
+  .surface-card {
+    @apply rounded-lg border border-borderDark bg-cardSlate text-textMain shadow-md;
+  }
+
+  .surface-panel {
+    @apply rounded-lg border border-borderDark bg-searchbar text-textMain;
+  }
+
+  .surface-pill {
+    @apply inline-flex items-center rounded-full bg-tagBlue px-2 py-0.5 text-xs font-semibold text-background;
+  }
+
+  .surface-danger {
+    @apply rounded-lg border border-borderDark bg-spamRed text-textMain;
+  }
+
+  .surface-success {
+    @apply rounded-lg border border-borderDark bg-cardGreen text-textMain;
+  }
+}
+
+/* Application grid layout with pinned sidebar and header */
+.app-grid {
+  display: grid;
+  grid-template-columns: 256px 1fr;
+  grid-template-rows: 64px 1fr;
+  height: 100vh;
+}
+
 .app-grid > aside {
   grid-column: 1;
   grid-row: 1 / -1;
-  /* Garante que a sidebar fique fixa no scroll */
   position: sticky;
   top: 0;
   height: 100vh;
 }
 
-/* O header ocupa a segunda coluna e a primeira linha */
 .app-grid > header {
   grid-column: 2;
   grid-row: 1;
-  /* Garante que o header fique fixo no scroll */
   position: sticky;
   top: 0;
-  z-index: 10; /* Para que fique acima do conteúdo ao rolar */
+  z-index: 10;
 }
 
-/* O conteúdo principal ocupa a segunda coluna e a segunda linha */
 .app-grid > main {
   grid-column: 2;
   grid-row: 2;

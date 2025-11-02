@@ -34,7 +34,7 @@ const loadMilitarOptions = async (inputValue: string): Promise<MilitarOption[]> 
 const MilitarSelect: React.FC<MilitarSelectProps> = ({ control, name, label, ...rest }) => {
   return (
     <div className="mb-4">
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={name} className="block text-sm font-medium text-textSecondary mb-1">
         {label}
       </label>
       <Controller

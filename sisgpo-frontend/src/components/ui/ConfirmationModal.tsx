@@ -28,13 +28,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <div>
-        <p className="text-gray-600 mb-6">{message}</p>
+        <p className="text-textSecondary mb-6">{message}</p>
         <div className="flex justify-end gap-4">
           <Button
             type="button"
             onClick={onClose} // O botão "Cancelar" agora chama onClose
             variant="default" // Usando a prop 'variant' que adicionamos ao Button
-            className="bg-gray-500 hover:bg-gray-600"
+            className="bg-searchbar hover:bg-searchbar"
             disabled={isLoading}
           >
             Cancelar

@@ -137,33 +137,33 @@ export default function Users() {
   const isOwnAccount = (userId: number) => loggedUser?.id === userId;
 
   const responsiveCellClass =
-    'block px-4 py-2 text-sm text-gray-900 md:table-cell md:px-4 md:py-3 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:before:hidden';
+    'block px-4 py-2 text-sm text-textMain md:table-cell md:px-4 md:py-3 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-textSecondary before:content-[attr(data-label)] md:before:hidden';
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Usuários</h2>
-        <p className="mt-2 text-gray-600">
+        <h2 className="text-3xl font-bold tracking-tight text-textMain">Usuários</h2>
+        <p className="mt-2 text-textSecondary">
           Cadastre novos acessos, ajuste perfis e bloqueie ou remova contas.
         </p>
       </div>
 
-      <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="rounded-lg bg-cardSlate p-6 shadow-md">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <h3 className="text-xl font-semibold text-gray-800">Usuários cadastrados</h3>
+          <h3 className="text-xl font-semibold text-textMain">Usuários cadastrados</h3>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <button
               type="button"
               onClick={fetchUsers}
               disabled={isLoading}
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-md border border-borderDark/60 bg-cardSlate px-4 py-2 text-sm font-medium text-textSecondary shadow-sm transition hover:bg-searchbar focus:outline-none focus:ring-2 focus-visible:ring-tagBlue disabled:opacity-60"
             >
               {isLoading ? 'Atualizando...' : 'Atualizar'}
             </button>
             <button
               type="button"
               onClick={startCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-transparent bg-tagBlue px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-tagBlue/80 focus:outline-none focus:ring-2 focus-visible:ring-tagBlue focus:ring-offset-2"
             >
               <PlusCircle className="h-5 w-5" />
               Novo usuário
@@ -172,38 +172,38 @@ export default function Users() {
         </div>
 
         <div className="md:overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="hidden bg-gray-50 md:table-header-group">
+          <table className="min-w-full divide-y divide-borderDark/60 text-sm">
+            <thead className="hidden bg-searchbar md:table-header-group">
               <tr>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Login
                 </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Nome completo
                 </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Email
                 </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Perfil
                 </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Status
                 </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Criado em
                 </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-gray-600">
+                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-gray-100">
+            <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-borderDark/40">
               {isLoading ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-4 py-6 text-center text-gray-500"
+                    className="px-4 py-6 text-center text-textSecondary"
                   >
                     Carregando usuários...
                   </td>
@@ -212,7 +212,7 @@ export default function Users() {
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-4 py-6 text-center text-gray-500"
+                    className="px-4 py-6 text-center text-textSecondary"
                   >
                     Nenhum usuário cadastrado até o momento.
                   </td>
@@ -221,37 +221,37 @@ export default function Users() {
                 sortedUsers.map((item) => (
                   <tr
                     key={item.id}
-                    className={`block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-gray-50 ${
-                      item.ativo ? '' : 'md:bg-gray-100'
+                    className={`block rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-searchbar ${
+                      item.ativo ? '' : 'md:bg-background'
                     }`}
                   >
                     <td
-                      className={`${responsiveCellClass} font-medium text-gray-900 ${
-                        item.ativo ? '' : 'md:text-gray-600'
+                      className={`${responsiveCellClass} font-medium text-textMain ${
+                        item.ativo ? '' : 'md:text-textSecondary'
                       }`}
                       data-label="Login"
                     >
                       {item.login}
                     </td>
                     <td
-                      className={`${responsiveCellClass} text-gray-900 ${
-                        item.ativo ? '' : 'md:text-gray-600'
+                      className={`${responsiveCellClass} text-textMain ${
+                        item.ativo ? '' : 'md:text-textSecondary'
                       }`}
                       data-label="Nome completo"
                     >
                       {item.nome_completo ?? '-'}
                     </td>
                     <td
-                      className={`${responsiveCellClass} text-gray-700 ${
-                        item.ativo ? '' : 'md:text-gray-500'
+                      className={`${responsiveCellClass} text-textSecondary ${
+                        item.ativo ? '' : 'md:text-textSecondary'
                       }`}
                       data-label="Email"
                     >
                       {item.email ?? '-'}
                     </td>
                     <td
-                      className={`${responsiveCellClass} capitalize text-gray-700 ${
-                        item.ativo ? '' : 'md:text-gray-500'
+                      className={`${responsiveCellClass} capitalize text-textSecondary ${
+                        item.ativo ? '' : 'md:text-textSecondary'
                       }`}
                       data-label="Perfil"
                     >
@@ -264,15 +264,15 @@ export default function Users() {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           item.ativo
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-cardGreen/20 text-cardGreen'
+                            : 'bg-premiumOrange/20 text-premiumOrange'
                         }`}
                       >
                         {item.ativo ? 'Ativo' : 'Bloqueado'}
                       </span>
                     </td>
                     <td
-                      className={`${responsiveCellClass} text-gray-500`}
+                      className={`${responsiveCellClass} text-textSecondary`}
                       data-label="Criado em"
                     >
                       {formatDate(item.created_at)}
@@ -285,7 +285,7 @@ export default function Users() {
                         <button
                           type="button"
                           onClick={() => startEdit(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-indigo-200 bg-white text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-tagBlue/40 bg-cardSlate text-tagBlue transition hover:bg-tagBlue/20 disabled:opacity-60"
                           disabled={rowActionLoading === item.id || isDeleting}
                           aria-label={`Editar ${item.login}`}
                           title={`Editar ${item.login}`}
@@ -295,7 +295,7 @@ export default function Users() {
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-yellow-200 bg-white text-yellow-700 transition hover:bg-yellow-50 disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-premiumOrange/40 bg-cardSlate text-yellow-700 transition hover:bg-premiumOrange/20 disabled:opacity-60"
                           disabled={
                             rowActionLoading === item.id ||
                             isDeleting ||
@@ -309,7 +309,7 @@ export default function Users() {
                         <button
                           type="button"
                           onClick={() => openDeleteModal(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-red-200 bg-white text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-spamRed/40 bg-cardSlate text-spamRed transition hover:bg-spamRed/20 disabled:opacity-60"
                           disabled={
                             rowActionLoading === item.id ||
                             isDeleting ||
@@ -352,3 +352,4 @@ export default function Users() {
     </div>
   );
 }
+

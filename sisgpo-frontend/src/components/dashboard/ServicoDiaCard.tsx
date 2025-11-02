@@ -23,14 +23,14 @@ const funcoesConfig: { [key: string]: { icon: React.ReactNode; title: string } }
   "Superior de Dia": { icon: <Star className="text-yellow-500" />, title: "Superior de Dia" },
   "Supervisor de Dia": { icon: <Shield className="text-blue-500" />, title: "Sup. de Dia" },
   "Supervisor de Atendimento": { icon: <Phone className="text-green-500" />, title: "Sup. Atend." },
-  "Alpha - 1º BBM": { icon: <Building className="text-gray-600" />, title: "Alpha" },
-  "Bravo - 2º BBM": { icon: <Building className="text-gray-600" />, title: "Bravo" },
-  "Charlie - 7º BBM": { icon: <Building className="text-gray-600" />, title: "Charlie" },
-  "Delta - 8º BBM": { icon: <Building className="text-gray-600" />, title: "Delta" },
+  "Alpha - 1º BBM": { icon: <Building className="text-textSecondary" />, title: "Alpha" },
+  "Bravo - 2º BBM": { icon: <Building className="text-textSecondary" />, title: "Bravo" },
+  "Charlie - 7º BBM": { icon: <Building className="text-textSecondary" />, title: "Charlie" },
+  "Delta - 8º BBM": { icon: <Building className="text-textSecondary" />, title: "Delta" },
   "Médico": { icon: <Stethoscope className="text-red-500" />, title: "Médico" },
   "Regulador": { icon: <ClipboardCheck className="text-purple-500" />, title: "Regulador" },
   "Odontólogo": { icon: <Stethoscope className="text-cyan-500" />, title: "Odontólogo" },
-  "Perito": { icon: <Award className="text-indigo-500" />, title: "Perito" },
+  "Perito": { icon: <Award className="text-tagBlue" />, title: "Perito" },
 };
 
 // --- CORREÇÃO PRINCIPAL APLICADA AQUI ---
@@ -39,7 +39,7 @@ const funcoesConfig: { [key: string]: { icon: React.ReactNode; title: string } }
 const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md flex justify-center items-center min-h-[200px]">
+      <div className="bg-cardSlate p-6 rounded-lg shadow-md flex justify-center items-center min-h-[200px]">
         <Spinner className="h-12 w-12" />
       </div>
     );
@@ -63,22 +63,22 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
         const config = funcoesConfig[funcao] || { icon: <User />, title: funcao };
 
         return (
-          <div key={funcao} className="text-center flex flex-col items-center p-2 rounded-lg hover:bg-gray-50 transition-colors">
+          <div key={funcao} className="text-center flex flex-col items-center p-2 rounded-lg hover:bg-searchbar transition-colors">
             <div className="flex items-center gap-2 mb-1">
               {config.icon}
-              <p className="text-sm text-gray-600 font-medium">{config.title}</p>
+              <p className="text-sm text-textSecondary font-medium">{config.title}</p>
             </div>
             
-            <div className="font-bold text-md text-gray-800 w-full">
+            <div className="font-bold text-md text-textMain w-full">
               {profissionais.length > 0 ? (
                 profissionais.map((p, index) => (
                   <div key={index} className="truncate" title={`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}>
                     {`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}
-                    {p.telefone && <p className="text-sm font-normal text-gray-500">{p.telefone}</p>}
+                    {p.telefone && <p className="text-sm font-normal text-textSecondary">{p.telefone}</p>}
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-400 italic font-normal">Não escalado</p>
+                <p className="text-sm text-textSecondary italic font-normal">Não escalado</p>
               )}
             </div>
           </div>
@@ -88,13 +88,13 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
   );
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Serviço de Dia</h3>
+    <div className="bg-cardSlate p-6 rounded-lg shadow-md">
+      <h3 className="text-xl font-semibold text-textMain mb-6 text-center">Serviço de Dia</h3>
       <div className="space-y-6">
         {renderLinha(["Coordenador de Operações", "Superior de Dia", "Supervisor de Dia", "Supervisor de Atendimento"])}
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4 border-borderDark/60" />
         {renderLinha(["Alpha - 1º BBM", "Bravo - 2º BBM", "Charlie - 7º BBM", "Delta - 8º BBM"])}
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4 border-borderDark/60" />
         {renderLinha(["Médico", "Regulador", "Odontólogo", "Perito"])}
       </div>
     </div>
@@ -102,3 +102,4 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
 };
 
 export default ServicoDiaCard;
+

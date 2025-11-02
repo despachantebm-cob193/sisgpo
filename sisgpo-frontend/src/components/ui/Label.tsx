@@ -13,9 +13,9 @@ const Label: React.FC<LabelProps> = ({ children, htmlFor, className = '', ...pro
       // block: ocupa a largura total
       // text-sm: tamanho de fonte pequeno
       // font-medium: peso da fonte médio
-      // text-gray-700: cor do texto
+      // text-textSecondary: cor do texto
       // mb-2: margem inferior
-      className={`block text-sm font-medium text-gray-700 mb-2 ${className}`}
+      className={`block text-sm font-medium text-textSecondary mb-2 ${className}`}
       {...props}
     >
       {children}

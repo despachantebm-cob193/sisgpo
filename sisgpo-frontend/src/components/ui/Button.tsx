@@ -6,16 +6,16 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const Button: React.FC<ButtonProps> = ({ children, className, variant, ...props }) => {
   const baseClasses =
-    'py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-opacity-50';
+    'rounded px-4 py-2 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
   const variantClasses = {
-    default: 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500',
-    danger: 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500',
+    default: 'bg-tagBlue text-background hover:bg-tagBlue/80 focus-visible:ring-tagBlue',
+    danger: 'bg-spamRed text-textMain hover:bg-spamRed/80 focus-visible:ring-spamRed',
   };
 
   const combinedClasses = `${baseClasses} ${
     variant ? variantClasses[variant] : variantClasses.default
-  } ${className}`;
+  }${className ? ` ${className}` : ''}`;
 
   return (
     <button className={combinedClasses} {...props}>
@@ -25,3 +25,5 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant, ...props 
 };
 
 export default Button;
+
+

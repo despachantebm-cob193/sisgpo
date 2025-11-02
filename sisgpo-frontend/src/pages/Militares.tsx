@@ -95,7 +95,7 @@ export default function Militares() {
   }, [militares]);
 
   const responsiveCellClass =
-    'block px-4 py-2 text-sm text-gray-900 md:table-cell md:px-6 md:py-4 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-gray-500 before:content-[attr(data-label)] md:before:hidden';
+    'block px-4 py-2 text-sm text-textMain md:table-cell md:px-6 md:py-4 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-textSecondary before:content-[attr(data-label)] md:before:hidden';
 
   return (
     <div className="space-y-6">
@@ -105,7 +105,7 @@ export default function Militares() {
         isLoading={isUploading}
       />
 
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+      <div className="bg-cardSlate p-6 rounded-lg shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
           <form onSubmit={handleSearch} className="flex-grow w-full md:w-auto">
             <div className="relative">
@@ -113,10 +113,10 @@ export default function Militares() {
                 type="text"
                 name="search"
                 placeholder="Buscar por nome, matrícula ou posto..."
-                className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus-visible:ring-tagBlue"
                 onChange={(e) => handleFilterChange('nome_completo', e.target.value)}
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-textSecondary" />
             </div>
           </form>
           <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">
@@ -130,24 +130,24 @@ export default function Militares() {
         {!isLoading && (
           <>
             <div className="md:overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="hidden bg-gray-50 md:table-header-group">
+              <table className="min-w-full divide-y divide-borderDark/60">
+                <thead className="hidden bg-searchbar md:table-header-group">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posto/Grad.</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome Completo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome de Guerra</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matrícula</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lotação (OBM)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Posto/Grad.</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Nome Completo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Nome de Guerra</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Matrícula</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Lotação (OBM)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Telefone</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-textSecondary uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-gray-200">
+                <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-borderDark/60">
                   {sortedMilitares.map((militar) => (
                     <tr
                       key={militar.id}
-                      className="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-gray-50"
+                      className="block rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-searchbar"
                     >
                       <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Posto/Grad.">
                         {militar.posto_graduacao}
@@ -158,35 +158,35 @@ export default function Militares() {
                       <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Nome de Guerra">
                         {militar.nome_guerra || 'Não informado'}
                       </td>
-                      <td className={`${responsiveCellClass} text-gray-500 md:whitespace-nowrap`} data-label="Matr��cula">
+                      <td className={`${responsiveCellClass} text-textSecondary md:whitespace-nowrap`} data-label="Matr��cula">
                         {militar.matricula}
                       </td>
-                      <td className={`${responsiveCellClass} text-gray-500`} data-label="Lota��ǜo (OBM)">
+                      <td className={`${responsiveCellClass} text-textSecondary`} data-label="Lota��ǜo (OBM)">
                         {militar.obm_nome || 'N/A'}
                       </td>
                       <td className={responsiveCellClass} data-label="Status">
                         <span
                           className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            militar.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            militar.ativo ? 'bg-cardGreen/20 text-cardGreen' : 'bg-spamRed/20 text-spamRed'
                           }`}
                         >
                           {militar.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
-                      <td className={`${responsiveCellClass} text-gray-500`} data-label="Telefone">
+                      <td className={`${responsiveCellClass} text-textSecondary`} data-label="Telefone">
                         {militar.telefone || 'Não informado'}
                       </td>
                       <td className={`${responsiveCellClass} md:text-right`} data-label="Ações">
                         <div className="mt-2 flex items-center gap-4 md:mt-0 md:justify-end">
                           <button
                             onClick={() => handleOpenFormModal(militar)}
-                            className="text-indigo-600 hover:text-indigo-900"
+                            className="text-tagBlue hover:text-tagBlue/80"
                           >
                             <Edit size={18} />
                           </button>
                           <button
                             onClick={() => handleDeleteClick(militar.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-spamRed hover:text-spamRed/80"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -236,3 +236,4 @@ export default function Militares() {
     </div>
   );
 }
+

@@ -28,7 +28,7 @@ const estatisticasExternasController = {
       console.log(`- ${OCORRENCIAS_API_URL}/api/external/dashboard/stats`);
       console.log(`- ${OCORRENCIAS_API_URL}/api/external/plantao`);
       console.log(`- ${OCORRENCIAS_API_URL}/api/external/relatorio-completo?data_inicio=${targetDate}&data_fim=${targetDate}`);
-      console.log(`- ${OCORRENCIAS_API_URL}/api/external/estatisticas-por-data?data=${targetDate}`);
+      console.log(`- ${OCORRENCIAS_API_URL}/api/external/estatisticas-por-intervalo?data=${targetDate}`);
       console.log(`- ${OCORRENCIAS_API_URL}/api/external/espelho-base`);
 
       const [statsRes, plantaoRes, relatorioRes, espelhoRes, espelhoBaseRes] = await Promise.all([
@@ -41,7 +41,7 @@ const estatisticasExternasController = {
             data_fim: targetDate,
           },
         }),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/estatisticas-por-data`, {
+        axios.get(`${OCORRENCIAS_API_URL}/api/external/estatisticas-por-intervalo`, {
           headers,
           params: {
             data: targetDate,

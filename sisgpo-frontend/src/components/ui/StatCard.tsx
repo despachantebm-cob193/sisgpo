@@ -10,18 +10,18 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoading }) => {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
+    <div className="surface-card flex flex-col justify-between gap-3 p-6">
       <div>
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <h3 className="text-sm font-medium uppercase tracking-wide text-textSecondary">{title}</h3>
         {isLoading ? (
           <div className="mt-2">
-            <Spinner />
+            <Spinner className="text-tagBlue" />
           </div>
         ) : (
-          <p className="mt-1 text-3xl font-semibold text-gray-900">{value}</p>
+          <p className="mt-1 text-3xl font-semibold text-textMain">{value}</p>
         )}
       </div>
-      {description && <p className="text-sm text-gray-500 mt-2">{description}</p>}
+      {description && <p className="text-sm text-textSecondary">{description}</p>}
     </div>
   );
 };

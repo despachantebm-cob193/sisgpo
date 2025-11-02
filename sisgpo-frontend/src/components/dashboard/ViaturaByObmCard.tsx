@@ -33,7 +33,7 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
     return (
       <Card
         title="Viaturas por OBM"
-        titleClassName="text-2xl font-bold text-indigo-700 uppercase tracking-wide"
+        titleClassName="text-2xl font-bold text-tagBlue uppercase tracking-wide"
       >
         <div className="flex justify-center items-center h-48">
           <Spinner />
@@ -48,9 +48,9 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
     return (
       <Card
         title="Viaturas por OBM"
-        titleClassName="text-2xl font-bold text-indigo-700 uppercase tracking-wide"
+        titleClassName="text-2xl font-bold text-tagBlue uppercase tracking-wide"
       >
-        <div className="flex justify-center items-center h-48 text-gray-500">
+        <div className="flex justify-center items-center h-48 text-textSecondary">
           Nenhuma viatura cadastrada para as OBMs.
         </div>
       </Card>
@@ -75,12 +75,12 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
   return (
     <Card
       title="Viaturas por OBM"
-      titleClassName="text-2xl font-bold text-indigo-700 uppercase tracking-wide"
+      titleClassName="text-2xl font-bold text-tagBlue uppercase tracking-wide"
     >
       <div className="space-y-6 p-4">
         {sortedGroupKeys.map((crbmKey) => (
           <div key={crbmKey}>
-            <h3 className="text-lg font-bold text-indigo-600 uppercase tracking-wide mb-3 border-b border-indigo-100 pb-2">
+            <h3 className="text-lg font-bold text-tagBlue uppercase tracking-wide mb-3 border-b border-tagBlue/20 pb-2">
               {crbmKey === 'OUTRAS OBMS' ? 'Outras OBMs' : crbmKey}
             </h3>
 
@@ -90,11 +90,11 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
                 .map((obm) => (
                   <div
                     key={obm.id}
-                    className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm flex flex-col"
+                    className="border border-borderDark/60 rounded-lg p-4 bg-cardSlate shadow-sm flex flex-col"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-lg font-semibold text-gray-800">{obm.nome}</h4>
-                      <span className="text-sm font-medium text-indigo-600 whitespace-nowrap">
+                      <h4 className="text-lg font-semibold text-textMain">{obm.nome}</h4>
+                      <span className="text-sm font-medium text-tagBlue whitespace-nowrap">
                         {obm.quantidade} {obm.quantidade === 1 ? 'viatura' : 'viaturas'}
                       </span>
                     </div>
@@ -107,14 +107,14 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
                           .map((prefixo) => (
                             <span
                               key={prefixo}
-                              className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                              className="px-2 py-1 rounded text-xs font-medium bg-background text-textMain"
                             >
                               {prefixo}
                             </span>
                           ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400 italic mt-3 flex-grow">
+                      <p className="text-sm text-textSecondary italic mt-3 flex-grow">
                         Sem prefixos cadastrados.
                       </p>
                     )}
@@ -129,3 +129,4 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
 };
 
 export default ViaturaByObmCard;
+

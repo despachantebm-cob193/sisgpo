@@ -29,20 +29,20 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isLoading, acceptedFi
   };
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+    <div className="bg-searchbar border border-borderDark/60 rounded-lg p-4 mb-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <h3 className="text-lg font-semibold text-textMain">{title}</h3>
         {lastUpload && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-textSecondary">
             Última atualização: <span className="font-medium">{lastUpload}</span>
           </p>
         )}
       </div>
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <label htmlFor="file-upload" className="flex-1 w-full">
-          <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-100">
-            <Upload className="w-5 h-5 text-gray-500 mr-2" />
-            <span className="text-sm text-gray-600 truncate">
+          <div className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-borderDark/60 rounded-md cursor-pointer hover:bg-background">
+            <Upload className="w-5 h-5 text-textSecondary mr-2" />
+            <span className="text-sm text-textSecondary truncate">
               {selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo'}
             </span>
           </div>

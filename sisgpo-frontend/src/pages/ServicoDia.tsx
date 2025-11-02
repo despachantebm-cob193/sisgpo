@@ -163,8 +163,8 @@ export default function ServicoDia() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold tracking-tight text-gray-900">Gerenciar Serviço de Dia</h2>
-      <p className="text-gray-600 mt-2">Defina os militares e civis para as funções especiais do dia.</p>
+      <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar Serviço de Dia</h2>
+      <p className="text-textSecondary mt-2">Defina os militares e civis para as funções especiais do dia.</p>
 
       {/* Campos de Data de Início e Fim */}
       <div className="my-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
@@ -181,7 +181,7 @@ export default function ServicoDia() {
       {isLoading ? (
         <div className="flex justify-center items-center h-64"><Spinner className="h-12 w-12" /></div>
       ) : (
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-cardSlate p-6 rounded-lg shadow-md">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {servicos.map(({ funcao, pessoas }) => {
               const isCivil = FUNCOES_CIVIS.includes(funcao);
@@ -212,7 +212,7 @@ export default function ServicoDia() {
             <Button 
               onClick={handleOpenClearModal} 
               disabled={isSaving || isDeleting} 
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-spamRed hover:bg-spamRed/80"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               {isDeleting ? <Spinner /> : 'Limpar Escala'}

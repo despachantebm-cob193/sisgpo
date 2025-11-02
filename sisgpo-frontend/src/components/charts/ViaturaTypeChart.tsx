@@ -29,12 +29,12 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
 
   return (
     // O contêiner principal agora é um div simples
-    <div className="bg-white p-4 rounded-lg shadow-md flex flex-col">
+    <div className="bg-cardSlate p-4 rounded-lg shadow-md flex flex-col">
       {/* Cabeçalho customizado para incluir o título e a data */}
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">Viaturas Disponíveis por Tipo</h3>
+        <h3 className="text-lg font-semibold text-textMain">Viaturas Disponíveis por Tipo</h3>
         {!isLoading && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-textSecondary">
             Atualizado em: {formatarData(lastUpdated)}
           </span>
         )}
@@ -44,7 +44,7 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
         <div className="h-full flex justify-center items-center min-h-[200px]"><Spinner /></div>
       ) : !data || data.length === 0 ? (
         <div className="h-full flex justify-center items-center min-h-[200px]">
-          <p className="text-gray-500">Nenhuma viatura disponível encontrada.</p>
+          <p className="text-textSecondary">Nenhuma viatura disponível encontrada.</p>
         </div>
       ) : (
         <>
@@ -60,8 +60,8 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 pt-2 border-t border-gray-200 text-right">
-            <p className="text-sm text-gray-600">
+          <div className="mt-4 pt-2 border-t border-borderDark/60 text-right">
+            <p className="text-sm text-textSecondary">
               Total no Gráfico: <span className="font-bold text-lg">{totalDeViaturasNoGrafico}</span>
             </p>
           </div>

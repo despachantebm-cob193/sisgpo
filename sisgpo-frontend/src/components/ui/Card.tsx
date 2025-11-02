@@ -13,13 +13,13 @@ const Card: React.FC<CardProps> = ({
   subtitle,
   children,
   className = '',
-  titleClassName = 'text-lg font-semibold text-gray-800',
+  titleClassName = 'text-lg font-semibold text-textMain',
 }) => {
   return (
-    <div className={`bg-white shadow-md rounded-lg overflow-hidden ${className}`}>
-      <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+    <div className={`surface-card overflow-hidden ${className ?? ''}`}>
+      <div className="border-borderDark/60 border-b px-4 py-5 sm:px-6">
         <h2 className={titleClassName}>{title}</h2>
-        {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        {subtitle && <p className="mt-1 text-sm text-textSecondary">{subtitle}</p>}
       </div>
 
       <div>{children}</div>
@@ -28,3 +28,4 @@ const Card: React.FC<CardProps> = ({
 };
 
 export default Card;
+

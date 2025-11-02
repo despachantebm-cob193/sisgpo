@@ -21,16 +21,20 @@ interface AeronavesCardProps {
 
 const AeronavesCard: React.FC<AeronavesCardProps> = ({ data, isLoading }) => {
   if (isLoading) {
-    return <div className="bg-white p-6 rounded-lg shadow-md flex justify-center items-center min-h-[200px]"><Spinner /></div>;
+    return (
+      <div className="surface-card flex min-h-[200px] items-center justify-center p-6">
+        <Spinner className="text-tagBlue" />
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Aeronaves</h3>
+    <div className="surface-card p-6">
+      <h3 className="mb-4 text-center text-xl font-semibold text-textMain">Aeronaves</h3>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-center">
-          <thead className="border-b-2">
-            <tr className="text-gray-600">
+        <table className="min-w-full text-center text-sm text-textSecondary">
+          <thead className="border-b-2 border-borderDark/60 text-textSecondary">
+            <tr className="text-textSecondary">
               <th className="p-2 font-semibold">Prefixo</th>
               <th className="p-2 font-semibold">Asa</th>
               <th className="p-2 font-semibold">1º Piloto</th>
@@ -39,14 +43,14 @@ const AeronavesCard: React.FC<AeronavesCardProps> = ({ data, isLoading }) => {
           </thead>
           <tbody>
             {data.map((aeronave, index) => (
-              <tr key={index} className="border-b last:border-none">
-                <td className="p-2 font-medium">{aeronave.prefixo}</td>
-                <td className="p-2 flex justify-center items-center gap-1">
+              <tr key={index} className="border-b border-borderDark/40 last:border-none">
+                <td className="p-2 font-medium text-textMain">{aeronave.prefixo}</td>
+                <td className="flex items-center justify-center gap-1 p-2 text-textMain">
                   {aeronave.tipo_asa === 'rotativa' ? <Rocket size={16} /> : <Plane size={16} />}
-                  {aeronave.tipo_asa}
+                  <span className="capitalize text-textSecondary">{aeronave.tipo_asa}</span>
                 </td>
-                <td className="p-2 font-bold">{aeronave.status === 'Baixada' ? 'Baixado' : aeronave.primeiro_piloto}</td>
-                <td className="p-2 font-bold">{aeronave.status === 'Baixada' ? 'Baixado' : aeronave.segundo_piloto}</td>
+                <td className="p-2 font-bold text-textMain">{aeronave.status === 'Baixada' ? 'Baixado' : aeronave.primeiro_piloto}</td>
+                <td className="p-2 font-bold text-textMain">{aeronave.status === 'Baixada' ? 'Baixado' : aeronave.segundo_piloto}</td>
               </tr>
             ))}
           </tbody>
@@ -57,3 +61,4 @@ const AeronavesCard: React.FC<AeronavesCardProps> = ({ data, isLoading }) => {
 };
 
 export default AeronavesCard;
+

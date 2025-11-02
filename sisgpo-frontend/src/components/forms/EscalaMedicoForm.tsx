@@ -72,17 +72,17 @@ const EscalaMedicoForm: React.FC<EscalaMedicoFormProps> = ({ onSave, onCancel, i
       </div>
       <div>
         <Label htmlFor="status_servico">Status</Label>
-        <select id="status_servico" name="status_servico" value={formData.status_servico} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+        <select id="status_servico" name="status_servico" value={formData.status_servico} onChange={handleChange} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm">
           <option value="Presente">Presente</option>
           <option value="Ausente">Ausente</option>
         </select>
       </div>
       <div>
         <Label htmlFor="observacoes">Observações</Label>
-        <textarea id="observacoes" name="observacoes" value={formData.observacoes} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
+        <textarea id="observacoes" name="observacoes" value={formData.observacoes} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
       </div>
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
+        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>
       </div>
     </form>
@@ -90,3 +90,4 @@ const EscalaMedicoForm: React.FC<EscalaMedicoFormProps> = ({ onSave, onCancel, i
 };
 
 export default EscalaMedicoForm;
+

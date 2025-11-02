@@ -92,7 +92,7 @@ const CivilForm: React.FC<CivilFormProps> = ({ civilToEdit, onSave, onCancel, is
           </div>
           <div>
             <Label htmlFor="status_servico">Status</Label>
-            <select id="status_servico" name="status_servico" value={formData.status_servico} onChange={handleChange} required className={`w-full px-3 py-2 border rounded-md shadow-sm ${getError('status_servico') ? 'border-red-500' : 'border-gray-300'}`}>
+            <select id="status_servico" name="status_servico" value={formData.status_servico} onChange={handleChange} required className={`w-full px-3 py-2 border rounded-md shadow-sm ${getError('status_servico') ? 'border-red-500' : 'border-borderDark/60'}`}>
               <option value="Presente">Presente</option>
               <option value="Ausente">Ausente</option>
             </select>
@@ -115,13 +115,13 @@ const CivilForm: React.FC<CivilFormProps> = ({ civilToEdit, onSave, onCancel, is
 
         <div>
           <Label htmlFor="observacoes">Observações</Label>
-          <textarea id="observacoes" name="observacoes" value={formData.observacoes} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" placeholder="Ex: Troca de serviço com Dr. Ciclano..."></textarea>
+          <textarea id="observacoes" name="observacoes" value={formData.observacoes} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" placeholder="Ex: Troca de serviço com Dr. Ciclano..."></textarea>
           <FormError message={getError('observacoes')} />
         </div>
       </div>
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
+        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>
       </div>
     </form>
@@ -129,3 +129,4 @@ const CivilForm: React.FC<CivilFormProps> = ({ civilToEdit, onSave, onCancel, is
 };
 
 export default CivilForm;
+

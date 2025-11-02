@@ -67,14 +67,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white">SISGPO</h1>
-          <p className="text-gray-400">Sistema de Gestao do Poder Operacional</p>
+          <h1 className="text-4xl font-bold text-textMain">SISGPO</h1>
+          <p className="text-textSecondary">Sistema de Gestao do Poder Operacional</p>
         </div>
-        <div className="bg-gray-800 p-8 rounded-xl shadow-2xl">
-          <h2 className="text-center text-2xl font-bold text-white mb-6">Acesso ao Sistema</h2>
+        <div className="bg-cardSlate p-8 rounded-xl shadow-2xl">
+          <h2 className="text-center text-2xl font-bold text-textMain mb-6">Acesso ao Sistema</h2>
           
           <div className="flex flex-col items-center justify-center mb-6">
             <GoogleLogin
@@ -87,14 +87,14 @@ export default function Login() {
           </div>
 
           <div className="flex items-center my-6">
-            <div className="flex-grow border-t border-gray-600"></div>
-            <span className="mx-4 text-gray-400 text-sm">OU</span>
-            <div className="flex-grow border-t border-gray-600"></div>
+            <div className="flex-grow border-t border-borderDark/60"></div>
+            <span className="mx-4 text-textSecondary text-sm">OU</span>
+            <div className="flex-grow border-t border-borderDark/60"></div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="login-field" className="text-gray-300">Usuario</Label>
+              <Label htmlFor="login-field" className="text-textSecondary">Usuario</Label>
               <Input
                 id="login-field"
                 type="text"
@@ -102,11 +102,10 @@ export default function Login() {
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
                 placeholder="Digite seu usuario"
-                className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             <div>
-              <Label htmlFor="senha" className="text-gray-300">Senha</Label>
+              <Label htmlFor="senha" className="text-textSecondary">Senha</Label>
               <Input
                 id="senha"
                 type="password"
@@ -114,7 +113,6 @@ export default function Login() {
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setSenha(e.target.value)}
                 required
                 placeholder="Digite sua senha"
-                className="bg-gray-700 text-white border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             <div>
@@ -128,3 +126,5 @@ export default function Login() {
     </div>
   );
 }
+
+

@@ -227,7 +227,7 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
       </div>
 
       <div>
-        <Label htmlFor="senha">Senha {editingUser && <span className="text-sm text-gray-500">(opcional)</span>}</Label>
+        <Label htmlFor="senha">Senha {editingUser && <span className="text-sm text-textSecondary">(opcional)</span>}</Label>
         <Input
           id="senha"
           name="senha"
@@ -241,7 +241,7 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
       </div>
 
       <div>
-        <Label htmlFor="confirmarSenha">Confirmar senha {editingUser && <span className="text-sm text-gray-500">(preencha somente ao trocar a senha)</span>}</Label>
+        <Label htmlFor="confirmarSenha">Confirmar senha {editingUser && <span className="text-sm text-textSecondary">(preencha somente ao trocar a senha)</span>}</Label>
         <Input
           id="confirmarSenha"
           name="confirmarSenha"
@@ -261,7 +261,7 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
           name="perfil"
           value={formData.perfil}
           onChange={handleInputChange}
-          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="mt-1 block w-full rounded-md border border-borderDark/60 bg-cardSlate px-3 py-2 text-sm text-textSecondary shadow-sm focus:border-tagBlue focus:outline-none focus:ring-2 focus-visible:ring-tagBlue"
         >
           <option value="user">Usuario</option>
           <option value="admin">Administrador</option>
@@ -274,7 +274,7 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
             type="button"
             onClick={onCancel}
             variant="default"
-            className="bg-gray-500 hover:bg-gray-600"
+            className="bg-searchbar hover:bg-searchbar"
             disabled={isSubmitting}
           >
             Cancelar
@@ -286,3 +286,5 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
     </form>
   );
 }
+
+

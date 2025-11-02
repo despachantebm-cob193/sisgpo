@@ -13,16 +13,16 @@ interface ChartCardProps {
 const ChartCard: React.FC<ChartCardProps> = ({ title, isLoading, hasData, children }) => {
   return (
     // A classe 'h-96' foi removida daqui para permitir que o card cresça.
-    <div className="bg-white p-4 rounded-lg shadow-md flex flex-col">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+    <div className="surface-card flex flex-col p-4">
+      <h3 className="mb-4 text-lg font-semibold text-textMain">{title}</h3>
       <div className="flex-grow">
         {isLoading ? (
           <div className="h-full flex justify-center items-center min-h-[200px]">
-            <Spinner className="h-10 w-10 text-gray-500" />
+            <Spinner className="h-10 w-10 text-tagBlue" />
           </div>
         ) : !hasData ? (
           <div className="h-full flex justify-center items-center min-h-[200px]">
-            <p className="text-gray-500">Nenhum dado disponível para exibir.</p>
+            <p className="text-textSecondary">Nenhum dado disponível para exibir.</p>
           </div>
         ) : (
           children
@@ -33,3 +33,5 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, isLoading, hasData, childr
 };
 
 export default ChartCard;
+
+

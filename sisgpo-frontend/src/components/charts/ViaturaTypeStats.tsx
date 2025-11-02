@@ -24,14 +24,14 @@ const ViaturaTypeStats: React.FC<ViaturaTypeStatsProps> = ({ data, isLoading }) 
   }));
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md col-span-1 lg:col-span-2">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Viaturas Disponíveis por Tipo</h3>
+    <div className="bg-cardSlate p-4 rounded-lg shadow-md col-span-1 lg:col-span-2">
+      <h3 className="text-lg font-semibold text-textMain mb-4">Viaturas Disponíveis por Tipo</h3>
       
       {isLoading ? (
         <div className="h-96 flex justify-center items-center"><Spinner /></div>
       ) : !data || data.length === 0 ? (
         <div className="h-96 flex justify-center items-center">
-          <p className="text-gray-500">Nenhuma viatura disponível encontrada.</p>
+          <p className="text-textSecondary">Nenhuma viatura disponível encontrada.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -39,7 +39,7 @@ const ViaturaTypeStats: React.FC<ViaturaTypeStatsProps> = ({ data, isLoading }) 
           {/* Coluna da Tabela */}
           <div className="md:col-span-2 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="text-left font-bold border-b-2 border-gray-200">
+              <thead className="text-left font-bold border-b-2 border-borderDark/60">
                 <tr>
                   <th className="p-2">Tipo</th>
                   <th className="p-2 text-center">Quant.</th>
@@ -48,10 +48,10 @@ const ViaturaTypeStats: React.FC<ViaturaTypeStatsProps> = ({ data, isLoading }) 
               </thead>
               <tbody>
                 {data.map((item) => (
-                  <tr key={item.tipo} className="border-b border-gray-100 last:border-b-0">
+                  <tr key={item.tipo} className="border-b border-borderDark/40 last:border-b-0">
                     <td className="p-2 font-semibold align-top">{item.tipo}</td>
                     <td className="p-2 text-center align-top">{item.quantidade}</td>
-                    <td className="p-2 text-gray-600 text-xs align-top" style={{ wordBreak: 'break-word' }}>
+                    <td className="p-2 text-textSecondary text-xs align-top" style={{ wordBreak: 'break-word' }}>
                       {item.locais.join('; ')}
                     </td>
                   </tr>

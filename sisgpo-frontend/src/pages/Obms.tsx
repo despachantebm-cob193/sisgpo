@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Edit, Trash2, Trash, Plus } from 'lucide-react';
 
@@ -85,7 +85,7 @@ export default function Obms() {
         setLastUpload(null);
       }
     } catch (error) {
-      toast.error('NÃ£o foi possÃ­vel carregar os dados das OBMs.');
+      toast.error('Não foi possível carregar os dados das OBMs.');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -132,7 +132,7 @@ export default function Obms() {
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data?.errors) {
         setValidationErrors(err.response.data.errors);
-        toast.error('Por favor, corrija os erros no formulÃ¡rio.');
+        toast.error('Por favor, corrija os erros no formulário.');
       } else {
         toast.error(err.response?.data?.message || 'Erro ao salvar OBM.');
       }
@@ -146,7 +146,7 @@ export default function Obms() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/obms/${itemToDeleteId}`);
-      toast.success('OBM excluÃ­da com sucesso!');
+      toast.success('OBM excluída com sucesso!');
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir OBM.');
@@ -181,7 +181,7 @@ export default function Obms() {
         const preview = response.data.errors.slice(0, 3).join(' | ');
         const remaining = response.data.errors.length > 3 ? ` ... (+${response.data.errors.length - 3} linhas)` : '';
         toast.error(`Algumas linhas foram ignoradas: ${preview}${remaining}`);
-        console.warn('Linhas ignoradas durante a importaÃ§Ã£o:', response.data.errors);
+        console.warn('Linhas ignoradas durante a importação:', response.data.errors);
       }
       fetchData();
     } catch (error: any) {
@@ -201,8 +201,8 @@ export default function Obms() {
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Gerenciar OBMs</h2>
-          <p className="text-gray-600 mt-2">Adicione, edite ou remova organizaÃ§Ãµes militares.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar OBMs</h2>
+          <p className="text-textSecondary mt-2">Adicione, edite ou remova organizações militares.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <Button
@@ -236,20 +236,20 @@ export default function Obms() {
         className="max-w-xs mb-4"
       />
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full table-fixed">
-            <thead className="bg-gray-50 hidden md:table-header-group">
+            <thead className="bg-searchbar hidden md:table-header-group">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '35%' }}>Nome</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%' }}>Sigla</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%' }}>CRBM</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%' }}>Cidade</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" style={{ width: '15%' }}>Telefone</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase" style={{ width: '10%' }}>AÃ§Ãµes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '35%' }}>Nome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Sigla</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>CRBM</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Cidade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Telefone</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 md:divide-y-0">
+            <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10">
@@ -259,16 +259,16 @@ export default function Obms() {
               ) : obms.length > 0 ? (
                 obms.map((obm) => (
                   <tr key={obm.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
-                    <td className="block md:table-cell px-6 py-2 md:py-4 text-sm font-medium text-gray-900 break-words" data-label="Nome:">{obm.nome}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="Abreviatura:">{obm.abreviatura}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="CRBM:">{obm.crbm || 'N/A'}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="Cidade:">{obm.cidade || 'N/A'}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="Telefone:">{obm.telefone || 'N/A'}</td>
+                    <td className="block md:table-cell px-6 py-2 md:py-4 text-sm font-medium text-textMain break-words" data-label="Nome:">{obm.nome}</td>
+                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Abreviatura:">{obm.abreviatura}</td>
+                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="CRBM:">{obm.crbm || 'N/A'}</td>
+                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Cidade:">{obm.cidade || 'N/A'}</td>
+                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Telefone:">{obm.telefone || 'N/A'}</td>
                     <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-center text-sm font-medium space-x-4 mt-2 md:mt-0">
-                      <button onClick={() => handleOpenFormModal(obm)} className="text-indigo-600 hover:text-indigo-900" title="Editar">
+                      <button onClick={() => handleOpenFormModal(obm)} className="text-tagBlue hover:text-tagBlue/80" title="Editar">
                         <Edit className="w-5 h-5 inline-block" />
                       </button>
-                      <button onClick={() => handleDeleteClick(obm.id)} className="text-red-600 hover:text-red-900" title="Excluir">
+                      <button onClick={() => handleDeleteClick(obm.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir">
                         <Trash2 className="w-5 h-5 inline-block" />
                       </button>
                     </td>
@@ -276,7 +276,7 @@ export default function Obms() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-500">Nenhuma OBM encontrada.</td>
+                  <td colSpan={6} className="text-center py-10 text-textSecondary">Nenhuma OBM encontrada.</td>
                 </tr>
               )}
             </tbody>
@@ -310,7 +310,7 @@ export default function Obms() {
         isOpen={isConfirmModalOpen}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmDelete}
-        title="Confirmar ExclusÃ£o"
+        title="Confirmar Exclusão"
         message="Tem certeza que deseja excluir esta OBM?"
         isLoading={isDeleting}
       />
@@ -320,10 +320,11 @@ export default function Obms() {
         onClose={() => setIsConfirmDeleteAllModalOpen(false)}
         onConfirm={handleConfirmDeleteAll}
         title="Confirmar limpeza"
-        message="Esta aÃ§Ã£o removerÃ¡ todas as OBMs cadastradas. Deseja continuar?"
+        message="Esta ação removerá todas as OBMs cadastradas. Deseja continuar?"
         isLoading={isDeletingAll}
       />
     </div>
   );
 }
+
 

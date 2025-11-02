@@ -52,6 +52,48 @@ const formatarTelefoneInput = (value: string): string => {
 };
 
 const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSave, onCancel, isLoading }) => {
+  const customStyles = {
+    control: (provided: any) => ({
+      ...provided,
+      backgroundColor: '#1E1E1E', // bg-searchbar
+      borderColor: '#1F1F1F', // border-borderDark/60
+      color: '#D3D3D3', // text-textMain
+      boxShadow: 'none',
+      '&:hover': {
+        borderColor: '#007AFF', // focus:border-tagBlue
+      },
+    }),
+    menu: (provided: any) => ({
+      ...provided,
+      backgroundColor: '#1E1E1E', // bg-searchbar
+      borderColor: '#1F1F1F', // border-borderDark/60
+    }),
+    option: (provided: any, state: { isSelected: any; isFocused: any; }) => ({
+      ...provided,
+      backgroundColor: state.isSelected
+        ? '#39436F' // bg-cardBlue
+        : state.isFocused
+        ? '#39436F' // hover:bg-cardBlue
+        : '#1E1E1E', // bg-searchbar
+      color: '#D3D3D3', // text-textMain
+      '&:active': {
+        backgroundColor: '#39436F', // bg-cardBlue
+      },
+    }),
+    singleValue: (provided: any) => ({
+      ...provided,
+      color: '#D3D3D3', // text-textMain
+    }),
+    input: (provided: any) => ({
+      ...provided,
+      color: '#D3D3D3', // text-textMain
+    }),
+    placeholder: (provided: any) => ({
+      ...provided,
+      color: '#9E9E9E', // text-textSecondary
+    }),
+  };
+
   const getInitialGuarnicaoMembro = (): GuarnicaoMembro => ({
     militar_id: null,
     nome_completo: '',
@@ -201,7 +243,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
               }));
             }}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+            className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
           >
             <option value="">Selecione uma viatura</option>
             {viaturas?.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
@@ -214,7 +256,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         <Label className="mb-2">Guarnição</Label>
         <div className="space-y-4">
           {formData.guarnicao.map((membro, index) => (
-            <div key={index} className="p-4 border rounded-lg bg-gray-50 relative">
+            <div key={index} className="p-4 border rounded-lg bg-searchbar relative">
               {/* --- LAYOUT VERTICAL PARA CADA MEMBRO --- */}
               <div className="space-y-4">
                 {/* Linha 1: Busca Militar */}
@@ -230,6 +272,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
                     value={membro.militar_id ? { value: membro.militar_id, label: membro.nome_exibicao } : null}
                     onChange={(option) => handleMilitarSelectChange(index, option as MilitarOption)}
                     noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Digite pelo menos 2 caracteres' : 'Nenhum militar encontrado'}
+                    styles={customStyles}
                   />
                 </div>
 
@@ -258,7 +301,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
               {/* Botão de remover */}
               {formData.guarnicao.length > 1 && (
                 <div className="absolute top-2 right-2">
-                  <Button type="button" onClick={() => removerMembro(index)} className="!w-auto !p-2 bg-red-600 hover:bg-red-700" title="Remover Militar">
+                  <Button type="button" onClick={() => removerMembro(index)} className="!w-auto !p-2 bg-spamRed hover:bg-spamRed/80" title="Remover Militar">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -266,19 +309,19 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
             </div>
           ))}
         </div>
-        <Button type="button" onClick={adicionarMembro} className="mt-3 !w-auto bg-green-600 hover:bg-green-700 text-sm">Adicionar Militar à Guarnição</Button>
+        <Button type="button" onClick={adicionarMembro} className="mt-3 !w-auto bg-cardGreen hover:bg-cardGreen/80 text-textMain text-sm">Adicionar Militar à Guarnição</Button>
       </div>
 
       {/* Seção de Observações */}
       <div>
         <Label htmlFor="observacoes">Observações</Label>
-        <textarea id="observacoes" value={formData.observacoes} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
+        <textarea id="observacoes" value={formData.observacoes} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
       </div>
 
       {/* Botões de Ação */}
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
-        <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar Plantão'}</Button>
+        <Button type="button" onClick={onCancel} className="bg-spamRed hover:bg-spamRed/80 text-textMain">Cancelar</Button>
+        <Button type="submit" disabled={isLoading} className="bg-cardGreen hover:bg-cardGreen/80 text-textMain">{isLoading ? 'Salvando...' : 'Salvar Plantão'}</Button>
       </div>
     </form>
   );
@@ -286,3 +329,4 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 
 export default PlantaoForm;
 export { PlantaoForm };
+

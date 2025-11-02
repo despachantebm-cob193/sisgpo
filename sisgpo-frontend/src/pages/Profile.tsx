@@ -45,14 +45,14 @@ export default function Profile() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold tracking-tight text-gray-900">Perfil do Usuário</h2>
-      <p className="text-gray-600 mt-2">
+      <h2 className="text-3xl font-bold tracking-tight text-textMain">Perfil do Usuário</h2>
+      <p className="text-textSecondary mt-2">
         Gerencie suas informações de perfil e segurança.
       </p>
 
       <div className="mt-8 max-w-xl">
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-800 border-b pb-4">
+        <div className="bg-cardSlate shadow-md rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-textMain border-b pb-4">
             Alterar Senha
           </h3>
           <div className="mt-4">

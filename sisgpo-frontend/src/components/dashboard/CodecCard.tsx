@@ -19,7 +19,7 @@ interface CodecCardProps {
 const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md flex justify-center items-center min-h-[200px]">
+      <div className="bg-cardSlate p-6 rounded-lg shadow-md flex justify-center items-center min-h-[200px]">
         <Spinner />
       </div>
     );
@@ -31,19 +31,19 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
 
   // Componente para renderizar um turno
   const Turno = ({ titulo, icone, plantonistas }: { titulo: string; icone: React.ReactNode; plantonistas: Plantonista[] }) => (
-    <div className="flex-1 min-w-[250px] bg-gray-50 p-4 rounded-lg border">
+    <div className="flex-1 min-w-[250px] bg-searchbar p-4 rounded-lg border">
       <div className="flex items-center gap-3 mb-3">
         {icone}
-        <h4 className="font-bold text-lg text-gray-700">{titulo}</h4>
+        <h4 className="font-bold text-lg text-textSecondary">{titulo}</h4>
       </div>
       <div className="space-y-2">
         {plantonistas.length > 0 ? (
           plantonistas.map(p => (
             // --- INÍCIO DA CORREÇÃO DE LAYOUT ---
             <div key={p.ordem_plantonista} className="flex justify-between items-center text-sm gap-2">
-              <span className="text-gray-500 whitespace-nowrap">Plantonista {p.ordem_plantonista}:</span>
+              <span className="text-textSecondary whitespace-nowrap">Plantonista {p.ordem_plantonista}:</span>
               <span 
-                className="font-semibold text-gray-800 text-right truncate"
+                className="font-semibold text-textMain text-right truncate"
                 title={p.nome_plantonista} // Adiciona um tooltip para ver o nome completo
               >
                 {p.nome_plantonista}
@@ -52,7 +52,7 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
             // --- FIM DA CORREÇÃO DE LAYOUT ---
           ))
         ) : (
-          <p className="text-sm text-gray-400 italic text-center py-4">
+          <p className="text-sm text-textSecondary italic text-center py-4">
             Nenhum plantonista escalado
           </p>
         )}
@@ -61,8 +61,8 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
   );
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+    <div className="bg-cardSlate p-6 rounded-lg shadow-md">
+      <h3 className="text-xl font-semibold text-textMain mb-4 text-center">
         Comando de Operações de Defesa Civil - CODEC
       </h3>
       <div className="flex flex-col lg:flex-row gap-6 justify-center">
@@ -73,7 +73,7 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
         />
         <Turno 
           titulo="Noturno (19h-7h)" 
-          icone={<Moon className="text-indigo-500" size={24} />} 
+          icone={<Moon className="text-tagBlue" size={24} />} 
           plantonistas={noturno} 
         />
       </div>
@@ -82,3 +82,4 @@ const CodecCard: React.FC<CodecCardProps> = ({ data, isLoading }) => {
 };
 
 export default CodecCard;
+

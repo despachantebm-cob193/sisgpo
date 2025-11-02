@@ -85,40 +85,40 @@ export default function Medicos() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Cadastro de Médicos</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-textMain">Cadastro de Médicos</h2>
         <Button onClick={() => handleOpenFormModal()}>Adicionar Médico</Button>
       </div>
       <Input type="text" placeholder="Filtrar por nome..." value={filters.nome_completo} onChange={handleFilterChange} className="max-w-xs mb-4" />
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full">
-          <thead className="bg-gray-50 hidden md:table-header-group">
+          <thead className="bg-searchbar hidden md:table-header-group">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Observações</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Nome</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Função</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Telefone</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Observações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 md:divide-y-0">
+          <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
             {isLoading ? (
               <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
             ) : medicos.length > 0 ? (
               medicos.map((medico) => (
                 <tr key={medico.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Nome:">{medico.nome_completo}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="Função:">{medico.funcao}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-gray-500" data-label="Telefone:">{formatarTelefone(medico.telefone)}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 text-sm text-gray-500 truncate max-w-xs" data-label="Obs:">{medico.observacoes || '-'}</td>
+                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium text-textMain" data-label="Nome:">{medico.nome_completo}</td>
+                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Função:">{medico.funcao}</td>
+                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Telefone:">{formatarTelefone(medico.telefone)}</td>
+                  <td className="block md:table-cell px-6 py-2 md:py-4 text-sm text-textSecondary truncate max-w-xs" data-label="Obs:">{medico.observacoes || '-'}</td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium space-x-4 mt-2 md:mt-0 text-center md:text-left">
-                    <button onClick={() => handleOpenFormModal(medico)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
-                    <button onClick={() => handleDeleteClick(medico.id)} className="text-red-600 hover:text-red-900" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
+                    <button onClick={() => handleOpenFormModal(medico)} className="text-tagBlue hover:text-tagBlue/80" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
+                    <button onClick={() => handleDeleteClick(medico.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
                   </td>
                 </tr>
               ))
             ) : (
-              <tr><td colSpan={5} className="text-center py-10 text-gray-500">Nenhum registro encontrado.</td></tr>
+              <tr><td colSpan={5} className="text-center py-10 text-textSecondary">Nenhum registro encontrado.</td></tr>
             )}
           </tbody>
         </table>

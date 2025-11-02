@@ -46,8 +46,8 @@ const Aeronaves: React.FC = () => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Aeronaves</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-textMain">Aeronaves</h1>
+          <p className="text-textSecondary mt-1">
             Cadastre e mantenha a frota aérea atualizada para garantir o planejamento operacional.
           </p>
         </div>
@@ -57,34 +57,34 @@ const Aeronaves: React.FC = () => {
         </Button>
       </div>
 
-      <Card title="Lista de Aeronaves" titleClassName="text-lg font-semibold text-gray-900">
+      <Card title="Lista de Aeronaves" titleClassName="text-lg font-semibold text-textMain">
         {isLoading && !hasAeronaves ? (
           <div className="flex justify-center items-center h-48">
             <Spinner />
           </div>
         ) : hasAeronaves ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-borderDark/60">
+              <thead className="bg-searchbar">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
                     Prefixo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
                     Tipo de Asa
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
                     Ações
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-cardSlate divide-y divide-borderDark/60">
                 {aeronaves.map((aeronave) => (
-                  <tr key={aeronave.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={aeronave.id} className="hover:bg-searchbar transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-textMain">
                       {aeronave.prefixo}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -102,8 +102,8 @@ const Aeronaves: React.FC = () => {
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           aeronave.ativa
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-200 text-gray-700'
+                            ? 'bg-cardGreen/20 text-cardGreen'
+                            : 'bg-searchbar text-textSecondary'
                         }`}
                       >
                         {aeronave.ativa ? 'Ativa' : 'Inativa'}
@@ -113,7 +113,7 @@ const Aeronaves: React.FC = () => {
                       <div className="flex justify-center md:justify-end items-center space-x-3">
                         <button
                           onClick={() => handleOpenFormModal(aeronave)}
-                          className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                          className="text-tagBlue hover:text-tagBlue/80 transition-colors"
                           title="Editar aeronave"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="w-5 h-5">
@@ -135,7 +135,7 @@ const Aeronaves: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleDeleteClick(aeronave.id)}
-                          className="text-red-600 hover:text-red-700 transition-colors"
+                          className="text-spamRed hover:text-red-700 transition-colors"
                           title="Excluir aeronave"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="w-5 h-5">
@@ -156,10 +156,10 @@ const Aeronaves: React.FC = () => {
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center text-gray-500">
+          <div className="flex flex-col items-center justify-center py-16 text-center text-textSecondary">
             <p className="text-sm">
               Nenhuma aeronave cadastrada até o momento. Clique em{' '}
-              <span className="font-semibold text-indigo-600">“Adicionar Aeronave”</span>{' '}
+              <span className="font-semibold text-tagBlue">“Adicionar Aeronave”</span>{' '}
               para registrar a primeira entrada.
             </p>
           </div>
@@ -195,3 +195,4 @@ const Aeronaves: React.FC = () => {
 };
 
 export default Aeronaves;
+

@@ -223,7 +223,7 @@ const EscalaAeronaveForm = ({
           render={({ field }) => (
             <select
               id="status"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm focus:outline-none focus-visible:ring-tagBlue focus:border-tagBlue"
               value={field.value}
               onChange={field.onChange}
             >
@@ -241,7 +241,7 @@ const EscalaAeronaveForm = ({
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="bg-gray-600 hover:bg-gray-700 focus:ring-gray-500"
+            className="bg-searchbar hover:bg-cardGreen focus-visible:ring-borderDark"
           >
             Cancelar
           </Button>
@@ -255,3 +255,5 @@ const EscalaAeronaveForm = ({
 };
 
 export default EscalaAeronaveForm;
+
+

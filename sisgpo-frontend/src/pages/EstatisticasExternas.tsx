@@ -15,7 +15,7 @@ const EstatisticasExternas: React.FC = () => {
   if (isPlaceholder) {
     return (
       <Card className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
-        <h2 className="text-xl font-bold mb-2 text-yellow-800">
+        <h2 className="text-xl font-bold mb-2 text-premiumOrange">
           Configuração necessária
         </h2>
         <p className="text-yellow-700">
@@ -29,10 +29,10 @@ const EstatisticasExternas: React.FC = () => {
 
   return (
     <Card className="p-4">
-      <h2 className="text-xl font-bold mb-4 text-gray-800">
+      <h2 className="text-xl font-bold mb-4 text-textMain">
         Dashboard do Sistema de Controle de Ocorrências
       </h2>
-      <p className="mb-4 text-gray-600">
+      <p className="mb-4 text-textSecondary">
         Espelho em tempo real do dashboard principal do sistema de ocorrências.
       </p>
       <div
@@ -54,7 +54,7 @@ const EstatisticasExternas: React.FC = () => {
           style={{ border: 'none', width: '100%', height: '100%' }}
         />
       </div>
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="mt-4 text-sm text-textSecondary">
         Observação: alguns servidores bloqueiam incorporação via iframe (CSP/X-Frame-Options).
         Caso a tela fique vazia, abra a URL em nova aba ou ajuste as políticas no servidor de origem.
       </p>

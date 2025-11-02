@@ -22,11 +22,31 @@ const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
 
+const PublicOnlyLayout = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+  if (isAuthenticated) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+  return <PublicLayout />;
+};
+
+const PublicDashboardOcorrencias = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+  if (isAuthenticated) {
+    return <Navigate to="/app/dashboard-ocorrencias" replace />;
+  }
+  return (
+    <Suspended>
+      <DashboardOcorrencias />
+    </Suspended>
+  );
+};
+
 const Suspended = ({ children }: { children: React.ReactNode }) => (
   <Suspense
     fallback={
       <div className="flex h-full min-h-[400px] w-full items-center justify-center">
-        <Spinner className="h-12 w-12 text-indigo-600" />
+        <Spinner className="h-12 w-12 text-tagBlue" />
       </div>
     }
   >
@@ -52,12 +72,16 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <PublicLayout />,
+    element: <PublicOnlyLayout />,
     errorElement: <NotFound />,
     children: [
       {
         index: true,
         element: <Suspended><Dashboard /></Suspended>,
+      },
+      {
+        path: 'dashboard-ocorrencias',
+        element: <PublicDashboardOcorrencias />,
       },
     ],
   },
@@ -78,10 +102,11 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: <Suspended><Dashboard /></Suspended>,
       },
-      { 
-        path: 'dashboard-ocorrencias', 
-        element: <Suspended><DashboardOcorrencias /></Suspended> 
+      {
+        path: 'dashboard-ocorrencias',
+        element: <Suspended><DashboardOcorrencias /></Suspended>,
       },
+
       // Rotas de Administração protegidas com AdminRoute
       { path: 'obms', element: <AdminRoute><Suspended><Obms /></Suspended></AdminRoute> },
       { path: 'viaturas', element: <AdminRoute><Suspended><Viaturas /></Suspended></AdminRoute> },
@@ -102,5 +127,3 @@ export const router = createBrowserRouter([
     element: <NotFound />,
   },
 ]);
-
-

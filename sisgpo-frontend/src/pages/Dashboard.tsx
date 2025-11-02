@@ -46,34 +46,34 @@ interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: str
 interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
 
 export default function Dashboard() {
-  const location = useLocation();
-  const isLoggedInArea = location.pathname.startsWith('/app');
+  const location = useLocation();
+  const isLoggedInArea = location.pathname.startsWith('/app');
 
-  // Hook para definir o título da página no cabeçalho principal
-  const { setPageTitle } = useUiStore();
+  // Hook para definir o título da página no cabeçalho principal
+  const { setPageTitle } = useUiStore();
 
-  // Estados (sem alteração)
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
-  const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
-  const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
-  const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
-  const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
-  const [escalaAeronaves, setEscalaAeronaves] = useState<Aeronave[]>([]);
-  const [escalaCodec, setEscalaCodec] = useState<PlantonistaCodec[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [obms, setObms] = useState<Obm[]>([]);
-  const [selectedObm, setSelectedObm] = useState<string>('');
-  const [lastUpload, setLastUpload] = useState<string | null>(null);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  // Estados (sem alteração)
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
+  const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
+  const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
+  const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
+  const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
+  const [escalaAeronaves, setEscalaAeronaves] = useState<Aeronave[]>([]);
+  const [escalaCodec, setEscalaCodec] = useState<PlantonistaCodec[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [obms, setObms] = useState<Obm[]>([]);
+  const [selectedObm, setSelectedObm] = useState<string>('');
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  // Define o título da página ao carregar o componente
-  useEffect(() => {
-    setPageTitle('Dashboard Operacional');
-  }, [setPageTitle]);
+  // Define o título da página ao carregar o componente
+  useEffect(() => {
+    setPageTitle('Dashboard Operacional');
+  }, [setPageTitle]);
 
-  // Funções de busca de dados (sem alteração)
+  // Funções de busca de dados (sem alteração)
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
@@ -103,96 +103,96 @@ export default function Dashboard() {
         api.get<Aeronave[]>(`${apiPrefix}/escala-aeronaves${qs}`),
         api.get<PlantonistaCodec[]>(`${apiPrefix}/escala-codec${qs}`),
       ]);
-      setStats(statsRes.data || null);
-      setViaturaTipoStats(Array.isArray(viaturaTipoRes.data) ? viaturaTipoRes.data : []);
-      setMilitarStats(Array.isArray(militarStatsRes.data) ? militarStatsRes.data : []);
-      setViaturaDetailStats(Array.isArray(viaturaDetailRes.data) ? viaturaDetailRes.data : []);
-      setViaturaPorObmStats(Array.isArray(viaturaPorObmRes.data) ? viaturaPorObmRes.data : []);
-      setServicoDia(Array.isArray(servicoDiaRes.data) ? servicoDiaRes.data : []);
-      setEscalaAeronaves(Array.isArray(escalaAeronavesRes.data) ? escalaAeronavesRes.data : []);
-      setEscalaCodec(Array.isArray(escalaCodecRes.data) ? escalaCodecRes.data : []);
-      setError(null);
-    } catch (err) {
-      setError('Não foi possível carregar os dados do dashboard.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedObm, isLoggedInArea]);
+      setStats(statsRes.data || null);
+      setViaturaTipoStats(Array.isArray(viaturaTipoRes.data) ? viaturaTipoRes.data : []);
+      setMilitarStats(Array.isArray(militarStatsRes.data) ? militarStatsRes.data : []);
+      setViaturaDetailStats(Array.isArray(viaturaDetailRes.data) ? viaturaDetailRes.data : []);
+      setViaturaPorObmStats(Array.isArray(viaturaPorObmRes.data) ? viaturaPorObmRes.data : []);
+      setServicoDia(Array.isArray(servicoDiaRes.data) ? servicoDiaRes.data : []);
+      setEscalaAeronaves(Array.isArray(escalaAeronavesRes.data) ? escalaAeronavesRes.data : []);
+      setEscalaCodec(Array.isArray(escalaCodecRes.data) ? escalaCodecRes.data : []);
+      setError(null);
+    } catch (err) {
+      setError('Não foi possível carregar os dados do dashboard.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedObm, isLoggedInArea]);
 
-  useEffect(() => {
-    if (isLoggedInArea) {
-      const fetchAdminData = async () => {
-        try {
-          const [obmsRes, metadataRes] = await Promise.all([
-            api.get<ApiResponse<Obm>>('/api/dashboard/obms?limit=500'),
-            api.get('/api/dashboard/metadata/viaturas_last_upload')
-          ]);
-          setObms(obmsRes.data && Array.isArray(obmsRes.data.data) ? obmsRes.data.data : []);
-          setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
-        } catch (err) { /* Não mostra erro para dados opcionais */ }
-      };
-      fetchAdminData();
-    }
-    fetchDashboardData();
-  }, [fetchDashboardData, isLoggedInArea]);
+  useEffect(() => {
+    if (isLoggedInArea) {
+      const fetchAdminData = async () => {
+        try {
+          const [obmsRes, metadataRes] = await Promise.all([
+            api.get<ApiResponse<Obm>>('/api/dashboard/obms?limit=500'),
+            api.get('/api/dashboard/metadata/viaturas_last_upload')
+          ]);
+          setObms(obmsRes.data && Array.isArray(obmsRes.data.data) ? obmsRes.data.data : []);
+          setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
+        } catch (err) { /* Não mostra erro para dados opcionais */ }
+      };
+      fetchAdminData();
+    }
+    fetchDashboardData();
+  }, [fetchDashboardData, isLoggedInArea]);
 
-  const publicUrl = `${window.location.origin}`;
-  const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
+  const publicUrl = `${window.location.origin}`;
+  const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
 
-  if (error) return <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">{error}</div>;
+  if (error) return <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">{error}</div>;
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            {/* TÍTULO H2 REMOVIDO DAQUI */}
-            <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
-          </div>
-          {isLoggedInArea && (
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <select id="obm-filter" value={selectedObm} onChange={(e) => setSelectedObm(e.target.value)} className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                <option value="">Todas as OBMs</option>
-                {obms.map((obm) => (<option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>))}
-              </select>
-              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto">
-                <Share2 className="w-4 h-4 mr-2" />
-                Compartilhar
-              </Button>
-          </div>
-          )}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <StatCard title="Militares Ativos" value={stats?.total_militares_ativos ?? 0} description="Total de militares na ativa." isLoading={isLoading} />
-          <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
-          {/* ▼▼▼ LINHA CORRIGIDA (letra 't' removida) ▼▼▼ */}
-          <StatCard title="OBMs Cadastradas" value={stats?.total_obms ?? 0} description="Total de unidades operacionais." isLoading={isLoading} />
-        </div>
-      </div>
+  return (
+    <div className="space-y-8">
+      <div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <div>
+            {/* TÍTULO H2 REMOVIDO DAQUI */}
+            <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
+          </div>
+          {isLoggedInArea && (
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <select id="obm-filter" value={selectedObm} onChange={(e) => setSelectedObm(e.target.value)} className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">Todas as OBMs</option>
+                {obms.map((obm) => (<option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>))}
+              </select>
+              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto">
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartilhar
+              </Button>
+          </div>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <StatCard title="Militares Ativos" value={stats?.total_militares_ativos ?? 0} description="Total de militares na ativa." isLoading={isLoading} />
+          <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
+          {/* ▼▼▼ LINHA CORRIGIDA (letra 't' removida) ▼▼▼ */}
+          <StatCard title="OBMs Cadastradas" value={stats?.total_obms ?? 0} description="Total de unidades operacionais." isLoading={isLoading} />
+        </div>
+      </div>
 
-      <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
-        <CodecCard data={escalaCodec} isLoading={isLoading} />
-      </div>
+      <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
+        <CodecCard data={escalaCodec} isLoading={isLoading} />
+      </div>
 
-      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
-      <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ViaturaTypeChart data={viaturaTipoStats} isLoading={isLoading} lastUpdated={lastUpload} />
-        <MilitarRankChart data={militarStats} isLoading={isLoading} />
-      </div>
+      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
+      <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ViaturaTypeChart data={viaturaTipoStats} isLoading={isLoading} lastUpdated={lastUpload} />
+        <MilitarRankChart data={militarStats} isLoading={isLoading} />
+      </div>
 
-      {isLoggedInArea && (
-        <ShareModal
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          publicUrl={publicUrl}
-          shareMessage={shareMessage}
-        />
-      )}
-    </div>
-  );
+      {isLoggedInArea && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          publicUrl={publicUrl}
+          shareMessage={shareMessage}
+        />
+      )}
+    </div>
+  );
 }

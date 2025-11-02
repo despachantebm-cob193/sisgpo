@@ -256,7 +256,7 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
       </div>
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onSuccess} className="bg-gray-500 hover:bg-gray-600">
+        <Button type="button" onClick={onSuccess} className="bg-searchbar hover:bg-searchbar">
           Cancelar
         </Button>
         <Button type="submit" disabled={isSaving}>
@@ -268,3 +268,4 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
 };
 
 export default MilitarForm;
+

@@ -31,8 +31,8 @@ interface RelatorioData {
 // --- Componente de Seção reutilizável ---
 const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
   <div className="mt-6 break-inside-avoid">
-    <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2 border-b-2 border-gray-200 pb-2">
-      <Icon className="w-5 h-5 text-indigo-600" />
+    <h2 className="text-lg font-bold text-textMain mb-3 flex items-center gap-2 border-b-2 border-borderDark/60 pb-2">
+      <Icon className="w-5 h-5 text-tagBlue" />
       {title}
     </h2>
     {children}
@@ -127,8 +127,8 @@ export default function Relatorio() {
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Relatório Diário Consolidado</h2>
-          <p className="text-gray-600 mt-2">Visualize e exporte os dados operacionais de um dia específico.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-textMain">Relatório Diário Consolidado</h2>
+          <p className="text-textSecondary mt-2">Visualize e exporte os dados operacionais de um dia específico.</p>
         </div>
         <Button onClick={handleGeneratePdf} disabled={!relatorio || isGeneratingPdf} className="print:hidden">
           {isGeneratingPdf ? <Spinner /> : <Printer className="w-4 h-4 mr-2" />}
@@ -136,7 +136,7 @@ export default function Relatorio() {
         </Button>
       </div>
 
-      <div className="flex items-end gap-4 mb-6 p-4 bg-gray-50 rounded-lg border print:hidden">
+      <div className="flex items-end gap-4 mb-6 p-4 bg-searchbar rounded-lg border print:hidden">
         <div className="flex-grow">
           <Label htmlFor="data-relatorio">Data do Relatório</Label>
           <Input id="data-relatorio" type="date" value={data} onChange={(e) => setData(e.target.value)} />
@@ -149,7 +149,7 @@ export default function Relatorio() {
       {isLoading && <div className="text-center py-10"><Spinner className="h-12 w-12 mx-auto" /></div>}
       
       {relatorio && (
-        <div ref={relatorioRef} className="p-6 bg-white border rounded-lg text-sm">
+        <div ref={relatorioRef} className="p-6 bg-cardSlate border rounded-lg text-sm">
           <div className="text-center mb-6">
             <h1 className="text-xl font-bold">RELATÓRIO OPERACIONAL DIÁRIO</h1>
             <p className="text-md">{new Date(relatorio.data_relatorio + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -172,7 +172,7 @@ export default function Relatorio() {
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-gray-500 italic">Nenhum médico escalado.</p>}
+            ) : <p className="text-textSecondary italic">Nenhum médico escalado.</p>}
           </Section>
 
           <Section title="Escala de Aeronaves" icon={Plane}>
@@ -184,7 +184,7 @@ export default function Relatorio() {
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-gray-500 italic">Nenhuma aeronave escalada.</p>}
+            ) : <p className="text-textSecondary italic">Nenhuma aeronave escalada.</p>}
           </Section>
 
           <Section title="Escala CODEC" icon={Shield}>
@@ -203,23 +203,23 @@ export default function Relatorio() {
                   </ul>
                 </div>
               </div>
-            ) : <p className="text-gray-500 italic">Nenhum plantonista no CODEC.</p>}
+            ) : <p className="text-textSecondary italic">Nenhum plantonista no CODEC.</p>}
           </Section>
 
           <Section title="Plantões de Viaturas" icon={Car}>
             {relatorio.plantoesVTR?.length > 0 ? (
               <div className="space-y-4">
                 {relatorio.plantoesVTR.map((p) => (
-                  <div key={p.id} className="p-2 border-l-4 border-indigo-200">
+                  <div key={p.id} className="p-2 border-l-4 border-tagBlue/40">
                     <h3 className="font-bold">{p.prefixo}</h3>
-                    {p.observacoes && <p className="text-xs text-gray-600">Obs: {p.observacoes}</p>}
+                    {p.observacoes && <p className="text-xs text-textSecondary">Obs: {p.observacoes}</p>}
                     <ul className="text-xs ml-2">
                       {p.guarnicao.map((g, j) => <li key={j}><strong>{g.funcao}:</strong> {g.posto_graduacao} {g.nome_guerra}</li>)}
                     </ul>
                   </div>
                 ))}
               </div>
-            ) : <p className="text-gray-500 italic">Nenhuma viatura em plantão.</p>}
+            ) : <p className="text-textSecondary italic">Nenhuma viatura em plantão.</p>}
           </Section>
         </div>
       )}

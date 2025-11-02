@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { router } from './router';
 import './index.css';
+import { palette } from './theme/palette';
 
 const rootElement = document.getElementById('root');
 
@@ -32,8 +33,9 @@ root.render(
           toastOptions={{
             duration: 5000,
             style: {
-              background: '#333',
-              color: '#fff',
+              background: palette.searchbar,
+              color: palette.textMain,
+              border: `1px solid ${palette.cardBlue}`,
             },
           }}
         />
@@ -41,3 +43,4 @@ root.render(
     </GoogleOAuthProvider>
   </React.StrictMode>,
 );
+

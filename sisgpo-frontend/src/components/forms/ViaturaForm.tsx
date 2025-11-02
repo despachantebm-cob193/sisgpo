@@ -149,7 +149,7 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
           name="obm-select"
           value={selectedObmFromOptions ? String(selectedObmFromOptions.id) : ''}
           onChange={handleObmSelectChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm focus:outline-none focus-visible:ring-tagBlue focus:border-tagBlue sm:text-sm"
           disabled={isLoadingObms || !!obmFetchError}
         >
           <option value="">{isLoadingObms ? 'Carregando OBMs...' : 'Selecione para preencher automaticamente'}</option>
@@ -195,11 +195,11 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
         <FormError message={getError('cidade')} />
       </div>
       <div className="flex items-center">
-        <input id="ativa" name="ativa" type="checkbox" checked={formData.ativa} onChange={handleChange} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+        <input id="ativa" name="ativa" type="checkbox" checked={formData.ativa} onChange={handleChange} className="h-4 w-4 rounded border-borderDark/60 text-tagBlue focus-visible:ring-tagBlue" />
         <Label htmlFor="ativa" className="ml-2 mb-0">Ativa</Label>
       </div>
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
+        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>
       </div>
     </form>
@@ -207,3 +207,5 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
 };
 
 export default ViaturaForm;
+
+

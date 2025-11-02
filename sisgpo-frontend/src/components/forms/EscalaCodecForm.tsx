@@ -84,7 +84,7 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
   // Função para renderizar a seção de um turno
   const renderTurnoSection = (turno: 'diurno' | 'noturno', titulo: string) => (
     <div className="space-y-2 p-4 border rounded-lg">
-      <h4 className="font-semibold text-gray-700">{titulo}</h4>
+      <h4 className="font-semibold text-textSecondary">{titulo}</h4>
       {formData[turno].map((plantonista, index) => (
         <div key={index} className="flex items-center gap-2">
           <div className="flex-grow">
@@ -105,7 +105,7 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
           )}
         </div>
       ))}
-      <Button type="button" onClick={() => adicionarPlantonista(turno)} className="!w-auto !py-1 !px-2 text-xs bg-gray-200 text-gray-800 hover:bg-gray-300">
+      <Button type="button" onClick={() => adicionarPlantonista(turno)} className="!w-auto !py-1 !px-2 text-xs bg-searchbar text-textMain hover:bg-cardSlate/50">
         <PlusCircle size={16} className="mr-1" /> Adicionar
       </Button>
     </div>
@@ -122,7 +122,7 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
       {renderTurnoSection('noturno', 'Turno Noturno (19h às 07h)')}
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-gray-500 hover:bg-gray-600">Cancelar</Button>
+        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar Escala'}</Button>
       </div>
     </form>
@@ -130,3 +130,4 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
 };
 
 export default EscalaCodecForm;
+

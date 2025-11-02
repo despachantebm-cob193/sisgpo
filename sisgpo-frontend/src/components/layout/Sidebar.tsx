@@ -55,27 +55,27 @@ export default function Sidebar() {
   };
 
   const navLinkClass =
-    'flex items-center p-2 text-gray-100 rounded-lg dark:text-white hover:bg-gray-700 dark:hover:bg-gray-700';
-  const activeNavLinkClass = 'bg-gray-700 dark:bg-gray-700';
+    'flex items-center gap-3 rounded-lg px-3 py-2 text-textMain transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
   const renderSidebarContent = (isCollapsed: boolean) => (
-    <div className="h-full flex flex-col bg-gray-800 dark:bg-gray-800">
+    <div className="flex h-full flex-col bg-searchbar text-textMain border-r border-borderDark/60">
     <div className="px-3">
       <div
-        className={`relative flex h-16 items-center border-b border-gray-700 ${isCollapsed ? 'justify-center' : 'justify-between'
+        className={`relative flex h-16 items-center border-b border-borderDark ${isCollapsed ? 'justify-center' : 'justify-between'
           }`}>
         {isCollapsed ? (
-          <TfiJoomla className="text-white text-3xl" />
+          <TfiJoomla className="text-textMain text-3xl" />
         ) : (
           <div className="flex items-center">
-            <TfiJoomla className="text-white mr-2 text-2xl" />
+            <TfiJoomla className="mr-2 text-2xl text-textMain" />
             <div>
-              <h1 className="text-xl font-bold text-white">SISGPO</h1>
+              <h1 className="text-xl font-bold text-textMain">SISGPO</h1>
             </div>
           </div>
         )}
         <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
-            <X size={24} className="text-white" />
+            <X size={24} className="text-textMain" />
         </button>
       </div>
     </div>
@@ -117,7 +117,7 @@ export default function Sidebar() {
             <>
               <button
                 onClick={() => setIsAdminOpen(!isAdminOpen)}
-                className={`w-full flex justify-between items-center p-2 text-xs text-gray-400 ${isCollapsed ? 'hidden' : ''
+                className={`w-full flex justify-between items-center p-2 text-xs text-textMain ${isCollapsed ? 'hidden' : ''
                   }`}
               >
                 ADMINISTRAÇÃO
@@ -264,7 +264,7 @@ export default function Sidebar() {
           )}
 
           <p
-            className={`px-2 pt-2 text-xs text-gray-400 ${isCollapsed ? 'hidden' : ''
+            className={`px-2 pt-2 text-xs text-textMain ${isCollapsed ? 'hidden' : ''
               }`}
           >
             RELATÓRIOS
@@ -287,7 +287,7 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      <div className="px-3 pb-4 justify-center space-y-2 w-full bg-gray-800 dark:bg-gray-800 border-t border-gray-700">
+      <div className="w-full px-3 pb-4 space-y-2 border-t border-borderDark/60 bg-cardSlate">
         <button onClick={toggleSidebar} className={`${navLinkClass} w-full hidden md:flex`}>
           <NavLinkContent
             isCollapsed={isCollapsed}
@@ -295,7 +295,7 @@ export default function Sidebar() {
             text="Recolher"
           />
         </button>
-        <div className="p-2 border-t border-gray-700 flex flex-col space-y-2">
+        <div className="flex flex-col space-y-2 border-t border-borderDark/60 p-2">
           <NavLink
             to="/app/perfil"
             onClick={handleLinkClick}
@@ -334,7 +334,7 @@ export default function Sidebar() {
       {/* Sidebar for Mobile */}
       <aside
         id="logo-sidebar-mobile"
-        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 bg-gray-800 transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-searchbar transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         aria-label="Sidebar"
       >
@@ -345,7 +345,7 @@ export default function Sidebar() {
       <aside
         id="logo-sidebar-desktop"
         className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
-          } bg-gray-800 border-r dark:bg-gray-800 dark:border-gray-700`}
+          } border-r border-borderDark/60 bg-searchbar`}
         aria-label="Sidebar"
       >
         {renderSidebarContent(isSidebarCollapsed)}

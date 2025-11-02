@@ -10,7 +10,7 @@ const FormError: React.FC<FormErrorProps> = ({ message }) => {
   }
 
   return (
-    <p className="mt-1 text-sm text-red-600" id="form-error">
+    <p className="mt-1 text-sm text-spamRed" id="form-error">
       {message}
     </p>
   );
