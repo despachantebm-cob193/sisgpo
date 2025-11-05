@@ -51,7 +51,7 @@ const Aeronaves: React.FC = () => {
             Cadastre e mantenha a frota aérea atualizada para garantir o planejamento operacional.
           </p>
         </div>
-        <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto gap-2">
+        <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto gap-2">
           <Plus className="w-4 h-4" />
           Adicionar Aeronave
         </Button>
@@ -176,6 +176,7 @@ const Aeronaves: React.FC = () => {
             onSubmit={handleSubmit}
             initialData={itemToEdit as Aeronave}
             isSubmitting={isSaving}
+            onCancel={handleCloseFormModal}
           />
         </Modal>
       )}

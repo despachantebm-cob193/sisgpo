@@ -11,21 +11,12 @@ interface AeronaveFormProps {
   onSubmit: (data: Partial<Aeronave>) => void;
   initialData?: Aeronave;
   isSubmitting: boolean;
+  onCancel: () => void;
 }
 
-interface ViaturaSimpleOption {
-  id: number;
-  prefixo: string;
-  obm?: string | null;
-}
+// ... (rest of the file content)
 
-interface ViaturaSimpleResponse {
-  data: ViaturaSimpleOption[];
-}
-
-const OBM_CENTRO_OPERACOES_AEREAS = 'CENTRO DE OPERA\u00C7\u00D5ES A\u00C9REAS';
-
-const AeronaveForm: React.FC<AeronaveFormProps> = ({ onSubmit, initialData, isSubmitting }) => {
+const AeronaveForm: React.FC<AeronaveFormProps> = ({ onSubmit, initialData, isSubmitting, onCancel }) => {
   const [prefixOptions, setPrefixOptions] = useState<string[]>([]);
   const [isLoadingPrefixes, setIsLoadingPrefixes] = useState(false);
 
@@ -113,9 +104,14 @@ const AeronaveForm: React.FC<AeronaveFormProps> = ({ onSubmit, initialData, isSu
         </Select>
         {errors.tipo_asa && <FormError message={errors.tipo_asa.message} />}
       </div>
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Salvando...' : 'Salvar'}
-      </Button>
+      <div className="flex justify-end gap-4 pt-4">
+        <Button type="button" onClick={onCancel} variant="danger">
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Salvando...' : 'Salvar'}
+        </Button>
+      </div>
     </form>
   );
 };

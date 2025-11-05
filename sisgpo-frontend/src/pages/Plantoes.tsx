@@ -333,10 +333,10 @@ export default function Plantoes() {
           <p className="text-textSecondary mt-2">Gerencie as escalas de viaturas, médicos, pilotos e plantonistas.</p>
         </div>
         <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-          <Button onClick={() => setIsPlantaoModalOpen(true)} className="bg-cardGreen hover:bg-cardGreen/80 text-textMain"><CalendarPlus className="w-4 h-4 mr-2" />Lançar Plantão VTR</Button>
-          <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="bg-cardSlate hover:bg-cardSlate/80 text-textMain"><Stethoscope className="w-4 h-4 mr-2" />Escala Médicos</Button>
-          <Button onClick={() => setIsAeronaveModalOpen(true)} className="bg-premiumOrange hover:bg-premiumOrange/80 text-textMain"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
-          <Button onClick={() => setIsCodecModalOpen(true)} className="bg-tagBlue hover:bg-tagBlue/80 text-textMain"><Shield className="w-4 h-4 mr-2" />Escala CODEC</Button>
+          <Button onClick={() => setIsPlantaoModalOpen(true)} variant="primary"><CalendarPlus className="w-4 h-4 mr-2" />Lançar Plantão VTR</Button>
+          <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="!bg-emerald-500 hover:!bg-emerald-600 text-white"><Stethoscope className="w-4 h-4 mr-2" />Escala Médicos</Button>
+          <Button onClick={() => setIsAeronaveModalOpen(true)} className="!bg-amber-500 hover:!bg-amber-600 text-white"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
+          <Button onClick={() => setIsCodecModalOpen(true)} className="bg-codecPurple hover:bg-codecPurple/80 text-white"><Shield className="w-4 h-4 mr-2" />Escala CODEC</Button>
         </div>
       </div>
 
@@ -398,8 +398,8 @@ export default function Plantoes() {
                         </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center space-x-4">
-                          <button aria-label="Editar" onClick={() => handleEditClick(p.id)} className="text-tagBlue hover:text-tagBlue/80"><Edit size={18}/> Editar</button>
-                          <button onClick={() => handleDeleteClick(p.id, 'plantoes')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>
+                          <button aria-label="Editar" onClick={() => handleEditClick(p.id)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"><Edit size={18}/> Editar</button>
+                          <button onClick={() => handleDeleteClick(p.id, 'plantoes')} className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"><Trash2 size={18}/> Excluir</button>
                         </td>
                       </tr>
                     ))}

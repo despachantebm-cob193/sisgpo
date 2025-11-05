@@ -86,7 +86,7 @@ export default function Medicos() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold tracking-tight text-textMain">Cadastro de Médicos</h2>
-        <Button onClick={() => handleOpenFormModal()}>Adicionar Médico</Button>
+        <Button onClick={() => handleOpenFormModal()} variant="primary">Adicionar Médico</Button>
       </div>
       <Input type="text" placeholder="Filtrar por nome..." value={filters.nome_completo} onChange={handleFilterChange} className="max-w-xs mb-4" />
 
@@ -112,8 +112,8 @@ export default function Medicos() {
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Telefone:">{formatarTelefone(medico.telefone)}</td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 text-sm text-textSecondary truncate max-w-xs" data-label="Obs:">{medico.observacoes || '-'}</td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium space-x-4 mt-2 md:mt-0 text-center md:text-left">
-                    <button onClick={() => handleOpenFormModal(medico)} className="text-tagBlue hover:text-tagBlue/80" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
-                    <button onClick={() => handleDeleteClick(medico.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
+                    <button onClick={() => handleOpenFormModal(medico)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
+                    <button onClick={() => handleDeleteClick(medico.id)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
                   </td>
                 </tr>
               ))

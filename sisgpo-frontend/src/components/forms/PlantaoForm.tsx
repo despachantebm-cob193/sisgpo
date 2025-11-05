@@ -309,7 +309,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
             </div>
           ))}
         </div>
-        <Button type="button" onClick={adicionarMembro} className="mt-3 !w-auto bg-cardGreen hover:bg-cardGreen/80 text-textMain text-sm">Adicionar Militar à Guarnição</Button>
+        <Button type="button" onClick={adicionarMembro} variant="primary" className="mt-3 !w-auto text-sm">Adicionar Militar à Guarnição</Button>
       </div>
 
       {/* Seção de Observações */}
@@ -320,7 +320,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 
       {/* Botões de Ação */}
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-spamRed hover:bg-spamRed/80 text-textMain">Cancelar</Button>
+        <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
         <Button type="submit" disabled={isLoading} className="bg-cardGreen hover:bg-cardGreen/80 text-textMain">{isLoading ? 'Salvando...' : 'Salvar Plantão'}</Button>
       </div>
     </form>

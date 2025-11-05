@@ -241,7 +241,7 @@ const EscalaAeronaveForm = ({
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="bg-searchbar hover:bg-cardGreen focus-visible:ring-borderDark"
+            variant="danger"
           >
             Cancelar
           </Button>

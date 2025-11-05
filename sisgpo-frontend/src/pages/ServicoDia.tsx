@@ -212,12 +212,12 @@ export default function ServicoDia() {
             <Button 
               onClick={handleOpenClearModal} 
               disabled={isSaving || isDeleting} 
-              className="bg-spamRed hover:bg-spamRed/80"
+              className="!bg-rose-500 hover:!bg-rose-600 text-white"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               {isDeleting ? <Spinner /> : 'Limpar Escala'}
             </Button>
-            <Button onClick={handleSave} disabled={isSaving || isDeleting}>
+            <Button onClick={handleSave} disabled={isSaving || isDeleting} className="!bg-emerald-500 hover:!bg-emerald-600 text-white">
               {isSaving ? <Spinner /> : 'Salvar Alterações'}
             </Button>
           </div>

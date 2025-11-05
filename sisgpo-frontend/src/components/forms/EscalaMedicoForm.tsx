@@ -82,7 +82,7 @@ const EscalaMedicoForm: React.FC<EscalaMedicoFormProps> = ({ onSave, onCancel, i
         <textarea id="observacoes" name="observacoes" value={formData.observacoes} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
       </div>
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
+        <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>
       </div>
     </form>

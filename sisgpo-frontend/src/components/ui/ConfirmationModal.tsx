@@ -33,8 +33,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <Button
             type="button"
             onClick={onClose} // O botão "Cancelar" agora chama onClose
-            variant="default" // Usando a prop 'variant' que adicionamos ao Button
-            className="bg-searchbar hover:bg-searchbar"
+            variant="danger"
             disabled={isLoading}
           >
             Cancelar

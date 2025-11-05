@@ -119,7 +119,7 @@ export default function Militares() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-textSecondary" />
             </div>
           </form>
-          <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">
+          <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">
             <UserPlus className="w-4 h-4 mr-2" />
             Adicionar Militar
           </Button>
@@ -167,7 +167,7 @@ export default function Militares() {
                       <td className={responsiveCellClass} data-label="Status">
                         <span
                           className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            militar.ativo ? 'bg-cardGreen/20 text-cardGreen' : 'bg-spamRed/20 text-spamRed'
+                            militar.ativo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-premiumOrange/20 text-premiumOrange'
                           }`}
                         >
                           {militar.ativo ? 'Ativo' : 'Inativo'}
@@ -180,13 +180,13 @@ export default function Militares() {
                         <div className="mt-2 flex items-center gap-4 md:mt-0 md:justify-end">
                           <button
                             onClick={() => handleOpenFormModal(militar)}
-                            className="text-tagBlue hover:text-tagBlue/80"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
                           >
                             <Edit size={18} />
                           </button>
                           <button
                             onClick={() => handleDeleteClick(militar.id)}
-                            className="text-spamRed hover:text-spamRed/80"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
                           >
                             <Trash2 size={18} />
                           </button>

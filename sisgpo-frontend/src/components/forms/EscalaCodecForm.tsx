@@ -105,7 +105,7 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
           )}
         </div>
       ))}
-      <Button type="button" onClick={() => adicionarPlantonista(turno)} className="!w-auto !py-1 !px-2 text-xs bg-searchbar text-textMain hover:bg-cardSlate/50">
+      <Button type="button" onClick={() => adicionarPlantonista(turno)} variant="primary" className="!w-auto !py-1 !px-2 text-xs">
         <PlusCircle size={16} className="mr-1" /> Adicionar
       </Button>
     </div>
@@ -122,7 +122,7 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
       {renderTurnoSection('noturno', 'Turno Noturno (19h às 07h)')}
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
+        <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar Escala'}</Button>
       </div>
     </form>

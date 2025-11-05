@@ -123,7 +123,7 @@ const MedicoForm: React.FC<MedicoFormProps> = ({ medicoToEdit, onSave, onCancel,
         />
       </div>
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">
+        <Button type="button" onClick={onCancel} variant="danger">
           Cancelar
         </Button>
         <Button type="submit" disabled={isLoading}>

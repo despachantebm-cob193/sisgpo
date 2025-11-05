@@ -9,7 +9,7 @@ import FormError from '../ui/FormError';
 import { Obm, ObmOption } from '@/types/entities'; // Importando a interface Obm principal
 
 // Interfaces originais
-interface ObmFormData extends Omit<Obm, 'id' | 'obm_id'> {} // Omitindo também obm_id se existir na interface Obm
+interface ObmFormData extends Omit<Obm, 'id' | 'obm_id'> {} // Omitindo tambï¿½m obm_id se existir na interface Obm
 
 interface ValidationError {
   field: string;
@@ -18,7 +18,7 @@ interface ValidationError {
 
 interface ObmFormProps {
   obmToEdit?: Obm | null; // Usando a interface Obm importada
-  obmOptions: ObmOption[]; // Lista compartilhada de opções do select
+  obmOptions: ObmOption[]; // Lista compartilhada de opï¿½ï¿½es do select
   onSave: (obm: ObmFormData & { id?: number }) => void; // Ajustado para ObmFormData
   onCancel: () => void;
   isLoading: boolean;
@@ -41,13 +41,13 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
     crbm: '', // <-- ADICIONADO AQUI
   });
 
-  // Estado interno para as opções do CreatableSelect
+  // Estado interno para as opï¿½ï¿½es do CreatableSelect
   const [internalOptions, setInternalOptions] = useState<ObmOption[]>(normalizeOptions(obmOptions));
 
-  // Função para buscar erros
+  // Funï¿½ï¿½o para buscar erros
   const getError = (field: keyof ObmFormData | 'general') => errors.find(e => e.field === field)?.message;
 
-  // Atualiza o formulário quando obmToEdit muda
+  // Atualiza o formulï¿½rio quando obmToEdit muda
   useEffect(() => {
     if (obmToEdit) {
       setFormData({
@@ -58,14 +58,14 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
         crbm: obmToEdit.crbm || '', // <-- ADICIONADO AQUI
       });
     } else {
-      // Limpa o formulário para criação
+      // Limpa o formulï¿½rio para criaï¿½ï¿½o
       setFormData({ nome: '', abreviatura: '', cidade: '', telefone: '', crbm: '' }); 
     }
-    // Atualiza as opções internas (pode ter mudado se outra OBM foi criada)
+    // Atualiza as opï¿½ï¿½es internas (pode ter mudado se outra OBM foi criada)
     setInternalOptions(normalizeOptions(obmOptions)); 
   }, [obmToEdit, obmOptions]);
 
-  // Handler genérico para inputs normais
+  // Handler genï¿½rico para inputs normais
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name as keyof ObmFormData]: value }));
@@ -77,23 +77,23 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
       setFormData(prev => ({
         ...prev,
         nome: selectedOption.value, // Atualiza o nome
-        // Se a opção selecionada tiver cidade, usa ela, senão mantém a anterior
+        // Se a opï¿½ï¿½o selecionada tiver cidade, usa ela, senï¿½o mantï¿½m a anterior
         cidade: selectedOption.cidade || prev.cidade, 
       }));
     } else {
-      // Se limpar a seleção, limpa nome e cidade
+      // Se limpar a seleï¿½ï¿½o, limpa nome e cidade
       setFormData(prev => ({ ...prev, nome: '', cidade: '' })); 
     }
   };
 
-  // Handler para criar uma nova opção no CreatableSelect
+  // Handler para criar uma nova opï¿½ï¿½o no CreatableSelect
   const handleCreateOption = (inputValue: string) => {
-    // Cria a nova opção
+    // Cria a nova opï¿½ï¿½o
     const newOption: ObmOption = { value: inputValue, label: `Criar: "${inputValue}"`, cidade: '' };
-    // Adiciona às opções internas
+    // Adiciona ï¿½s opï¿½ï¿½es internas
     setInternalOptions(prev => [...prev, newOption]); 
     
-    // Define o nome e limpa a cidade no formulário
+    // Define o nome e limpa a cidade no formulï¿½rio
     setFormData(prev => ({
       ...prev,
       nome: inputValue, 
@@ -101,10 +101,10 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
     }));
   };
 
-  // Handler para submeter o formulário
+  // Handler para submeter o formulï¿½rio
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // Envia os dados do formulário + o ID (se estiver editando)
+    // Envia os dados do formulï¿½rio + o ID (se estiver editando)
     onSave({
         ...formData,
         id: obmToEdit?.id 
@@ -130,7 +130,7 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
           onCreateOption={handleCreateOption}
           placeholder="Selecione ou digite para criar uma OBM"
           formatCreateLabel={(inputValue) => `Criar nova OBM: "${inputValue}"`}
-          // Desabilita a seleção/criação se estiver editando (nome não pode mudar?)
+          // Desabilita a seleï¿½ï¿½o/criaï¿½ï¿½o se estiver editando (nome nï¿½o pode mudar?)
           isDisabled={!!obmToEdit} 
           styles={{ // Estilos para feedback de erro
             control: (base, state) => ({
@@ -154,7 +154,7 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
           name="abreviatura"
           value={formData.abreviatura}
           onChange={handleChange}
-          required // Mantém required se for o caso
+          required // Mantï¿½m required se for o caso
           hasError={!!getError('abreviatura')} // Passa o estado de erro
         />
         {getError('abreviatura') && <FormError message={getError('abreviatura')} />}
@@ -162,7 +162,7 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
 
       {/* --- ADICIONADO CAMPO CRBM --- */}
       <div>
-        <Label htmlFor="crbm">CRBM (Ex: 1º CRBM)</Label>
+        <Label htmlFor="crbm">CRBM (Ex: 1ï¿½ CRBM)</Label>
         <Input
           id="crbm"
           name="crbm"
@@ -170,10 +170,10 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
           onChange={handleChange}
           hasError={!!getError('crbm')} // Passa o estado de erro
         />
-        {/* Exibe erro específico para crbm */}
+        {/* Exibe erro especï¿½fico para crbm */}
         {getError('crbm') && <FormError message={getError('crbm')} />} 
       </div>
-      {/* --- FIM DA ADIÇÃO --- */}
+      {/* --- FIM DA ADIï¿½ï¿½O --- */}
 
       {/* Campo Cidade */}
       <div>
@@ -201,20 +201,19 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
         {getError('telefone') && <FormError message={getError('telefone')} />}
       </div>
 
-      {/* Botões de Ação */}
+      {/* Botï¿½es de Aï¿½ï¿½o */}
       <div className="flex justify-end gap-4 pt-4">
-        {/* Botão Cancelar */}
+        {/* Botï¿½o Cancelar */}
         <Button 
           type="button" 
           onClick={onCancel} 
-          // Ajustado para usar 'default' ou remover variant se não existir
-          variant="default" 
-          className="bg-searchbar hover:bg-searchbar" // Mantém estilo customizado se necessário
+          // Ajustado para usar 'default' ou remover variant se nï¿½o existir
+          variant="danger" // Mantï¿½m estilo customizado se necessï¿½rio
           disabled={isLoading} // Desabilita se estiver carregando
         >
           Cancelar
         </Button>
-        {/* Botão Salvar */}
+        {/* Botï¿½o Salvar */}
         <Button type="submit" disabled={isLoading}>
           {isLoading ? 'Salvando...' : 'Salvar'}
         </Button>

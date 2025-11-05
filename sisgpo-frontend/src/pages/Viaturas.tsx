@@ -193,8 +193,8 @@ export default function Viaturas() {
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-textMain">Viaturas</h2>
         <div className="flex gap-2 w-full md:w-auto">
-          <Button onClick={() => handleOpenFormModal()} className="w-full md:w-auto">Adicionar Viatura</Button>
-          <Button onClick={() => setIsClearConfirmModalOpen(true)} className="!bg-red-700 hover:!bg-red-800 w-full md:w-auto">
+          <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">Adicionar Viatura</Button>
+          <Button onClick={() => setIsClearConfirmModalOpen(true)} className="!bg-rose-500 hover:!bg-rose-600 w-full md:w-auto text-white">
             <Trash2 className="w-4 h-4 mr-2" /> Limpar Tabela
           </Button>
         </div>
@@ -245,13 +245,13 @@ export default function Viaturas() {
                   </td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Cidade:">{viatura.cidade || 'N/A'}</td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm" data-label="Status:">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-cardGreen/20 text-cardGreen' : 'bg-spamRed/20 text-spamRed'}`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40' : 'bg-spamRed/20 text-spamRed'}`}>
                       {viatura.ativa ? 'Ativa' : 'Inativa'}
                     </span>
                   </td>
                   <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium space-x-4 mt-2 md:mt-0">
-                    <button onClick={() => handleOpenFormModal(viatura)} className="text-tagBlue hover:text-tagBlue/80" title="Editar"><Edit className="w-5 h-5" /></button>
-                    <button onClick={() => handleDeleteClick(viatura.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir"><Trash2 className="w-5 h-5" /></button>
+                    <button onClick={() => handleOpenFormModal(viatura)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60" title="Editar"><Edit className="w-5 h-5" /></button>
+                    <button onClick={() => handleDeleteClick(viatura.id)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60" title="Excluir"><Trash2 className="w-5 h-5" /></button>
                   </td>
                 </tr>
               ))

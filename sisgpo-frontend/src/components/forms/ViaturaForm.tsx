@@ -199,7 +199,7 @@ const ViaturaForm: React.FC<ViaturaFormProps> = ({ viaturaToEdit, onSave, onCanc
         <Label htmlFor="ativa" className="ml-2 mb-0">Ativa</Label>
       </div>
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
+        <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>
       </div>
     </form>

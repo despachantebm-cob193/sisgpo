@@ -273,8 +273,7 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
         <Button
             type="button"
             onClick={onCancel}
-            variant="default"
-            className="bg-searchbar hover:bg-searchbar"
+            variant="danger"
             disabled={isSubmitting}
           >
             Cancelar

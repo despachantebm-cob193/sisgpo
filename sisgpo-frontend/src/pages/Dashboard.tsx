@@ -156,7 +156,7 @@ export default function Dashboard() {
                 <option value="">Todas as OBMs</option>
                 {obms.map((obm) => (<option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>))}
               </select>
-              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto">
+              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto !bg-emerald-500 hover:!bg-emerald-600 text-white">
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </Button>

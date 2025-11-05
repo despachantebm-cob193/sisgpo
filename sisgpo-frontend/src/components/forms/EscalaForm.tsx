@@ -121,7 +121,7 @@ const CivilForm: React.FC<CivilFormProps> = ({ civilToEdit, onSave, onCancel, is
       </div>
 
       <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} className="bg-searchbar hover:bg-searchbar">Cancelar</Button>
+        <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar'}</Button>
       </div>
     </form>

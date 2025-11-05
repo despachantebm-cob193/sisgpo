@@ -130,7 +130,7 @@ export default function Relatorio() {
           <h2 className="text-3xl font-bold tracking-tight text-textMain">Relatório Diário Consolidado</h2>
           <p className="text-textSecondary mt-2">Visualize e exporte os dados operacionais de um dia específico.</p>
         </div>
-        <Button onClick={handleGeneratePdf} disabled={!relatorio || isGeneratingPdf} className="print:hidden">
+        <Button onClick={handleGeneratePdf} disabled={!relatorio || isGeneratingPdf} variant="warning" className="print:hidden">
           {isGeneratingPdf ? <Spinner /> : <Printer className="w-4 h-4 mr-2" />}
           Gerar PDF
         </Button>

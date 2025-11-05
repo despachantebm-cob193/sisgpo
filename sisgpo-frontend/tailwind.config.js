@@ -18,6 +18,7 @@ export default {
         cardGreen: '#3B5E5A',
         spamRed: '#8B1C1C',
         premiumOrange: '#F79E1B',
+        codecPurple: '#7C3AED',
         textMain: '#D3D3D3',
         textSecondary: '#9E9E9E',
         tagBlue: '#007AFF',

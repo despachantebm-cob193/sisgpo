@@ -85,7 +85,7 @@ export default function Obms() {
         setLastUpload(null);
       }
     } catch (error) {
-      toast.error('Não foi possível carregar os dados das OBMs.');
+      toast.error('Nï¿½o foi possï¿½vel carregar os dados das OBMs.');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -132,7 +132,7 @@ export default function Obms() {
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data?.errors) {
         setValidationErrors(err.response.data.errors);
-        toast.error('Por favor, corrija os erros no formulário.');
+        toast.error('Por favor, corrija os erros no formulï¿½rio.');
       } else {
         toast.error(err.response?.data?.message || 'Erro ao salvar OBM.');
       }
@@ -146,7 +146,7 @@ export default function Obms() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/obms/${itemToDeleteId}`);
-      toast.success('OBM excluída com sucesso!');
+      toast.success('OBM excluï¿½da com sucesso!');
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir OBM.');
@@ -181,7 +181,7 @@ export default function Obms() {
         const preview = response.data.errors.slice(0, 3).join(' | ');
         const remaining = response.data.errors.length > 3 ? ` ... (+${response.data.errors.length - 3} linhas)` : '';
         toast.error(`Algumas linhas foram ignoradas: ${preview}${remaining}`);
-        console.warn('Linhas ignoradas durante a importação:', response.data.errors);
+        console.warn('Linhas ignoradas durante a importaï¿½ï¿½o:', response.data.errors);
       }
       fetchData();
     } catch (error: any) {
@@ -202,7 +202,7 @@ export default function Obms() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar OBMs</h2>
-          <p className="text-textSecondary mt-2">Adicione, edite ou remova organizações militares.</p>
+          <p className="text-textSecondary mt-2">Adicione, edite ou remova organizaï¿½ï¿½es militares.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <Button
@@ -213,7 +213,7 @@ export default function Obms() {
             <Trash className="w-4 h-4 mr-2" />
             {isDeletingAll ? 'Excluindo...' : 'Excluir Todas as OBMs'}
           </Button>
-          <Button onClick={() => handleOpenFormModal()}>
+          <Button onClick={() => handleOpenFormModal()} variant="primary">
             <Plus className="w-4 h-4 mr-2" />
             Adicionar Nova OBM
           </Button>
@@ -246,7 +246,7 @@ export default function Obms() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>CRBM</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Cidade</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Telefone</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>Ações</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>Aï¿½ï¿½es</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -310,7 +310,7 @@ export default function Obms() {
         isOpen={isConfirmModalOpen}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmDelete}
-        title="Confirmar Exclusão"
+        title="Confirmar Exclusï¿½o"
         message="Tem certeza que deseja excluir esta OBM?"
         isLoading={isDeleting}
       />
@@ -320,7 +320,7 @@ export default function Obms() {
         onClose={() => setIsConfirmDeleteAllModalOpen(false)}
         onConfirm={handleConfirmDeleteAll}
         title="Confirmar limpeza"
-        message="Esta ação removerá todas as OBMs cadastradas. Deseja continuar?"
+        message="Esta aï¿½ï¿½o removerï¿½ todas as OBMs cadastradas. Deseja continuar?"
         isLoading={isDeletingAll}
       />
     </div>

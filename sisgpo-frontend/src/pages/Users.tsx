@@ -263,9 +263,7 @@ export default function Users() {
                     >
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          item.ativo
-                            ? 'bg-cardGreen/20 text-cardGreen'
-                            : 'bg-premiumOrange/20 text-premiumOrange'
+                          item.ativo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-premiumOrange/20 text-premiumOrange'
                         }`}
                       >
                         {item.ativo ? 'Ativo' : 'Bloqueado'}
@@ -285,7 +283,7 @@ export default function Users() {
                         <button
                           type="button"
                           onClick={() => startEdit(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-tagBlue/40 bg-cardSlate text-tagBlue transition hover:bg-tagBlue/20 disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
                           disabled={rowActionLoading === item.id || isDeleting}
                           aria-label={`Editar ${item.login}`}
                           title={`Editar ${item.login}`}
@@ -295,7 +293,7 @@ export default function Users() {
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-premiumOrange/40 bg-cardSlate text-yellow-700 transition hover:bg-premiumOrange/20 disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded bg-amber-500 text-white shadow hover:bg-amber-600 transition disabled:opacity-60"
                           disabled={
                             rowActionLoading === item.id ||
                             isDeleting ||
@@ -309,7 +307,7 @@ export default function Users() {
                         <button
                           type="button"
                           onClick={() => openDeleteModal(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded border border-spamRed/40 bg-cardSlate text-spamRed transition hover:bg-spamRed/20 disabled:opacity-60"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
                           disabled={
                             rowActionLoading === item.id ||
                             isDeleting ||
