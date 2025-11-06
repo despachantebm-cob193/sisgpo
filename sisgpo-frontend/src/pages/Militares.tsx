@@ -15,7 +15,7 @@ import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
 import Spinner from '@/components/ui/Spinner';
 
-import { Edit, Trash2, UserPlus, Search, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
 import MilitarCard from '@/components/cards/MilitarCard';
 
 export default function Militares() {
@@ -46,11 +46,6 @@ export default function Militares() {
   });
 
   const [obms, setObms] = useState<Obm[]>([]);
-  const [expandedMilitarId, setExpandedMilitarId] = useState<number | null>(null);
-
-  const toggleExpandedMilitar = (id: number) => {
-    setExpandedMilitarId((prev) => (prev === id ? null : id));
-  };
 
   useEffect(() => {
     setPageTitle('Efetivo (Militares)');
@@ -117,7 +112,7 @@ export default function Militares() {
               <input
                 type="text"
                 name="search"
-                placeholder="Buscar por nome, matrícula ou posto..."
+                placeholder="Buscar por nome, matrÃ­cula ou posto..."
                 className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus-visible:ring-tagBlue"
                 onChange={(e) => handleFilterChange('nome_completo', e.target.value)}
               />
@@ -134,94 +129,22 @@ export default function Militares() {
 
         {!isLoading && (
           <>
-            <div className="md:hidden space-y-3">
-              {sortedMilitares.map((militar) => {
-                const isExpanded = expandedMilitarId === militar.id;
-                return (
-                  <div
-                    key={militar.id}
-                    className="rounded-lg border border-borderDark/60 bg-cardSlate shadow-sm transition"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleExpandedMilitar(militar.id)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                    >
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-textSecondary">{militar.posto_graduacao}</p>
-                        <p className="text-lg font-semibold text-textMain">{militar.nome_completo}</p>
-                      </div>
-                      <ChevronDown
-                        className={`h-5 w-5 text-textSecondary transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                    <div
-                      className={`px-4 pb-4 text-sm text-textSecondary transition-[max-height,opacity] duration-200 ease-in-out ${
-                        isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 overflow-hidden opacity-0'
-                      }`}
-                    >
-                      <div className="space-y-2 border-t border-borderDark/40 pt-3">
-                        <p>
-                          <span className="font-medium text-textMain">Nome de Guerra:</span> {militar.nome_guerra || 'Não informado'}
-                        </p>
-                        <p>
-                          <span className="font-medium text-textMain">Matrícula:</span> {militar.matricula}
-                        </p>
-                        <p>
-                          <span className="font-medium text-textMain">Lotação:</span> {militar.obm_nome || 'N/A'}
-                        </p>
-                        <p>
-                          <span className="font-medium text-textMain">Status:</span>{' '}
-                          <span
-                            className={`inline-flex rounded-full px-2 text-xs font-semibold ${
-                              militar.ativo
-                                ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'
-                                : 'bg-premiumOrange/20 text-premiumOrange'
-                            }`}
-                          >
-                            {militar.ativo ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-textMain">Telefone:</span> {militar.telefone || 'Não informado'}
-                        </p>
-                        <div className="flex gap-3 pt-2">
-                          <button
-                            onClick={() => handleOpenFormModal(militar)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(militar.id)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="hidden md:block">
-              <div className="md:overflow-x-auto">
-                <table className="min-w-full divide-y divide-borderDark/60">
-                  <thead className="hidden bg-searchbar md:table-header-group">
-                    <tr>
+            <div className="md:overflow-x-auto">
+              <table className="min-w-full divide-y divide-borderDark/60">
+                <thead className="hidden bg-searchbar md:table-header-group">
+                  <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Posto/Grad.</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Nome Completo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Nome de Guerra</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Matrícula</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Lotação (OBM)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">MatrÃ­cula</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">LotaÃ§Ã£o (OBM)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Telefone</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-textSecondary uppercase tracking-wider">AÃ§Ãµes</th>
-                    </tr>
-                  </thead>
-                  <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-borderDark/60">
-                    {sortedMilitares.map((militar) => (
+                  </tr>
+                </thead>
+                <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-borderDark/60">
+                  {sortedMilitares.map((militar) => (
                     <tr
                       key={militar.id}
                       className="block rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-searchbar"
@@ -233,12 +156,12 @@ export default function Militares() {
                         {militar.nome_completo}
                       </td>
                       <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Nome de Guerra">
-                        {militar.nome_guerra || 'Não informado'}
+                        {militar.nome_guerra || 'NÃ£o informado'}
                       </td>
-                      <td className={`${responsiveCellClass} text-textSecondary md:whitespace-nowrap`} data-label="Matrícula">
+                      <td className={`${responsiveCellClass} text-textSecondary md:whitespace-nowrap`} data-label="Matrï¿½ï¿½cula">
                         {militar.matricula}
                       </td>
-                      <td className={`${responsiveCellClass} text-textSecondary`} data-label="Lotação (OBM)">
+                      <td className={`${responsiveCellClass} text-textSecondary`} data-label="Lotaï¿½ï¿½Çœo (OBM)">
                         {militar.obm_nome || 'N/A'}
                       </td>
                       <td className={responsiveCellClass} data-label="Status">
@@ -251,7 +174,7 @@ export default function Militares() {
                         </span>
                       </td>
                       <td className={`${responsiveCellClass} text-textSecondary`} data-label="Telefone">
-                        {militar.telefone || 'Não informado'}
+                        {militar.telefone || 'NÃ£o informado'}
                       </td>
                       <td className={`${responsiveCellClass} md:text-right`} data-label="AÃ§Ãµes">
                         <div className="mt-2 flex items-center gap-4 md:mt-0 md:justify-end">
@@ -271,9 +194,8 @@ export default function Militares() {
                       </td>
                     </tr>
                   ))}
-                  </tbody>
-                </table>
-              </div>
+                </tbody>
+              </table>
             </div>
             {pagination && pagination.totalPages > 1 && (
               <div className="mt-4">
