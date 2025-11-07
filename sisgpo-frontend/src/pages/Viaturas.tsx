@@ -26,10 +26,6 @@ interface Viatura {
 interface PaginationState { currentPage: number; totalPages: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
-import { useOfflineCRUD } from '../hooks/useOfflineCRUD';
-
-// ... (imports)
-
 export default function Viaturas() {
   const { setPageTitle } = useUiStore();
 
@@ -37,10 +33,11 @@ export default function Viaturas() {
     setPageTitle("Viaturas");
   }, [setPageTitle]);
 
-  const { getAll, add, update, remove } = useOfflineCRUD<Viatura>('viaturas');
-  const viaturas = getAll() || [];
-
+  const [viaturas, setViaturas] = useState<Viatura[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ prefixo: '' });
+  const [pagination, setPagination] = useState<PaginationState | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Viatura | null>(null);
@@ -54,11 +51,50 @@ export default function Viaturas() {
   const [isClearing, setIsClearing] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
 
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(currentPage), limit: '20', ...filters });
+      const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
+      setViaturas(response.data.data);
+      setPagination(response.data.pagination);
+    } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
+    finally { setIsLoading(false); }
+  }, [filters, currentPage]);
 
-  // The fetchData and fetchLastUpload functions and their useEffect are removed here.
+  // --- INÍCIO DA CORREÇÃO ---
+  const fetchLastUpload = useCallback(async () => {
+    try {
+      const response = await api.get('/api/admin/metadata/viaturas_last_upload');
+      const value = response?.data?.value;
+      if (!value) {
+        setLastUpload(null);
+        return;
+      }
+      const parsedDate = new Date(value);
+      if (Number.isNaN(parsedDate.getTime())) {
+        console.warn('Valor de upload inválido recebido:', value);
+        setLastUpload(null);
+        return;
+      }
+      setLastUpload(parsedDate.toLocaleString('pt-BR'));
+    } catch (error: any) {
+      // Se o erro for 404 (Não Encontrado), é um cenário esperado.
+      // Apenas definimos como nulo e não mostramos um toast de erro.
+      if (error.response && error.response.status === 404) {
+        setLastUpload(null);
+      } else {
+        // Para outros erros (como falha de rede), podemos opcionalmente logar.
+        console.error("Falha ao buscar metadados de upload:", error);
+      }
+    }
+  }, []);
+  // --- FIM DA CORREÇÃO ---
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ prefixo: e.target.value }); };
+  useEffect(() => { fetchData(); fetchLastUpload(); }, [fetchData, fetchLastUpload]);
+
+  const handlePageChange = (page: number) => setCurrentPage(page);
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ prefixo: e.target.value }); setCurrentPage(1); };
   const handleOpenFormModal = (item: Viatura | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
@@ -75,31 +111,68 @@ export default function Viaturas() {
     });
   };
 
-  const handleSave = async (data: Omit<Viatura, 'id'> & { id?: number }) => {
+  const handleSave = async (data: Omit<Viatura, 'id'> & { id?: number; previousObm?: string | null }) => {
     setIsSaving(true);
+    setValidationErrors([]);
+    const action = data.id ? 'atualizada' : 'criada';
+    const { id, previousObm, ...payload } = data;
+    let applyToDuplicates = false;
+    let duplicateCount = 0;
+
+    if (id && previousObm && payload.obm && previousObm !== payload.obm) {
+      try {
+        const response = await api.get('/api/admin/viaturas/duplicates/count', {
+          params: { obm: previousObm, exclude_id: id },
+        });
+        const duplicates = Number(response.data?.count ?? 0);
+        duplicateCount = duplicates;
+        if (duplicates > 0) {
+          const confirmBulk = window.confirm(
+            `Encontramos ${duplicates} outra(s) viatura(s) com o mesmo valor de OBM (${previousObm}). Deseja aplicar esta mesma correção em todas elas?`
+          );
+          applyToDuplicates = confirmBulk;
+        }
+      } catch (countError) {
+        console.error('Falha ao verificar duplicidades de OBM antes de atualizar viaturas:', countError);
+        toast.error('Não foi possível verificar outras viaturas com a mesma OBM. Atualizando apenas esta viatura.');
+      }
+    }
+
     try {
-      if (data.id) {
-        await update(data.id, data);
-        toast.success('Viatura atualizada com sucesso!');
+      if (id) {
+        await api.put(`/api/admin/viaturas/${id}`, {
+          ...payload,
+          previous_obm: previousObm ?? null,
+          applyToDuplicates,
+        });
       } else {
-        await add(data);
-        toast.success('Viatura criada com sucesso!');
+        await api.post('/api/admin/viaturas', payload);
+      }
+      if (applyToDuplicates && duplicateCount > 0) {
+        toast.success(`Viatura ${action} com sucesso! ${duplicateCount} registro(s) adicional(is) tambem foram atualizados.`);
+      } else {
+        toast.success(`Viatura ${action} com sucesso!`);
       }
       handleCloseFormModal();
+      fetchData();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar a viatura.');
-    } finally {
-      setIsSaving(false);
-    }
+      if (err.response?.status === 400 && err.response.data.errors) {
+        setValidationErrors(err.response.data.errors);
+        toast.error(err.response.data.errors[0]?.message || 'Por favor, corrija os erros.');
+      } else {
+        toast.error(err.response?.data?.message || 'Erro ao salvar a viatura.');
+      }
+    } finally { setIsSaving(false); }
   };
 
   const handleConfirmDelete = async () => {
     if (!itemToDeleteId) return;
     setIsDeleting(true);
     try {
-      await remove(itemToDeleteId);
+      await api.delete(`/api/admin/viaturas/${itemToDeleteId}`);
       toast.success('Viatura excluída com sucesso!');
-    } catch (err: any) { toast.error(err.message || 'Erro ao excluir a viatura.'); }
+      fetchData();
+    } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir a viatura.'); }
     finally { setIsDeleting(false); handleCloseConfirmModal(); }
   };
 
@@ -280,7 +353,11 @@ export default function Viaturas() {
           </tbody>
         </table>
         </div>
-        {/* Pagination component removed */}
+        {pagination && (
+          <div className="mt-4">
+            <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>

@@ -1,4 +1,4 @@
-'''import Dexie, { Table } from 'dexie';
+import Dexie, { Table } from 'dexie';
 import { Viatura, Obm, Aeronave } from '../types/entities';
 
 export interface Outbox {
@@ -26,4 +26,4 @@ export class MySubClassedDexie extends Dexie {
   }
 }
 
-export const db = new MySubClassedDexie();'''
+export const db = new MySubClassedDexie();

@@ -285,24 +285,24 @@ export default function Users() {
                     >
                       {item.perfil}
                     </td>
-                                          <td
-                                            className={responsiveCellClass}
-                                            data-label="Status"
-                                          >
-                                            {item.status === 'pending' ? (
-                                              <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
-                                                Pendente
-                                              </span>
-                                            ) : (
-                                              <span
-                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                                  item.ativo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-premiumOrange/20 text-premiumOrange'
-                                                }`}
-                                              >
-                                                {item.ativo ? 'Ativo' : 'Bloqueado'}
-                                              </span>
-                                            )}
-                                          </td>                    <td
+                    <td className={responsiveCellClass} data-label="Status">
+                      {item.status === 'pending' ? (
+                        <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
+                          Pendente
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            item.ativo
+                              ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'
+                              : 'bg-premiumOrange/20 text-premiumOrange'
+                          }`}
+                        >
+                          {item.ativo ? 'Ativo' : 'Bloqueado'}
+                        </span>
+                      )}
+                    </td>
+                    <td
                       className={`${responsiveCellClass} text-textSecondary`}
                       data-label="Criado em"
                     >

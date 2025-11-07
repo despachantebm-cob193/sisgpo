@@ -37,3 +37,5 @@ const AppLayout: React.FC = () => {
     </div>
   );
 };
+
+export default AppLayout;

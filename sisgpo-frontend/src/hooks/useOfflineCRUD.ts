@@ -1,4 +1,4 @@
-'''import { useLiveQuery } from 'dexie-react-hooks';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../services/db';
 import { Table } from 'dexie';
 import api from '../services/api';
@@ -117,4 +117,4 @@ export function useOfflineCRUD<T extends { id?: number, synced?: boolean }>(
   };
 
   return { getAll, add, update, remove, sync };
-}'''
+}

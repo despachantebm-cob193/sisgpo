@@ -48,9 +48,11 @@ const userController = {
       throw new AppError('Usuário não encontrado.', 404);
     }
 
+    const perfilAprovado = user.perfil_desejado || user.perfil || 'user';
+
     await db('usuarios').where({ id: userId }).update({
       status: 'approved',
-      perfil: user.perfil_desejado,
+      perfil: perfilAprovado,
       aprovado_por: adminId,
       aprovado_em: db.fn.now(),
     });

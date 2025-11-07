@@ -1,4 +1,4 @@
-'''import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../services/db';
 import Button from './Button';
@@ -42,4 +42,4 @@ export default function OfflineIndicator() {
       )}
     </div>
   );
-}'''
+}
