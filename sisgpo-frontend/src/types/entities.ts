@@ -67,6 +67,7 @@ export type UserRecord = {
   email?: string | null;
   perfil: 'admin' | 'user';
   ativo: boolean;
+  status?: 'pending' | 'approved' | 'rejected';
   created_at?: string;
   updated_at?: string;
 };

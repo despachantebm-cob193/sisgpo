@@ -15,7 +15,6 @@ const authController = {
     const rawLogin = typeof login === 'string' ? login.trim() : '';
 
     if (!rawLogin || !senha) {
-      // Use um erro 400 para requisição malformada
       throw new AppError('Login e senha são obrigatórios.', 400);
     }
 
@@ -28,18 +27,21 @@ const authController = {
       .orWhereRaw('LOWER(email) = ?', [normalizedLogin])
       .first();
 
-    // Se o usuário não for encontrado, ou se a senha for inválida,
-    // o resultado para o cliente deve ser o mesmo.
     if (!user) {
       console.log(`[AuthController] Usuário '${rawLogin}' não encontrado.`);
-      // Não lance o erro ainda, apenas prepare para a resposta padrão.
     } else if (!user.ativo) {
       console.log(`[AuthController] Conta desativada para o usuário '${rawLogin}'.`);
-      // Para contas desativadas, é seguro informar o status.
       throw new AppError('Conta desativada. Procure um administrador.', 403);
     }
 
-    // Compara a senha apenas se o usuário existir
+    if (user.status === 'pending') {
+      throw new AppError('Sua conta está pendente de aprovação.', 401);
+    }
+
+    if (user.status === 'rejected') {
+      throw new AppError('Sua conta foi rejeitada.', 401);
+    }
+
     let isPasswordValid = false;
 
     if (user) {
@@ -50,7 +52,6 @@ const authController = {
       if (isBcryptHash) {
         isPasswordValid = await bcrypt.compare(senha, storedHash);
       } else {
-        // Alguns registros legados ainda utilizam senha em texto puro.
         if (senha === storedHash) {
           isPasswordValid = true;
           try {
@@ -74,7 +75,6 @@ const authController = {
       if (user && !isPasswordValid) {
         console.log(`[AuthController] Senha inválida para o usuário '${rawLogin}'.`);
       }
-      // Resposta genérica para o cliente
       throw new AppError('Credenciais inválidas.', 401);
     }
 
@@ -88,7 +88,6 @@ const authController = {
       { expiresIn: '8h' }
     );
 
-    // Nunca retorne o hash da senha
     delete user.senha_hash;
     user.perfil = perfil;
     user.ativo = Boolean(user.ativo);
@@ -122,36 +121,47 @@ const authController = {
     let user = await db('usuarios').where({ google_id }).first();
 
     if (!user) {
-      // Se não encontrou pelo google_id, tenta pelo e-mail para vincular contas existentes
       user = await db('usuarios').where({ email }).first();
       if (user) {
-        // Vincula a conta existente ao google_id
         await db('usuarios').where({ id: user.id }).update({ google_id });
       }
     }
 
     if (!user) {
-      // Se ainda não há usuário, cria um novo
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const senha_hash = await bcrypt.hash(randomPassword, 10);
 
       const newUser = {
-        nome: name, // Adicionado para corrigir o erro de NOT NULL
+        nome: name,
         nome_completo: name,
-        login: email.split('@')[0], // Usa a parte local do e-mail como login inicial
+        login: email.split('@')[0],
         email,
         senha_hash,
         google_id,
-        perfil: 'user', // Perfil padrão para novos usuários via Google
+        perfil: 'user',
         ativo: true,
+        status: 'pending',
+        perfil_desejado: 'user',
       };
 
       const [insertedUser] = await db('usuarios').insert(newUser).returning('*');
       user = insertedUser;
+
+      await db('notificacoes').insert({
+        mensagem: `Novo usuário cadastrado: ${user.nome_completo} (${user.email})`,
+      });
     }
 
     if (!user.ativo) {
       throw new AppError('Conta desativada. Procure um administrador.', 403);
+    }
+
+    if (user.status === 'pending') {
+      throw new AppError('Sua conta está pendente de aprovação.', 401);
+    }
+
+    if (user.status === 'rejected') {
+      throw new AppError('Sua conta foi rejeitada.', 401);
     }
 
     console.log(`[AuthController] Login com Google bem-sucedido para '${user.email}'.`);

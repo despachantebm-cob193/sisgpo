@@ -111,6 +111,9 @@ router.delete('/aeronaves/:id', aeronaveController.delete);
 
 // --- ROTAS CRUD (Usuários) ---
 router.get('/users', userController.getAll);
+router.get('/users/pending', userController.getPending);
+router.post('/users/:id/approve', userController.approve);
+router.post('/users/:id/reject', userController.reject);
 router.post('/users', validate(userValidator.create), userController.create);
 router.put('/users/:id', validate(userValidator.update), userController.update);
 router.delete('/users/:id', userController.delete);

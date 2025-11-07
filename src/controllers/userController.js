@@ -9,6 +9,7 @@ const sanitizeUser = (user) => ({
   login: user.login,
   perfil: user.perfil,
   ativo: user.ativo,
+  status: user.status,
   // Adicionando os novos campos para garantir que sejam retornados, se existirem
   nome_completo: user.nome_completo,
   nome: user.nome,
@@ -32,9 +33,45 @@ const fetchAllUsers = async () => {
 };
 
 const userController = {
-  /**
-   * Altera a senha do usuario logado.
-   */
+  getPending: async (_req, res) => {
+    const users = await db('usuarios').where({ status: 'pending' }).select('*');
+    res.status(200).json({ users: users.map(sanitizeUser) });
+  },
+
+  approve: async (req, res) => {
+    const { id } = req.params;
+    const userId = Number(id);
+    const adminId = req.userId;
+
+    const user = await db('usuarios').where({ id: userId }).first();
+    if (!user) {
+      throw new AppError('Usuário não encontrado.', 404);
+    }
+
+    await db('usuarios').where({ id: userId }).update({
+      status: 'approved',
+      perfil: user.perfil_desejado,
+      aprovado_por: adminId,
+      aprovado_em: db.fn.now(),
+    });
+
+    res.status(200).json({ message: 'Usuário aprovado com sucesso!' });
+  },
+
+  reject: async (req, res) => {
+    const { id } = req.params;
+    const userId = Number(id);
+
+    const user = await db('usuarios').where({ id: userId }).first();
+    if (!user) {
+      throw new AppError('Usuário não encontrado.', 404);
+    }
+
+    await db('usuarios').where({ id: userId }).update({ status: 'rejected' });
+
+    res.status(200).json({ message: 'Usuário rejeitado com sucesso!' });
+  },
+
   changePassword: async (req, res) => {
     const { senhaAtual, novaSenha } = req.body;
     const userId = req.userId;
@@ -62,9 +99,6 @@ const userController = {
     res.status(200).json({ message: 'Senha alterada com sucesso!' });
   },
 
-  /**
-   * Lista todos os usuarios cadastrados.
-   */
   getAll: async (_req, res) => {
     const users = await fetchAllUsers();
 
@@ -73,11 +107,7 @@ const userController = {
     });
   },
 
-  /**
-   * Cria um novo usuario com o perfil informado.
-   */
   create: async (req, res) => {
-    // CORREÇÃO: Capturando os novos campos do corpo da requisição
     const { login, senha, perfil, nome_completo, nome, email } = req.body;
     const trimmedLogin = login.trim();
     const trimmedNome = nome.trim();
@@ -93,15 +123,14 @@ const userController = {
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senha, salt);
 
-    // CORREÇÃO: Adicionando os campos obrigatórios ao payload de inserção
     const insertPayload = {
       login: trimmedLogin,
       senha_hash: senhaHash,
       perfil: normalizedPerfil,
       ativo: true,
-      nome_completo: trimmedNomeCompleto, // Adicionado
-      nome: trimmedNome,          // Adicionado
-      email: trimmedEmail.toLowerCase(),         // Adicionado
+      nome_completo: trimmedNomeCompleto,
+      nome: trimmedNome,
+      email: trimmedEmail.toLowerCase(),
     };
 
     let createdUserRecord;
@@ -111,11 +140,11 @@ const userController = {
       const userId = Array.isArray(insertedIds) ? insertedIds[0] : insertedIds;
       createdUserRecord = await db('usuarios')
         .where({ id: userId })
-        .first(); // Seleciona todos os campos para sanitização
+        .first();
     } else {
       const insertedRows = await db('usuarios')
         .insert(insertPayload)
-        .returning('*'); // Retorna todos os campos para sanitização
+        .returning('*');
 
       createdUserRecord = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
     }
@@ -126,12 +155,8 @@ const userController = {
     });
   },
 
-  /**
-   * Atualiza dados de um usuario.
-   */
   update: async (req, res) => {
     const { id } = req.params;
-    // CORREÇÃO: Permitindo a atualização dos novos campos
     const { login, perfil, senha, nome_completo, nome, email } = req.body;
     const userId = Number(id);
 
@@ -159,7 +184,6 @@ const userController = {
       updatePayload.perfil = normalizedPerfil;
     }
     
-    // CORREÇÃO: Adicionando os novos campos ao payload de atualização
     if (typeof trimmedNomeCompleto === 'string' && trimmedNomeCompleto && trimmedNomeCompleto !== (user.nome_completo ?? '')) {
       updatePayload.nome_completo = trimmedNomeCompleto;
     }
@@ -196,9 +220,6 @@ const userController = {
     });
   },
 
-  /**
-   * Atualiza o status (ativo/inativo) do usuario.
-   */
   updateStatus: async (req, res) => {
     const { id } = req.params;
     const { ativo } = req.body;
@@ -234,9 +255,6 @@ const userController = {
     });
   },
 
-  /**
-   * Alterna o status ativo/inativo de um usuario.
-   */
   toggleActive: async (req, res) => {
     const { id } = req.params;
     const targetUserId = Number(id);
@@ -266,9 +284,6 @@ const userController = {
     });
   },
 
-  /**
-   * Remove um usuario do sistema.
-   */
   delete: async (req, res) => {
     const { id } = req.params;
     const targetUserId = Number(id);
@@ -287,9 +302,6 @@ const userController = {
     res.status(200).json({ message: 'Usuario removido com sucesso.' });
   },
 
-  /**
-   * Lista todos os usuarios cadastrados.
-   */
   list: async (_req, res) => {
     const users = await fetchAllUsers();
 

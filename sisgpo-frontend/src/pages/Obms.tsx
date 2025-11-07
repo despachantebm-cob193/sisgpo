@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Edit, Trash2, Trash, Plus } from 'lucide-react';
+import { Edit, Trash2, Trash, Plus, ChevronDown } from 'lucide-react';
 
 import { Obm, ObmOption } from '@/types/entities';
 import api from '@/services/api';
@@ -50,6 +50,7 @@ export default function Obms() {
   const [isConfirmDeleteAllModalOpen, setIsConfirmDeleteAllModalOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [lastUpload, setLastUpload] = useState<string | null>(null);
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
     setPageTitle('Gerenciar OBMs');
@@ -114,6 +115,18 @@ export default function Obms() {
     setIsConfirmModalOpen(true);
   };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
+
+  const handleToggleCard = (id: number) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleSave = async (data: Omit<Obm, 'id' | 'obm_id'> & { id?: number }) => {
     setIsSaving(true);
@@ -236,10 +249,74 @@ export default function Obms() {
         className="max-w-xs mb-4"
       />
 
-      <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full table-fixed">
-            <thead className="bg-searchbar hidden md:table-header-group">
+      <div className="space-y-4">
+        <div className="md:hidden space-y-3">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner className="h-10 w-10" />
+            </div>
+          ) : obms.length > 0 ? (
+            obms.map((obm) => {
+              const isExpanded = expandedCards.has(obm.id);
+              return (
+                <div key={obm.id} className="rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCard(obm.id)}
+                    className="flex w-full items-center justify-between text-left"
+                  >
+                    <div>
+                      <p className="text-xl font-bold text-textMain">{obm.nome}</p>
+                      <p className="text-xs font-semibold uppercase text-tagBlue">{obm.crbm || 'CRBM não informado'}</p>
+                    </div>
+                    <ChevronDown
+                      className={`h-5 w-5 text-textSecondary transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {isExpanded && (
+                    <div className="mt-4 space-y-3 text-sm text-textSecondary">
+                      <div>
+                        <p className="text-xs font-semibold uppercase">Sigla</p>
+                        <p className="text-textMain">{obm.abreviatura || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase">Cidade</p>
+                        <p className="text-textMain">{obm.cidade || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase">Telefone</p>
+                        <p className="text-textMain">{obm.telefone || 'N/A'}</p>
+                      </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          onClick={() => handleOpenFormModal(obm)}
+                          className="inline-flex flex-1 items-center justify-center rounded bg-sky-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-sky-600"
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(obm.id)}
+                          className="inline-flex flex-1 items-center justify-center rounded bg-rose-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-rose-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="py-8 text-center text-textSecondary">Nenhuma OBM encontrada.</p>
+          )}
+        </div>
+
+        <div className="hidden md:block bg-cardSlate shadow-md rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-fixed">
+              <thead className="bg-searchbar">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '35%' }}>Nome</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Sigla</th>
@@ -279,9 +356,11 @@ export default function Obms() {
                   <td colSpan={6} className="text-center py-10 text-textSecondary">Nenhuma OBM encontrada.</td>
                 </tr>
               )}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
+
         {pagination && (
           <Pagination
             currentPage={pagination.currentPage}

@@ -14,13 +14,15 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
 import Spinner from '@/components/ui/Spinner';
+import MilitarCard from '@/components/cards/MilitarCard';
 
 import { Edit, Trash2, UserPlus, Search } from 'lucide-react';
-import MilitarCard from '@/components/cards/MilitarCard';
 
 export default function Militares() {
   const { setPageTitle } = useUiStore();
   const [isUploading, setIsUploading] = useState(false);
+  const [obms, setObms] = useState<Obm[]>([]);
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
 
   const {
     data: militares,
@@ -45,8 +47,6 @@ export default function Militares() {
     entityName: 'militares',
   });
 
-  const [obms, setObms] = useState<Obm[]>([]);
-
   useEffect(() => {
     setPageTitle('Efetivo (Militares)');
   }, [setPageTitle]);
@@ -56,7 +56,7 @@ export default function Militares() {
       try {
         const response = await api.get('/api/admin/obms?limit=500');
         setObms(response.data.data);
-      } catch (err) {
+      } catch {
         toast.error('Falha ao carregar OBMs.');
       }
     };
@@ -78,7 +78,7 @@ export default function Militares() {
       await api.post('/api/admin/militares/upload-csv', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('Arquivo enviado com sucesso! A atualização será processada em segundo plano.');
+      toast.success('Arquivo enviado com sucesso! A atualizacao sera processada em segundo plano.');
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Falha no upload do arquivo.');
@@ -90,12 +90,21 @@ export default function Militares() {
   const sortedMilitares = useMemo(() => {
     if (!militares) return [];
     return [...militares].sort((a, b) =>
-      (a.nome_completo || '').localeCompare(b.nome_completo || '', 'pt-BR')
+      (a.nome_completo || '').localeCompare(b.nome_completo || '', 'pt-BR'),
     );
   }, [militares]);
 
-  const responsiveCellClass =
-    'block px-4 py-2 text-sm text-textMain md:table-cell md:px-6 md:py-4 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-textSecondary before:content-[attr(data-label)] md:before:hidden';
+  const handleToggleCard = (id: number) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -112,7 +121,7 @@ export default function Militares() {
               <input
                 type="text"
                 name="search"
-                placeholder="Buscar por nome, matrícula ou posto..."
+                placeholder="Buscar por nome, matricula ou posto..."
                 className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus-visible:ring-tagBlue"
                 onChange={(e) => handleFilterChange('nome_completo', e.target.value)}
               />
@@ -129,74 +138,101 @@ export default function Militares() {
 
         {!isLoading && (
           <>
-            <div className="md:overflow-x-auto">
-              <table className="min-w-full divide-y divide-borderDark/60">
-                <thead className="hidden bg-searchbar md:table-header-group">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Posto/Grad.</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Nome Completo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Nome de Guerra</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Matrícula</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Lotação (OBM)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Telefone</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-textSecondary uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-borderDark/60">
-                  {sortedMilitares.map((militar) => (
-                    <tr
-                      key={militar.id}
-                      className="block rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-searchbar"
-                    >
-                      <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Posto/Grad.">
-                        {militar.posto_graduacao}
-                      </td>
-                      <td className={responsiveCellClass} data-label="Nome Completo">
-                        {militar.nome_completo}
-                      </td>
-                      <td className={`${responsiveCellClass} md:whitespace-nowrap`} data-label="Nome de Guerra">
-                        {militar.nome_guerra || 'Não informado'}
-                      </td>
-                      <td className={`${responsiveCellClass} text-textSecondary md:whitespace-nowrap`} data-label="Matr��cula">
-                        {militar.matricula}
-                      </td>
-                      <td className={`${responsiveCellClass} text-textSecondary`} data-label="Lota��ǜo (OBM)">
-                        {militar.obm_nome || 'N/A'}
-                      </td>
-                      <td className={responsiveCellClass} data-label="Status">
-                        <span
-                          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            militar.ativo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-premiumOrange/20 text-premiumOrange'
-                          }`}
-                        >
-                          {militar.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                      <td className={`${responsiveCellClass} text-textSecondary`} data-label="Telefone">
-                        {militar.telefone || 'Não informado'}
-                      </td>
-                      <td className={`${responsiveCellClass} md:text-right`} data-label="Ações">
-                        <div className="mt-2 flex items-center gap-4 md:mt-0 md:justify-end">
-                          <button
-                            onClick={() => handleOpenFormModal(militar)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(militar.id)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-borderDark/60">
+                  <thead className="bg-searchbar">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Posto/Grad.
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Nome Completo
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Nome de Guerra
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Matricula
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Lotacao (OBM)
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Telefone
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-textSecondary uppercase tracking-wider">
+                        Acoes
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-cardSlate divide-y divide-borderDark/60">
+                    {sortedMilitares.map((militar) => (
+                      <tr key={militar.id} className="hover:bg-searchbar transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textMain">
+                          {militar.posto_graduacao}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-textMain">{militar.nome_completo}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">
+                          {militar.nome_guerra || 'Nao informado'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">
+                          {militar.matricula}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-textSecondary">{militar.obm_nome || 'N/A'}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <span
+                            className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                              militar.ativo
+                                ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'
+                                : 'bg-premiumOrange/20 text-premiumOrange'
+                            }`}
+                          >
+                            {militar.ativo ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-textSecondary">
+                          {militar.telefone || 'Nao informado'}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex items-center justify-end gap-4">
+                            <button
+                              onClick={() => handleOpenFormModal(militar)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(militar.id)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
+
+            <div className="space-y-4 md:hidden">
+              {sortedMilitares.map((militar) => (
+                <MilitarCard
+                  key={militar.id}
+                  militar={militar}
+                  isExpanded={expandedCards.has(militar.id)}
+                  onToggle={() => handleToggleCard(militar.id)}
+                  onEdit={() => handleOpenFormModal(militar)}
+                  onDelete={() => handleDeleteClick(militar.id)}
+                />
+              ))}
+            </div>
+
             {pagination && pagination.totalPages > 1 && (
               <div className="mt-4">
                 <Pagination
@@ -227,8 +263,8 @@ export default function Militares() {
 
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
-        title="Confirmar Exclusão"
-        message="Tem certeza de que deseja excluir este militar? Esta ação não pode ser desfeita."
+        title="Confirmar Exclusao"
+        message="Tem certeza de que deseja excluir este militar? Esta acao nao pode ser desfeita."
         onConfirm={handleConfirmDelete}
         onClose={handleCloseConfirmModal}
         isLoading={isDeleting}
@@ -236,4 +272,3 @@ export default function Militares() {
     </div>
   );
 }
-

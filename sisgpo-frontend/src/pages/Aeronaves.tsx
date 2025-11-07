@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Edit2, Plus, Trash2 } from 'lucide-react';
 import { useCrud } from '../hooks/useCrud';
 import { Aeronave } from '../types/entities';
 import Modal from '../components/ui/Modal';
@@ -42,13 +42,33 @@ const Aeronaves: React.FC = () => {
 
   const hasAeronaves = aeronaves.length > 0;
 
+  const renderStatusBadge = (ativa: boolean, className = '') => (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        ativa ? 'bg-cardGreen/20 text-cardGreen' : 'bg-searchbar text-textSecondary'
+      } ${className}`}
+    >
+      {ativa ? 'Ativa' : 'Inativa'}
+    </span>
+  );
+
+  const renderTipoAsaBadge = (tipo: Aeronave['tipo_asa'], className = '') => (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        tipo === 'fixa' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+      } ${className}`}
+    >
+      {tipo === 'fixa' ? 'Asa fixa' : 'Asa rotativa'}
+    </span>
+  );
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-textMain">Aeronaves</h1>
           <p className="text-textSecondary mt-1">
-            Cadastre e mantenha a frota aérea atualizada para garantir o planejamento operacional.
+            Cadastre e mantenha a frota aerea atualizada para garantir o planejamento operacional.
           </p>
         </div>
         <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto gap-2">
@@ -63,104 +83,104 @@ const Aeronaves: React.FC = () => {
             <Spinner />
           </div>
         ) : hasAeronaves ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-borderDark/60">
-              <thead className="bg-searchbar">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
-                    Prefixo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
-                    Tipo de Asa
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-cardSlate divide-y divide-borderDark/60">
-                {aeronaves.map((aeronave) => (
-                  <tr key={aeronave.id} className="hover:bg-searchbar transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-textMain">
-                      {aeronave.prefixo}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          aeronave.tipo_asa === 'fixa'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {aeronave.tipo_asa === 'fixa' ? 'Asa fixa' : 'Asa rotativa'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          aeronave.ativa
-                            ? 'bg-cardGreen/20 text-cardGreen'
-                            : 'bg-searchbar text-textSecondary'
-                        }`}
-                      >
-                        {aeronave.ativa ? 'Ativa' : 'Inativa'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex justify-center md:justify-end items-center space-x-3">
-                        <button
-                          onClick={() => handleOpenFormModal(aeronave)}
-                          className="text-tagBlue hover:text-tagBlue/80 transition-colors"
-                          title="Editar aeronave"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-                            <path
-                              d="M21 7.5L16.5 3L3 16.5V21H7.5L21 7.5Z"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M15 4.5L19.5 9"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(aeronave.id)}
-                          className="text-spamRed hover:text-red-700 transition-colors"
-                          title="Excluir aeronave"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="w-5 h-5">
-                            <path
-                              d="M6 7.5H18M9 3H15M10.5 11.25V16.5M13.5 11.25V16.5M5.25 7.5L6.15011 18.3995C6.23657 19.4202 7.07804 20.25 8.10208 20.25H15.8979C16.922 20.25 17.7634 19.4202 17.8499 18.3995L18.75 7.5"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-borderDark/60">
+                <thead className="bg-searchbar">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                      Prefixo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                      Tipo de Asa
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                      Ações
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-cardSlate divide-y divide-borderDark/60">
+                  {aeronaves.map((aeronave) => (
+                    <tr key={aeronave.id} className="hover:bg-searchbar transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-textMain">
+                        {aeronave.prefixo}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {renderTipoAsaBadge(aeronave.tipo_asa)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{renderStatusBadge(aeronave.ativa)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex justify-center md:justify-end items-center space-x-3">
+                          <button
+                            onClick={() => handleOpenFormModal(aeronave)}
+                            className="text-tagBlue hover:text-tagBlue/80 transition-colors"
+                            title="Editar aeronave"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(aeronave.id)}
+                            className="text-spamRed hover:text-red-700 transition-colors"
+                            title="Excluir aeronave"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-4 md:hidden">
+              {aeronaves.map((aeronave) => (
+                <div
+                  key={aeronave.id}
+                  className="rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm space-y-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs uppercase text-textSecondary tracking-wide">Prefixo</p>
+                      <p className="text-xl font-semibold text-textMain">{aeronave.prefixo}</p>
+                    </div>
+                    {renderStatusBadge(aeronave.ativa)}
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-textSecondary">Tipo de Asa</span>
+                    {renderTipoAsaBadge(aeronave.tipo_asa)}
+                  </div>
+                  <div className="flex justify-end gap-4 pt-2">
+                    <button
+                      onClick={() => handleOpenFormModal(aeronave)}
+                      className="flex items-center gap-1 text-xs font-medium text-tagBlue hover:text-tagBlue/80"
+                      title="Editar aeronave"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(aeronave.id)}
+                      className="flex items-center gap-1 text-xs font-medium text-spamRed hover:text-red-600"
+                      title="Excluir aeronave"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center text-textSecondary">
             <p className="text-sm">
-              Nenhuma aeronave cadastrada até o momento. Clique em{' '}
-              <span className="font-semibold text-tagBlue">“Adicionar Aeronave”</span>{' '}
-              para registrar a primeira entrada.
+              Nenhuma aeronave cadastrada ate o momento. Clique em{' '}
+              <span className="font-semibold text-tagBlue">“Adicionar Aeronave”</span> para registrar a primeira
+              entrada.
             </p>
           </div>
         )}
@@ -186,7 +206,7 @@ const Aeronaves: React.FC = () => {
           isOpen={isConfirmModalOpen}
           onClose={handleCloseConfirmModal}
           onConfirm={handleConfirmDelete}
-          title="Confirmar Exclusão"
+          title="Confirmar Exclusao"
           message="Tem certeza que deseja excluir esta aeronave?"
           isLoading={isDeleting}
         />
@@ -196,4 +216,3 @@ const Aeronaves: React.FC = () => {
 };
 
 export default Aeronaves;
-

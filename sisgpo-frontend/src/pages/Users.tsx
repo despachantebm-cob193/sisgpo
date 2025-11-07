@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Pencil, Ban, RotateCcw, Trash2, PlusCircle } from 'lucide-react';
+import { Check, X, Pencil, Ban, RotateCcw, Trash2, PlusCircle } from 'lucide-react';
 
 import api from '../services/api';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
@@ -98,6 +98,34 @@ export default function Users() {
   const closeDeleteModal = () => {
     setDeleteModalOpen(false);
     setUserPendingDelete(null);
+  };
+
+  const handleApprove = async (item: UserRecord) => {
+    setRowActionLoading(item.id);
+    try {
+      await api.post(`/api/admin/users/${item.id}/approve`);
+      toast.success('Usuário aprovado com sucesso!');
+      await fetchUsers();
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Não foi possível aprovar o usuário.';
+      toast.error(message);
+    } finally {
+      setRowActionLoading(null);
+    }
+  };
+
+  const handleReject = async (item: UserRecord) => {
+    setRowActionLoading(item.id);
+    try {
+      await api.post(`/api/admin/users/${item.id}/reject`);
+      toast.success('Usuário rejeitado com sucesso!');
+      await fetchUsers();
+    } catch (err: any) {
+      const message = err.response?.data?.message || 'Não foi possível rejeitar o usuário.';
+      toast.error(message);
+    } finally {
+      setRowActionLoading(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -257,19 +285,24 @@ export default function Users() {
                     >
                       {item.perfil}
                     </td>
-                    <td
-                      className={responsiveCellClass}
-                      data-label="Status"
-                    >
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          item.ativo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-premiumOrange/20 text-premiumOrange'
-                        }`}
-                      >
-                        {item.ativo ? 'Ativo' : 'Bloqueado'}
-                      </span>
-                    </td>
-                    <td
+                                          <td
+                                            className={responsiveCellClass}
+                                            data-label="Status"
+                                          >
+                                            {item.status === 'pending' ? (
+                                              <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
+                                                Pendente
+                                              </span>
+                                            ) : (
+                                              <span
+                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                                  item.ativo ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-premiumOrange/20 text-premiumOrange'
+                                                }`}
+                                              >
+                                                {item.ativo ? 'Ativo' : 'Bloqueado'}
+                                              </span>
+                                            )}
+                                          </td>                    <td
                       className={`${responsiveCellClass} text-textSecondary`}
                       data-label="Criado em"
                     >
@@ -280,44 +313,71 @@ export default function Users() {
                       data-label="Ações"
                     >
                       <div className="mt-3 flex flex-wrap gap-3 md:mt-0">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-                          disabled={rowActionLoading === item.id || isDeleting}
-                          aria-label={`Editar ${item.login}`}
-                          title={`Editar ${item.login}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded bg-amber-500 text-white shadow hover:bg-amber-600 transition disabled:opacity-60"
-                          disabled={
-                            rowActionLoading === item.id ||
-                            isDeleting ||
-                            (isOwnAccount(item.id) && item.ativo)
-                          }
-                          aria-label={item.ativo ? `Bloquear ${item.login}` : `Reativar ${item.login}`}
-                          title={item.ativo ? `Bloquear ${item.login}` : `Reativar ${item.login}`}
-                        >
-                          {item.ativo ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openDeleteModal(item)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-                          disabled={
-                            rowActionLoading === item.id ||
-                            isDeleting ||
-                            isOwnAccount(item.id)
-                          }
-                          aria-label={`Excluir ${item.login}`}
-                          title={`Excluir ${item.login}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {item.status === 'pending' ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(item)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-green-500 text-white shadow hover:bg-green-600 transition disabled:opacity-60"
+                              disabled={rowActionLoading === item.id || isDeleting}
+                              aria-label={`Aprovar ${item.login}`}
+                              title={`Aprovar ${item.login}`}
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReject(item)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-red-500 text-white shadow hover:bg-red-600 transition disabled:opacity-60"
+                              disabled={rowActionLoading === item.id || isDeleting}
+                              aria-label={`Rejeitar ${item.login}`}
+                              title={`Rejeitar ${item.login}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startEdit(item)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
+                              disabled={rowActionLoading === item.id || isDeleting}
+                              aria-label={`Editar ${item.login}`}
+                              title={`Editar ${item.login}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(item)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-amber-500 text-white shadow hover:bg-amber-600 transition disabled:opacity-60"
+                              disabled={
+                                rowActionLoading === item.id ||
+                                isDeleting ||
+                                (isOwnAccount(item.id) && item.ativo)
+                              }
+                              aria-label={item.ativo ? `Bloquear ${item.login}` : `Reativar ${item.login}`}
+                              title={item.ativo ? `Bloquear ${item.login}` : `Reativar ${item.login}`}
+                            >
+                              {item.ativo ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(item)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
+                              disabled={
+                                rowActionLoading === item.id ||
+                                isDeleting ||
+                                isOwnAccount(item.id)
+                              }
+                              aria-label={`Excluir ${item.login}`}
+                              title={`Excluir ${item.login}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -31,23 +31,28 @@ const estatisticasExternasController = {
       console.log(`- ${OCORRENCIAS_API_URL}/api/external/estatisticas-por-intervalo?data=${targetDate}`);
       console.log(`- ${OCORRENCIAS_API_URL}/api/external/espelho-base`);
 
+      const axiosConfig = {
+        headers,
+        timeout: 5000, // 5 seconds timeout
+      };
+
       const [statsRes, plantaoRes, relatorioRes, espelhoRes, espelhoBaseRes] = await Promise.all([
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/dashboard/stats`, { headers }),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/plantao`, { headers }),
+        axios.get(`${OCORRENCIAS_API_URL}/api/external/dashboard/stats`, axiosConfig),
+        axios.get(`${OCORRENCIAS_API_URL}/api/external/plantao`, { ...axiosConfig }),
         axios.get(`${OCORRENCIAS_API_URL}/api/external/relatorio-completo`, {
-          headers,
+          ...axiosConfig,
           params: {
             data_inicio: targetDate,
             data_fim: targetDate,
           },
         }),
         axios.get(`${OCORRENCIAS_API_URL}/api/external/estatisticas-por-intervalo`, {
-          headers,
+          ...axiosConfig,
           params: {
             data: targetDate,
           },
         }),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/espelho-base`, { headers }),
+        axios.get(`${OCORRENCIAS_API_URL}/api/external/espelho-base`, { ...axiosConfig }),
       ]);
 
       return response.json({
@@ -62,6 +67,7 @@ const estatisticasExternasController = {
       console.error('--- ERRO DETALHADO AO BUSCAR DADOS DO SISTEMA DE OCORRENCIAS ---');
       console.error('Mensagem do erro:', error.message);
       console.error('Código do erro (se houver):', error.code);
+      console.error('URL da requisição (se disponível):', error.config?.url);
       console.error('Stack Trace:', error.stack);
       if (error.response) {
         console.error('Resposta de erro do sistema externo (status):', error.response.status);
@@ -70,9 +76,14 @@ const estatisticasExternasController = {
       console.error('-----------------------------------------------------------------');
 
       if (error.code === 'ECONNREFUSED') {
-        // Retorna uma resposta 503 diretamente em vez de lançar um erro que pode derrubar o servidor.
         return response.status(503).json({
-          message: 'Nao foi possivel conectar ao sistema de ocorrencias. O servico pode estar offline.',
+          message: `Não foi possível conectar ao sistema de ocorrências em ${OCORRENCIAS_API_URL}. O serviço pode estar offline ou a porta/endereço incorreto.`,
+        });
+      }
+
+      if (error.code === 'ECONNABORTED') {
+        return response.status(504).json({
+          message: `A requisição para o sistema de ocorrências expirou (timeout de 5 segundos). O serviço pode estar lento ou sobrecarregado.`,
         });
       }
 
@@ -82,10 +93,10 @@ const estatisticasExternasController = {
 
         if (status === 401) {
           return response.status(502).json({
-            message: 'Falha ao autenticar com o sistema de ocorrencias. Verifique a chave compartilhada.'
+            message: 'Falha ao autenticar com o sistema de ocorrências. Verifique a chave compartilhada.'
           });
         }
-        return response.status(status).json({ message: `Erro no sistema de ocorrencias: ${errorMessage}` });
+        return response.status(status).json({ message: `Erro no sistema de ocorrências: ${errorMessage}` });
       }
 
       // Erro genérico se nenhuma das condições acima for atendida

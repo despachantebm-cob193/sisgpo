@@ -19,10 +19,7 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
 }) => {
   return (
     <div className="surface-card transition-all">
-      <div
-        className="flex cursor-pointer items-center justify-between p-4"
-        onClick={onToggle}
-      >
+      <div className="flex cursor-pointer items-center justify-between p-4" onClick={onToggle}>
         <div className="flex-1">
           <p className="font-semibold text-textMain">{militar.nome_completo}</p>
           <p className="text-sm text-textSecondary">
@@ -63,31 +60,19 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
         <div className="border-t border-borderDark/60 p-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase text-textSecondary">
-                Nome de Guerra
-              </p>
-              <p className="text-sm text-textMain">
-                {militar.nome_guerra || 'Não informado'}
-              </p>
+              <p className="text-xs font-semibold uppercase text-textSecondary">Nome de Guerra</p>
+              <p className="text-sm text-textMain">{militar.nome_guerra || 'Nao informado'}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase text-textSecondary">
-                Lotação (OBM)
-              </p>
-              <p className="text-sm text-textMain">
-                {militar.obm_nome || 'N/A'}
-              </p>
+              <p className="text-xs font-semibold uppercase text-textSecondary">Lotacao (OBM)</p>
+              <p className="text-sm text-textMain">{militar.obm_nome || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase text-textSecondary">
-                Status
-              </p>
+              <p className="text-xs font-semibold uppercase text-textSecondary">Status</p>
               <p className="text-sm text-textMain">
                 <span
                   className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold leading-5 ${
-                    militar.ativo
-                      ? 'bg-cardGreen text-textMain'
-                      : 'bg-spamRed text-textMain'
+                    militar.ativo ? 'bg-cardGreen text-textMain' : 'bg-spamRed text-textMain'
                   }`}
                 >
                   {militar.ativo ? 'Ativo' : 'Inativo'}
@@ -95,12 +80,8 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
               </p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase text-textSecondary">
-                Telefone
-              </p>
-              <p className="text-sm text-textMain">
-                {militar.telefone || 'Não informado'}
-              </p>
+              <p className="text-xs font-semibold uppercase text-textSecondary">Telefone</p>
+              <p className="text-sm text-textMain">{militar.telefone || 'Nao informado'}</p>
             </div>
           </div>
         </div>
@@ -110,5 +91,3 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
 };
 
 export default MilitarCard;
-
-

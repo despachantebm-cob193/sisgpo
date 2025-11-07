@@ -14,8 +14,6 @@ interface AeronaveFormProps {
   onCancel: () => void;
 }
 
-// ... (rest of the file content)
-
 const AeronaveForm: React.FC<AeronaveFormProps> = ({ onSubmit, initialData, isSubmitting, onCancel }) => {
   const [prefixOptions, setPrefixOptions] = useState<string[]>([]);
   const [isLoadingPrefixes, setIsLoadingPrefixes] = useState(false);
@@ -34,8 +32,8 @@ const AeronaveForm: React.FC<AeronaveFormProps> = ({ onSubmit, initialData, isSu
     const fetchPrefixOptions = async () => {
       setIsLoadingPrefixes(true);
       try {
-        const response = await api.get<ViaturaSimpleResponse>('/api/admin/viaturas/simple', {
-          params: { obm: OBM_CENTRO_OPERACOES_AEREAS },
+        const response = await api.get<{ data: { prefixo: string }[] }>('/api/admin/viaturas/simple', {
+          params: { obm: 'COA' },
         });
 
         const fetchedPrefixes = (response.data?.data || [])
@@ -55,7 +53,7 @@ const AeronaveForm: React.FC<AeronaveFormProps> = ({ onSubmit, initialData, isSu
         if (isMounted) {
           setPrefixOptions(initialData?.prefixo ? [initialData.prefixo] : []);
         }
-        toast.error('Nao foi possivel carregar os prefixos de viatura.');
+        toast.error('Nao foi possivel carregar os prefixos de viatura. Verifique a conexao e tente novamente.');
       } finally {
         if (isMounted) {
           setIsLoadingPrefixes(false);

@@ -57,7 +57,7 @@ exports.seed = async function(knex) {
   
   // CORREÇÃO 1: Removendo 'ativo: true' para resolver o erro de coluna em 'usuarios'.
   await knex('usuarios').insert([
-    { login: 'admin', senha_hash: senhaHash, perfil: 'admin' }
+    { login: 'admin', nome: 'Admin', nome_completo: 'Admin', email: 'admin@example.com', senha_hash: senhaHash, perfil: 'admin', status: 'approved' }
   ]);
 
   // --- 3. Inserção de Dados de Teste ---
