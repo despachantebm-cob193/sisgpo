@@ -21,12 +21,19 @@ const MilitarRankChart: React.FC<MilitarRankChartProps> = ({ data, isLoading }) 
   const alturaCalculada = Math.max(alturaMinima, data.length * alturaPorBarra);
   // --- FIM DA LÓGICA ---
 
+  const totalMilitares = data.reduce((acc, item) => acc + item.value, 0);
+
   return (
     <ChartCard
-      title="Quantidade de Militares por Posto/Graduação"
       isLoading={isLoading}
       hasData={data && data.length > 0}
     >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-textMain">Quantidade de Militares por Posto/Graduação</h3>
+        <span className="text-sm font-medium bg-tagBlue text-white whitespace-nowrap px-2 py-1 rounded">
+          Total: {totalMilitares}
+        </span>
+      </div>
       {/* O contêiner agora usa a altura calculada dinamicamente */}
       <div style={{ width: '100%', height: `${alturaCalculada}px` }}>
         <ResponsiveContainer width="100%" height="100%">

@@ -72,15 +72,18 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
     return a.localeCompare(b, 'pt-BR');
   });
 
+  const totalViaturas = filteredData.reduce((acc, obm) => acc + obm.quantidade, 0);
+
   return (
     <Card
       title="Viaturas por OBM"
-      titleClassName="text-2xl font-bold text-tagBlue uppercase tracking-wide"
+      subtitle={`Total: ${totalViaturas} viaturas`}
+      titleClassName="text-2xl font-bold text-brightBlue uppercase tracking-wide"
     >
       <div className="space-y-6 p-4">
         {sortedGroupKeys.map((crbmKey) => (
           <div key={crbmKey}>
-            <h3 className="text-lg font-bold text-tagBlue uppercase tracking-wide mb-3 border-b border-tagBlue/20 pb-2">
+            <h3 className="text-lg font-bold text-brightBlue uppercase tracking-wide mb-3 border-b border-tagBlue/20 pb-2">
               {crbmKey === 'OUTRAS OBMS' ? 'Outras OBMs' : crbmKey}
             </h3>
 
@@ -94,7 +97,7 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-lg font-semibold text-textMain">{obm.nome}</h4>
-                      <span className="text-sm font-medium text-tagBlue whitespace-nowrap">
+                      <span className="text-sm font-medium bg-cardSlate text-brightYellow whitespace-nowrap px-2 py-1 rounded">
                         {obm.quantidade} {obm.quantidade === 1 ? 'viatura' : 'viaturas'}
                       </span>
                     </div>

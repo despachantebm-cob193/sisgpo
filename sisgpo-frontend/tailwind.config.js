@@ -22,6 +22,8 @@ export default {
         textMain: '#D3D3D3',
         textSecondary: '#9E9E9E',
         tagBlue: '#007AFF',
+        brightBlue: '#00BFFF',
+        brightYellow: '#FFFF00', // Yellow
         searchbar: '#1E1E1E',
         borderDark: '#1F1F1F',
       },

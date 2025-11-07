@@ -33,11 +33,9 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
       {/* Cabeçalho customizado para incluir o título e a data */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-textMain">Viaturas Disponíveis por Tipo</h3>
-        {!isLoading && (
-          <span className="text-xs text-textSecondary">
-            Atualizado em: {formatarData(lastUpdated)}
-          </span>
-        )}
+        <span className="text-sm font-medium bg-tagBlue text-white whitespace-nowrap px-2 py-1 rounded">
+          Total: {totalDeViaturasNoGrafico}
+        </span>
       </div>
 
       {isLoading ? (
@@ -59,11 +57,6 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
-          <div className="mt-4 pt-2 border-t border-borderDark/60 text-right">
-            <p className="text-sm text-textSecondary">
-              Total no Gráfico: <span className="font-bold text-lg">{totalDeViaturasNoGrafico}</span>
-            </p>
           </div>
         </>
       )}

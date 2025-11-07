@@ -57,19 +57,19 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
 
   // Função que renderiza uma linha de funções
   const renderLinha = (funcoes: string[]) => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
+    <div className="grid grid-cols-1 gap-y-4">
       {funcoes.map(funcao => {
         const profissionais = profissionaisPorFuncao[funcao] || [];
         const config = funcoesConfig[funcao] || { icon: <User />, title: funcao };
 
         return (
-          <div key={funcao} className="text-center flex flex-col items-center p-2 rounded-lg hover:bg-searchbar transition-colors">
-            <div className="flex items-center gap-2 mb-1">
+          <div key={funcao} className="text-center p-2 rounded-lg hover:bg-searchbar transition-colors border-b border-borderDark/60 last:border-b-0">
+            <div className="flex items-center justify-center gap-2">
               {config.icon}
               <p className="text-sm text-textSecondary font-medium">{config.title}</p>
             </div>
             
-            <div className="font-bold text-md text-textMain w-full">
+            <div className="font-bold text-md text-textMain">
               {profissionais.length > 0 ? (
                 profissionais.map((p, index) => (
                   <div key={index} className="truncate" title={`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}>
