@@ -23,6 +23,11 @@ const applyAccentInsensitiveFilter = (queryBuilder, column, value) => {
 };
 
 const obmController = {
+  getAllSimple: async (_req, res) => {
+    const data = await db('obms').select('*').orderBy('crbm', 'asc').orderBy('cidade', 'asc').orderBy('nome', 'asc');
+    res.status(200).json({ data });
+  },
+
   getAll: async (req, res) => {
     const { nome, abreviatura, cidade } = req.query;
     const query = db('obms').select('*');

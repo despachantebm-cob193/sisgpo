@@ -288,13 +288,6 @@ export default function Sidebar() {
       </div>
 
       <div className="w-full px-3 pb-4 space-y-2 border-t border-borderDark/60 bg-cardSlate">
-        <button onClick={toggleSidebar} className={`${navLinkClass} w-full hidden md:flex`}>
-          <NavLinkContent
-            isCollapsed={isCollapsed}
-            icon={isCollapsed ? <ChevronsRight className="mr-3 h-6 w-6" /> : <ChevronsLeft className="mr-3 h-6 w-6" />}
-            text="Recolher"
-          />
-        </button>
         <div className="flex flex-col space-y-2 border-t border-borderDark/60 p-2">
           <NavLink
             to="/app/perfil"
@@ -306,16 +299,32 @@ export default function Sidebar() {
             <NavLinkContent
               isCollapsed={isCollapsed}
               icon={<Settings className="mr-3 h-6 w-6" />}
-              text={user?.login}
+              text={user?.nome}
             />
           </NavLink>
-          <button onClick={handleLogout} className={`${navLinkClass} w-full`}>
-            <NavLinkContent
-              isCollapsed={isCollapsed}
-              icon={<LogOut className="mr-3 h-6 w-6" />}
-              text="Sair"
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleSidebar}
+              aria-label={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+              className="hidden md:inline-flex h-11 w-11 items-center justify-center rounded-lg border border-borderDark/60 text-textMain transition hover:border-tagBlue hover:text-tagBlue"
+            >
+              {isSidebarCollapsed ? (
+                <ChevronsRight className="h-6 w-6" />
+              ) : (
+                <ChevronsLeft className="h-6 w-6" />
+              )}
+            </button>
+            <button
+              onClick={handleLogout}
+              className={`flex-1 rounded-lg bg-spamRed text-white font-semibold shadow-sm transition hover:bg-spamRed/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spamRed/60 ${isCollapsed ? 'px-0 py-2.5' : 'px-3 py-2.5'}`}
+            >
+              <NavLinkContent
+                isCollapsed={isCollapsed}
+                icon={<LogOut className={`${isCollapsed ? '' : 'mr-3'} h-6 w-6`} />}
+                text="Sair"
+              />
+            </button>
+          </div>
         </div>
       </div>
     </div>

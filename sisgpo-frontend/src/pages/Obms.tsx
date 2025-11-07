@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Edit, Trash2, Trash, Plus, ChevronDown } from 'lucide-react';
 
@@ -50,7 +50,8 @@ export default function Obms() {
   const [isConfirmDeleteAllModalOpen, setIsConfirmDeleteAllModalOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [lastUpload, setLastUpload] = useState<string | null>(null);
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
+  const [openCrbmKeys, setOpenCrbmKeys] = useState<Set<string>>(() => new Set());
+  const [openCitiesByCrbm, setOpenCitiesByCrbm] = useState<Record<string, Set<string>>>(() => ({}));
 
   useEffect(() => {
     setPageTitle('Gerenciar OBMs');
@@ -97,6 +98,35 @@ export default function Obms() {
     fetchData();
   }, [fetchData]);
 
+  const groupedObms = useMemo(() => {
+    return obms.reduce<Record<string, Record<string, Obm[]>>>((acc, obm) => {
+      const crbmKey = obm.crbm?.trim() || 'CRBM nao informado';
+      const cidadeKey = obm.cidade?.trim() || 'Cidade nao informada';
+
+      if (!acc[crbmKey]) {
+        acc[crbmKey] = {};
+      }
+      if (!acc[crbmKey][cidadeKey]) {
+        acc[crbmKey][cidadeKey] = [];
+      }
+
+      acc[crbmKey][cidadeKey].push(obm);
+      return acc;
+    }, {});
+  }, [obms]);
+
+  const crbmEntries = useMemo(
+    () =>
+      Object.entries(groupedObms)
+        .sort(([a], [b]) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+        .map(([crbm, cities]) => ({
+          crbm,
+          total: Object.values(cities).reduce((sum, list) => sum + list.length, 0),
+          cityEntries: Object.entries(cities).sort(([a], [b]) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })),
+        })),
+    [groupedObms],
+  );
+
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ nome: event.target.value });
@@ -116,15 +146,32 @@ export default function Obms() {
   };
   const handleCloseConfirmModal = () => setIsConfirmModalOpen(false);
 
-  const handleToggleCard = (id: number) => {
-    setExpandedCards((prev) => {
+  const toggleCrbm = (crbm: string) => {
+    setOpenCrbmKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      if (next.has(crbm)) {
+        next.delete(crbm);
       } else {
-        next.add(id);
+        next.add(crbm);
       }
       return next;
+    });
+    setOpenCitiesByCrbm((prev) => {
+      if (prev[crbm]) return prev;
+      return { ...prev, [crbm]: new Set() };
+    });
+  };
+
+  const toggleCity = (crbm: string, cidade: string) => {
+    setOpenCitiesByCrbm((prev) => {
+      const currentSet = prev[crbm] ?? new Set<string>();
+      const nextSet = new Set(currentSet);
+      if (nextSet.has(cidade)) {
+        nextSet.delete(cidade);
+      } else {
+        nextSet.add(cidade);
+      }
+      return { ...prev, [crbm]: nextSet };
     });
   };
 
@@ -249,69 +296,149 @@ export default function Obms() {
         className="max-w-xs mb-4"
       />
 
-      <div className="space-y-4">
-        <div className="md:hidden space-y-3">
+      <div className="space-y-6">
+        <section className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-4 shadow-sm md:p-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-2xl font-semibold text-textMain">Visao hierarquica das OBMs</h3>
+              <p className="text-sm text-textSecondary">CRBM &gt; cidade &gt; demais dados da unidade.</p>
+            </div>
+            <span className="text-sm font-semibold text-tagBlue">
+              {obms.length} {obms.length === 1 ? 'registro ativo' : 'registros ativos'}
+            </span>
+          </div>
+
           {isLoading ? (
-            <div className="flex justify-center py-8">
+            <div className="flex justify-center py-10">
               <Spinner className="h-10 w-10" />
             </div>
-          ) : obms.length > 0 ? (
-            obms.map((obm) => {
-              const isExpanded = expandedCards.has(obm.id);
-              return (
-                <div key={obm.id} className="rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleCard(obm.id)}
-                    className="flex w-full items-center justify-between text-left"
-                  >
-                    <div>
-                      <p className="text-xl font-bold text-textMain">{obm.nome}</p>
-                      <p className="text-xs font-semibold uppercase text-tagBlue">{obm.crbm || 'CRBM não informado'}</p>
-                    </div>
-                    <ChevronDown
-                      className={`h-5 w-5 text-textSecondary transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-                  {isExpanded && (
-                    <div className="mt-4 space-y-3 text-sm text-textSecondary">
-                      <div>
-                        <p className="text-xs font-semibold uppercase">Sigla</p>
-                        <p className="text-textMain">{obm.abreviatura || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase">Cidade</p>
-                        <p className="text-textMain">{obm.cidade || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase">Telefone</p>
-                        <p className="text-textMain">{obm.telefone || 'N/A'}</p>
-                      </div>
-                      <div className="flex items-center gap-3 pt-2">
-                        <button
-                          onClick={() => handleOpenFormModal(obm)}
-                          className="inline-flex flex-1 items-center justify-center rounded bg-sky-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-sky-600"
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(obm.id)}
-                          className="inline-flex flex-1 items-center justify-center rounded bg-rose-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-rose-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
+          ) : crbmEntries.length === 0 ? (
+            <p className="py-6 text-center text-textSecondary">Nenhuma OBM encontrada.</p>
           ) : (
-            <p className="py-8 text-center text-textSecondary">Nenhuma OBM encontrada.</p>
+            <div className="mt-6 space-y-4">
+              {crbmEntries.map(({ crbm, total, cityEntries }) => {
+                const isCrbmOpen = openCrbmKeys.has(crbm);
+                return (
+                  <div key={crbm} className="rounded-lg border border-borderDark/50 bg-background/70 p-4 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => toggleCrbm(crbm)}
+                      aria-expanded={isCrbmOpen}
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                    >
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-textSecondary">CRBM</p>
+                        <p className="text-xl font-bold text-textMain">{crbm}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="rounded-full bg-tagBlue/10 px-3 py-1 text-xs font-semibold text-tagBlue">
+                          {total} {total === 1 ? 'registro' : 'registros'}
+                        </span>
+                        <ChevronDown
+                          className={`h-5 w-5 text-textSecondary transition-transform ${isCrbmOpen ? 'rotate-180' : ''}`}
+                        />
+                      </div>
+                    </button>
+
+                    {isCrbmOpen && (
+                      <div className="mt-4 space-y-4">
+                        {cityEntries.map(([cidade, lista]) => {
+                          const isCityOpen = openCitiesByCrbm[crbm]?.has(cidade) ?? false;
+                          return (
+                            <div
+                              key={`${crbm}-${cidade}`}
+                              className="rounded-lg border border-tagBlue/40 bg-tagBlue/5 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleCity(crbm, cidade)}
+                                aria-expanded={isCityOpen}
+                                className="flex w-full items-center justify-between gap-3 text-left"
+                              >
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-textSecondary">
+                                    Cidade
+                                  </p>
+                                  <p className="text-lg font-semibold text-textMain">{cidade}</p>
+                                </div>
+                                <ChevronDown
+                                  className={`h-5 w-5 text-textSecondary transition-transform ${
+                                    isCityOpen ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </button>
+
+                              {isCityOpen && (
+                                <div className="mt-3 space-y-3">
+                                  {lista.map((obm) => (
+                                    <article
+                                      key={obm.id ?? `${obm.nome}-${cidade}`}
+                                      className="rounded-md border border-borderDark/40 bg-cardSlate p-3 shadow-sm"
+                                    >
+                                      <div className="flex flex-col gap-1">
+                                        <h4 className="text-base font-semibold text-textMain">{obm.nome}</h4>
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
+                                          <span className="font-semibold uppercase tracking-wide">
+                                            {obm.abreviatura || 'Sigla nao informada'}
+                                          </span>
+                                          <span className="text-[10px] uppercase text-textSecondary/80">-</span>
+                                          <span>{obm.crbm || 'CRBM nao informado'}</span>
+                                        </div>
+                                      </div>
+
+                                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-textSecondary">
+                                        <div>
+                                          <dt className="font-semibold uppercase text-[10px]">Telefone</dt>
+                                          <dd className="text-sm text-textMain">{obm.telefone || 'N/A'}</dd>
+                                        </div>
+                                        <div>
+                                          <dt className="font-semibold uppercase text-[10px]">Identificador</dt>
+                                          <dd className="text-sm text-textMain">{obm.obm_id ?? obm.id ?? 'N/A'}</dd>
+                                        </div>
+                                        <div>
+                                          <dt className="font-semibold uppercase text-[10px]">Cidade</dt>
+                                          <dd className="text-sm text-textMain">{obm.cidade || 'N/A'}</dd>
+                                        </div>
+                                        <div>
+                                          <dt className="font-semibold uppercase text-[10px]">Sincronizado</dt>
+                                          <dd className="text-sm text-textMain">{obm.synced ? 'Sim' : 'Nao'}</dd>
+                                        </div>
+                                      </dl>
+
+                                      <div className="mt-3 flex flex-wrap gap-2">
+                                        <button
+                                          onClick={() => handleOpenFormModal(obm)}
+                                          className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-tagBlue/50 bg-tagBlue/10 px-3 py-1.5 text-sm font-medium text-tagBlue transition hover:bg-tagBlue/20"
+                                        >
+                                          <Edit className="mr-2 h-4 w-4" />
+                                          Editar
+                                        </button>
+                                        {obm.id && (
+                                          <button
+                                            onClick={() => handleDeleteClick(obm.id!)}
+                                            className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-rose-500 bg-spamRed/10 px-3 py-1.5 text-sm font-medium text-rose-400 transition hover:text-rose-300"
+                                          >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Excluir
+                                          </button>
+                                        )}
+                                      </div>
+                                    </article>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
-        </div>
+        </section>
+
 
         <div className="hidden md:block bg-cardSlate shadow-md rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
@@ -405,5 +532,11 @@ export default function Obms() {
     </div>
   );
 }
+
+
+
+
+
+
 
 

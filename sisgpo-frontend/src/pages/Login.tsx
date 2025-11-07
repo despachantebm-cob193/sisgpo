@@ -7,17 +7,11 @@ import api from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
-
-interface User {
-  id: number;
-  login: string;
-  perfil: 'admin' | 'user';
-  ativo: boolean;
-}
+import { UserRecord } from '../types/entities';
 
 interface LoginResponse {
   token: string;
-  user: User;
+  user: UserRecord;
 }
 
 export default function Login() {

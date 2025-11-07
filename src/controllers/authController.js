@@ -23,6 +23,7 @@ const authController = {
     const normalizedLogin = rawLogin.toLowerCase();
 
     const user = await db('usuarios')
+      .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome')
       .whereRaw('LOWER(login) = ?', [normalizedLogin])
       .orWhereRaw('LOWER(email) = ?', [normalizedLogin])
       .first();
@@ -130,10 +131,10 @@ const authController = {
       throw new AppError('Não foi possível obter o e-mail da conta Google.', 400);
     }
 
-    let user = await db('usuarios').where({ google_id }).first();
+    let user = await db('usuarios').select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome').where({ google_id }).first();
 
     if (!user) {
-      user = await db('usuarios').where({ email }).first();
+      user = await db('usuarios').select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome').where({ email }).first();
       if (user) {
         await db('usuarios').where({ id: user.id }).update({ google_id });
       }

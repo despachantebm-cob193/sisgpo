@@ -1,13 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { UserRecord } from '../types/entities';
 
 // A interface User está correta com 'login' e 'perfil'
-interface User {
-  id: number;
-  login: string;
-  perfil: 'admin' | 'user'; 
-  ativo: boolean;
-}
+interface User extends UserRecord {}
 
 interface AuthState {
   token: string | null;

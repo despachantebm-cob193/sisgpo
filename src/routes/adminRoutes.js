@@ -60,6 +60,7 @@ router.post('/obms/upload-csv', obmController.uploadCsv);
 
 
 // --- ROTAS CRUD (OBMs) ---\
+router.get('/obms/all', obmController.getAllSimple);
 router.get('/obms', obmController.getAll);
 router.get('/obms/search', obmController.search);
 router.post('/obms', validate(obmValidator.create), obmController.create);

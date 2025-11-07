@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Check, X, Pencil, Ban, RotateCcw, Trash2, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
 import api from '../services/api';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import UserFormModal from '../components/forms/UserFormModal';
+import UserRow from '../components/ui/UserRow';
 import { useAuthStore } from '../store/authStore';
 import { UserRecord } from '../types/entities';
 import { useUiStore } from '@/store/uiStore';
@@ -14,10 +15,6 @@ export default function Users() {
   const navigate = useNavigate();
   const { user: loggedUser } = useAuthStore();
   const { setPageTitle } = useUiStore();
-
-  useEffect(() => {
-    setPageTitle('Usuários');
-  }, [setPageTitle]);
 
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,23 +26,25 @@ export default function Users() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
 
   useEffect(() => {
+    setPageTitle('Usuarios');
+  }, [setPageTitle]);
+
+  useEffect(() => {
     if (loggedUser && loggedUser.perfil !== 'admin') {
       toast.error('Acesso restrito aos administradores.');
       navigate('/app/dashboard');
     }
   }, [loggedUser, navigate]);
 
-  const fetchUsers = async (): Promise<UserRecord[]> => {
+  const fetchUsers = async () => {
     setIsLoading(true);
     try {
       const response = await api.get<{ users: UserRecord[] }>('/api/admin/users');
       const data = response.data.users || [];
       setUsers(data);
-      return data;
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Não foi possível carregar os usuários.';
+      const message = error.response?.data?.message || 'Nao foi possivel carregar os usuarios.';
       toast.error(message);
-      return [];
     } finally {
       setIsLoading(false);
     }
@@ -80,10 +79,10 @@ export default function Users() {
     setRowActionLoading(item.id);
     try {
       await api.patch(`/api/admin/users/${item.id}/status`, { ativo: !item.ativo });
-      toast.success(!item.ativo ? 'Usuário reativado com sucesso!' : 'Usuário bloqueado com sucesso!');
+      toast.success(!item.ativo ? 'Usuario reativado com sucesso!' : 'Usuario bloqueado com sucesso!');
       await fetchUsers();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Não foi possível atualizar o status do usuário.';
+      const message = err.response?.data?.message || 'Nao foi possivel atualizar o status do usuario.';
       toast.error(message);
     } finally {
       setRowActionLoading(null);
@@ -104,10 +103,10 @@ export default function Users() {
     setRowActionLoading(item.id);
     try {
       await api.post(`/api/admin/users/${item.id}/approve`);
-      toast.success('Usuário aprovado com sucesso!');
+      toast.success('Usuario aprovado com sucesso!');
       await fetchUsers();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Não foi possível aprovar o usuário.';
+      const message = err.response?.data?.message || 'Nao foi possivel aprovar o usuario.';
       toast.error(message);
     } finally {
       setRowActionLoading(null);
@@ -118,10 +117,10 @@ export default function Users() {
     setRowActionLoading(item.id);
     try {
       await api.post(`/api/admin/users/${item.id}/reject`);
-      toast.success('Usuário rejeitado com sucesso!');
+      toast.success('Usuario rejeitado com sucesso!');
       await fetchUsers();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Não foi possível rejeitar o usuário.';
+      const message = err.response?.data?.message || 'Nao foi possivel rejeitar o usuario.';
       toast.error(message);
     } finally {
       setRowActionLoading(null);
@@ -129,21 +128,19 @@ export default function Users() {
   };
 
   const handleDelete = async () => {
-    if (!userPendingDelete) {
-      return;
-    }
+    if (!userPendingDelete) return;
 
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/users/${userPendingDelete.id}`);
-      toast.success('Usuário removido com sucesso.');
+      toast.success('Usuario removido com sucesso.');
       await fetchUsers();
       if (editingUser && editingUser.id === userPendingDelete.id) {
         handleCancel();
       }
       closeDeleteModal();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Não foi possível excluir o usuário.';
+      const message = err.response?.data?.message || 'Nao foi possivel excluir o usuario.';
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -151,26 +148,19 @@ export default function Users() {
   };
 
   const sortedUsers = useMemo(
-    () => [...users].sort((a, b) => a.login.localeCompare(b.login, 'pt-BR')),
+    () =>
+      [...users].sort((a, b) =>
+        (a.nome_completo ?? a.login).localeCompare(b.nome_completo ?? b.login, 'pt-BR'),
+      ),
     [users],
   );
 
-  const formatDate = (value?: string) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleString('pt-BR');
-  };
-
   const isOwnAccount = (userId: number) => loggedUser?.id === userId;
-
-  const responsiveCellClass =
-    'block px-4 py-2 text-sm text-textMain md:table-cell md:px-4 md:py-3 md:align-middle before:block before:text-xs before:font-semibold before:uppercase before:text-textSecondary before:content-[attr(data-label)] md:before:hidden';
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-textMain">Usuários</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-textMain">Usuarios</h2>
         <p className="mt-2 text-textSecondary">
           Cadastre novos acessos, ajuste perfis e bloqueie ou remova contas.
         </p>
@@ -178,7 +168,7 @@ export default function Users() {
 
       <div className="rounded-lg bg-cardSlate p-6 shadow-md">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <h3 className="text-xl font-semibold text-textMain">Usuários cadastrados</h3>
+          <h3 className="text-xl font-semibold text-textMain">Usuarios cadastrados</h3>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <button
               type="button"
@@ -194,197 +184,34 @@ export default function Users() {
               className="inline-flex items-center justify-center gap-2 rounded-md border border-transparent bg-tagBlue px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-tagBlue/80 focus:outline-none focus:ring-2 focus-visible:ring-tagBlue focus:ring-offset-2"
             >
               <PlusCircle className="h-5 w-5" />
-              Novo usuário
+              Novo usuario
             </button>
           </div>
         </div>
 
-        <div className="md:overflow-x-auto">
-          <table className="min-w-full divide-y divide-borderDark/60 text-sm">
-            <thead className="hidden bg-searchbar md:table-header-group">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Login
-                </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Nome completo
-                </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Email
-                </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Perfil
-                </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Status
-                </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Criado em
-                </th>
-                <th className="px-4 py-2 text-left font-medium uppercase tracking-wider text-textSecondary">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="space-y-4 md:space-y-0 md:divide-y md:divide-borderDark/40">
-              {isLoading ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-textSecondary"
-                  >
-                    Carregando usuários...
-                  </td>
-                </tr>
-              ) : sortedUsers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-textSecondary"
-                  >
-                    Nenhum usuário cadastrado até o momento.
-                  </td>
-                </tr>
-              ) : (
-                sortedUsers.map((item) => (
-                  <tr
-                    key={item.id}
-                    className={`block rounded-lg border border-borderDark/60 bg-cardSlate p-4 shadow-sm transition md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none md:hover:bg-searchbar ${
-                      item.ativo ? '' : 'md:bg-background'
-                    }`}
-                  >
-                    <td
-                      className={`${responsiveCellClass} font-medium text-textMain ${
-                        item.ativo ? '' : 'md:text-textSecondary'
-                      }`}
-                      data-label="Login"
-                    >
-                      {item.login}
-                    </td>
-                    <td
-                      className={`${responsiveCellClass} text-textMain ${
-                        item.ativo ? '' : 'md:text-textSecondary'
-                      }`}
-                      data-label="Nome completo"
-                    >
-                      {item.nome_completo ?? '-'}
-                    </td>
-                    <td
-                      className={`${responsiveCellClass} text-textSecondary ${
-                        item.ativo ? '' : 'md:text-textSecondary'
-                      }`}
-                      data-label="Email"
-                    >
-                      {item.email ?? '-'}
-                    </td>
-                    <td
-                      className={`${responsiveCellClass} capitalize text-textSecondary ${
-                        item.ativo ? '' : 'md:text-textSecondary'
-                      }`}
-                      data-label="Perfil"
-                    >
-                      {item.perfil}
-                    </td>
-                    <td className={responsiveCellClass} data-label="Status">
-                      {item.status === 'pending' ? (
-                        <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
-                          Pendente
-                        </span>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            item.ativo
-                              ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'
-                              : 'bg-premiumOrange/20 text-premiumOrange'
-                          }`}
-                        >
-                          {item.ativo ? 'Ativo' : 'Bloqueado'}
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      className={`${responsiveCellClass} text-textSecondary`}
-                      data-label="Criado em"
-                    >
-                      {formatDate(item.created_at)}
-                    </td>
-                    <td
-                      className={`${responsiveCellClass} md:text-left`}
-                      data-label="Ações"
-                    >
-                      <div className="mt-3 flex flex-wrap gap-3 md:mt-0">
-                        {item.status === 'pending' ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleApprove(item)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-green-500 text-white shadow hover:bg-green-600 transition disabled:opacity-60"
-                              disabled={rowActionLoading === item.id || isDeleting}
-                              aria-label={`Aprovar ${item.login}`}
-                              title={`Aprovar ${item.login}`}
-                            >
-                              <Check className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleReject(item)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-red-500 text-white shadow hover:bg-red-600 transition disabled:opacity-60"
-                              disabled={rowActionLoading === item.id || isDeleting}
-                              aria-label={`Rejeitar ${item.login}`}
-                              title={`Rejeitar ${item.login}`}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => startEdit(item)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-                              disabled={rowActionLoading === item.id || isDeleting}
-                              aria-label={`Editar ${item.login}`}
-                              title={`Editar ${item.login}`}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleStatus(item)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-amber-500 text-white shadow hover:bg-amber-600 transition disabled:opacity-60"
-                              disabled={
-                                rowActionLoading === item.id ||
-                                isDeleting ||
-                                (isOwnAccount(item.id) && item.ativo)
-                              }
-                              aria-label={item.ativo ? `Bloquear ${item.login}` : `Reativar ${item.login}`}
-                              title={item.ativo ? `Bloquear ${item.login}` : `Reativar ${item.login}`}
-                            >
-                              {item.ativo ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openDeleteModal(item)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-                              disabled={
-                                rowActionLoading === item.id ||
-                                isDeleting ||
-                                isOwnAccount(item.id)
-                              }
-                              aria-label={`Excluir ${item.login}`}
-                              title={`Excluir ${item.login}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {isLoading ? (
+            <div className="px-4 py-6 text-center text-textSecondary">Carregando usuarios...</div>
+          ) : sortedUsers.length === 0 ? (
+            <div className="px-4 py-6 text-center text-textSecondary">
+              Nenhum usuario cadastrado ate o momento.
+            </div>
+          ) : (
+            sortedUsers.map((user) => (
+              <UserRow
+                key={user.id}
+                user={user}
+                onEdit={startEdit}
+                onToggleStatus={handleToggleStatus}
+                onDelete={openDeleteModal}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                isOwnAccount={isOwnAccount(user.id)}
+                rowActionLoading={rowActionLoading}
+                isDeleting={isDeleting}
+              />
+            ))
+          )}
         </div>
       </div>
 
@@ -392,10 +219,10 @@ export default function Users() {
         isOpen={deleteModalOpen}
         onClose={closeDeleteModal}
         onConfirm={handleDelete}
-        title="Confirmar exclusão"
+        title="Confirmar exclusao"
         message={
           userPendingDelete
-            ? `Tem certeza de que deseja excluir o usuário "${userPendingDelete.login}"? Essa ação não poderá ser desfeita.`
+            ? `Tem certeza de que deseja excluir o usuario "${userPendingDelete.login}"? Essa acao nao podera ser desfeita.`
             : ''
         }
         isLoading={isDeleting}
@@ -410,4 +237,3 @@ export default function Users() {
     </div>
   );
 }
-

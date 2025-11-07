@@ -33,6 +33,29 @@ const FUNCOES_MILITARES = [
 const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
 
+const customSelectStyles = {
+    placeholder: (provided) => ({
+        ...provided,
+        color: '#5A6470',
+    }),
+    singleValue: (provided) => ({
+        ...provided,
+        color: '#333333',
+    }),
+    multiValueLabel: (provided) => ({
+        ...provided,
+        color: '#333333',
+    }),
+    menu: (provided) => ({
+        ...provided,
+        color: '#333333',
+    }),
+    input: (provided) => ({
+        ...provided,
+        color: '#333333',
+    }),
+};
+
 export default function ServicoDia() {
   const { setPageTitle } = useUiStore();
 
@@ -202,6 +225,7 @@ export default function ServicoDia() {
                     placeholder={placeholder}
                     value={selectValue}
                     onChange={(options) => handleSelectChange(funcao, options as any)}
+                    styles={customSelectStyles}
                   />
                 </div>
               );
