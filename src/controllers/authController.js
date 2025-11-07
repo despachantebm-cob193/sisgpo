@@ -34,6 +34,18 @@ const authController = {
       throw new AppError('Conta desativada. Procure um administrador.', 403);
     }
 
+    if (
+      user &&
+      user.status === 'pending' &&
+      user.perfil &&
+      !user.perfil_desejado
+    ) {
+      await db('usuarios')
+        .where({ id: user.id })
+        .update({ status: 'approved', updated_at: db.fn.now() });
+      user.status = 'approved';
+    }
+
     if (user.status === 'pending') {
       throw new AppError('Sua conta está pendente de aprovação.', 401);
     }
