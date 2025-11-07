@@ -10,34 +10,35 @@
   updated_at?: string;
 }
 
+export interface Viatura {
+  id?: number;
+  prefixo: string;
+  obm: string;
+  cidade: string;
+  ativa: boolean;
+  telefone: string;
+  synced?: boolean;
+}
+
 export interface Obm {
-  id: number;
+  id?: number;
   nome: string;
   abreviatura: string;
   cidade?: string | null;
   telefone?: string | null;
   crbm?: string | null;
   obm_id?: number;
-}
-
-export interface ObmOption {
-  value: string;
-  label: string;
-  cidade: string;
-}
-
-export interface ValidationError {
-  field: string;
-  message: string;
+  synced?: boolean;
 }
 
 export interface Aeronave {
-  id: number;
+  id?: number;
   prefixo: string;
   tipo_asa: 'fixa' | 'rotativa';
   ativa: boolean;
   created_at: string;
   updated_at: string;
+  synced?: boolean;
 }
 
 // TIPO ADICIONADO PARA CORRIGIR O ERRO

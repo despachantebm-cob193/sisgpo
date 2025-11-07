@@ -5,6 +5,8 @@ import Sidebar from './Sidebar';
 import { useUiStore } from '../../store/uiStore';
 import Header from './Header';
 
+import OfflineIndicator from '../ui/OfflineIndicator';
+
 const AppLayout: React.FC = () => {
   const { isSidebarCollapsed, toggleMobileMenu, isMobileMenuOpen } = useUiStore();
 
@@ -30,9 +32,8 @@ const AppLayout: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
           <Outlet />
         </main>
+        <OfflineIndicator />
       </div>
     </div>
   );
 };
-
-export default AppLayout;
