@@ -164,3 +164,4 @@ const militarController = {
 };
 
 module.exports = militarController;
+
