@@ -61,7 +61,7 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
         </span>
       </h3>
 
-      <div className="space-y-3">
+      <div className="viaturas-detalhamento">
         {data.map((item) => {
           const isOpen = openTipos.has(item.tipo);
           return (

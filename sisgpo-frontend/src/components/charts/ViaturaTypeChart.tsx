@@ -32,7 +32,7 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
     <div className="bg-cardSlate p-4 rounded-lg shadow-md flex flex-col">
       {/* Cabeçalho customizado para incluir o título e a data */}
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-textMain">Viaturas Disponíveis por Tipo</h3>
+        <h3 className="text-lg font-semibold text-white">Viaturas Disponíveis por Tipo</h3>
         <span className="text-sm font-medium bg-tagBlue text-white whitespace-nowrap px-2 py-1 rounded">
           Total: {totalDeViaturasNoGrafico}
         </span>
@@ -50,10 +50,10 @@ const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, 
             <ResponsiveContainer width="100%" height={alturaCalculada}>
               <BarChart data={data} layout="vertical" margin={{ top: 5, right: 45, left: 10, bottom: 20 }} barCategoryGap="20%">
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} tick={{ fontSize: 12, fill: '#374151' }} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} tick={{ fontSize: 12, fill: '#ffffff' }} />
                 <Tooltip cursor={{ fill: 'transparent' }} formatter={(value: number) => [`${value} Viatura(s)`, 'Quantidade']} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="#ff8c00">
-                  <LabelList dataKey="value" position="right" fill="#374151" fontSize={12} />
+                  <LabelList dataKey="value" position="right" fill="#ffffff" fontSize={12} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

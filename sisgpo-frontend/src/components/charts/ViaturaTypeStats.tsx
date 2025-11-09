@@ -25,7 +25,7 @@ const ViaturaTypeStats: React.FC<ViaturaTypeStatsProps> = ({ data, isLoading }) 
 
   return (
     <div className="bg-cardSlate p-4 rounded-lg shadow-md col-span-1 lg:col-span-2">
-      <h3 className="text-lg font-semibold text-textMain mb-4">Viaturas Disponíveis por Tipo</h3>
+      <h3 className="text-lg font-semibold text-white mb-4">Viaturas Disponíveis por Tipo</h3>
       
       {isLoading ? (
         <div className="h-96 flex justify-center items-center"><Spinner /></div>
@@ -65,10 +65,17 @@ const ViaturaTypeStats: React.FC<ViaturaTypeStatsProps> = ({ data, isLoading }) 
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 35, left: 10, bottom: 5 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={50} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  axisLine={false}
+                  tickLine={false}
+                  width={50}
+                  tick={{ fill: '#ffffff', fontSize: 12 }}
+                />
                 <Tooltip cursor={{ fill: 'transparent' }} />
                 <Bar dataKey="value" barSize={20} radius={[0, 4, 4, 0]} fill="#ff8c00">
-                   <LabelList dataKey="value" position="right" fill="#374151" fontSize={12} />
+                   <LabelList dataKey="value" position="right" fill="#ffffff" fontSize={12} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
