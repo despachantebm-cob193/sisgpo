@@ -222,7 +222,7 @@ export default function Viaturas() {
       <Input type="text" placeholder="Filtrar por prefixo..." value={filters.prefixo} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
 
       <div className="space-y-4">
-        <div className="md:hidden space-y-3">
+        <div className="viaturas-detalhamento space-y-3">
           {isLoading ? (
             <div className="flex justify-center py-6">
               <Spinner className="h-10 w-10" />
@@ -301,58 +301,7 @@ export default function Viaturas() {
           )}
         </div>
 
-        <div className="hidden md:block bg-cardSlate shadow-md rounded-lg overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-searchbar">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Prefixo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">OBM</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Sigla</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Cidade</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-borderDark/60">
-            {isLoading ? (
-              <tr><td colSpan={6} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
-            ) : viaturas.length > 0 ? (
-              viaturas.map((viatura) => (
-                <tr
-                  key={viatura.id}
-                  className={`block md:table-row border-b md:border-none p-4 md:p-0 ${
-                    viatura.obm_abreviatura ? '' : 'bg-[#1f2433] md:bg-premiumOrange/20'
-                  }`}
-                  title={viatura.obm_abreviatura ? undefined : 'Esta viatura ainda não está vinculada a uma sigla de OBM.'}
-                >
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium text-textMain" data-label="Prefixo:">{viatura.prefixo}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 text-sm text-textSecondary" data-label="OBM:">{viatura.obm || 'N/A'}</td>
-                  <td
-                    className={`block md:table-cell px-6 py-2 md:py-4 text-sm ${
-                      viatura.obm_abreviatura ? 'text-textSecondary' : 'text-spamRed font-semibold'
-                    }`}
-                    data-label="Sigla:"
-                  >
-                    {viatura.obm_abreviatura || 'N/A'}
-                  </td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Cidade:">{viatura.cidade || 'N/A'}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm" data-label="Status:">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${viatura.ativa ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/40' : 'bg-spamRed/20 text-spamRed'}`}>
-                      {viatura.ativa ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium space-x-4 mt-2 md:mt-0">
-                    <button onClick={() => handleOpenFormModal(viatura)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60" title="Editar"><Edit className="w-5 h-5" /></button>
-                    <button onClick={() => handleDeleteClick(viatura.id)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60" title="Excluir"><Trash2 className="w-5 h-5" /></button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan={6} className="text-center py-10 text-textSecondary">Nenhuma viatura encontrada.</td></tr>
-            )}
-          </tbody>
-        </table>
-        </div>
+
         {pagination && (
           <div className="mt-4">
             <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
