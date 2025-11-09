@@ -41,6 +41,34 @@
   .surface-success {
     @apply rounded-lg border border-borderDark bg-cardGreen text-textMain;
   }
+
+  .viaturas-detalhamento {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .viaturas-detalhamento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .viaturas-detalhamento {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .viaturas-detalhamento > * {
+    width: 100%;
+    box-sizing: border-box;
+    transition: transform 0.2s ease;
+  }
+
+  .viaturas-detalhamento > *:hover {
+    transform: translateY(-4px);
+  }
 }
 
 /* Application grid layout with pinned sidebar and header */
