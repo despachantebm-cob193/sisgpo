@@ -196,6 +196,58 @@ const authController = {
       user,
     });
   },
+
+  ssoLogin: async (req, res) => {
+    const payload = req.ssoPayload;
+
+    if (!payload || typeof payload !== 'object') {
+      throw new AppError('Payload SSO ausente ou inválido.', 400);
+    }
+
+    const emailClaim = (payload.email || payload.user_email || '').toString().toLowerCase();
+
+    if (!emailClaim) {
+      throw new AppError('Token SSO não contém e-mail do usuário.', 400);
+    }
+
+    const user = await db('usuarios')
+      .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome')
+      .whereRaw('LOWER(email) = ?', [emailClaim])
+      .first();
+
+    if (!user) {
+      throw new AppError('Usuário não cadastrado no SISGPO. Solicite acesso ao administrador.', 403);
+    }
+
+    if (!user.ativo) {
+      throw new AppError('Conta desativada. Procure um administrador.', 403);
+    }
+
+    if (user.status === 'pending') {
+      throw new AppError('Sua conta está pendente de aprovação.', 401);
+    }
+
+    if (user.status === 'rejected') {
+      throw new AppError('Sua conta foi rejeitada.', 401);
+    }
+
+    const perfil = (user.perfil || '').toLowerCase();
+    const token = jwt.sign(
+      { id: user.id, login: user.login, perfil },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    delete user.senha_hash;
+    user.perfil = perfil;
+    user.ativo = Boolean(user.ativo);
+
+    res.status(200).json({
+      message: 'Login SSO bem-sucedido!',
+      token,
+      user,
+    });
+  },
 };
 
 module.exports = authController;

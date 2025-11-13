@@ -21,6 +21,7 @@ const Profile = lazy(() => import('../pages/Profile'));
 const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
+const SsoLogin = lazy(() => import('../pages/SsoLogin'));
 
 const PublicOnlyLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
@@ -88,6 +89,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Suspended><Login /></Suspended>,
+  },
+  {
+    path: '/sso/login',
+    element: <Suspended><SsoLogin /></Suspended>,
   },
   {
     path: '/app',
