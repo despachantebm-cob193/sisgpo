@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Edit, Trash2, Trash, Plus, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, Trash, Plus, ChevronDown, Upload } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { Obm, ObmOption } from '@/types/entities';
 import api from '@/services/api';
@@ -52,6 +53,51 @@ export default function Obms() {
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [openCrbmKeys, setOpenCrbmKeys] = useState<Set<string>>(() => new Set());
   const [openCitiesByCrbm, setOpenCitiesByCrbm] = useState<Record<string, Set<string>>>(() => ({}));
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+
+  const rowVirtualizer = useVirtualizer({
+    count: obms.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 65, // Estimate row height
+    overscan: 5,
+  });
+
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+
+    if (!scrollElement) {
+      setScrollbarWidth(0);
+      return;
+    }
+
+    const updateScrollbarWidth = () => {
+      const width = scrollElement.offsetWidth - scrollElement.clientWidth;
+      setScrollbarWidth(width > 0 ? width : 0);
+    };
+
+    updateScrollbarWidth();
+
+    let resizeObserver: ResizeObserver | null = null;
+    let listeningWindowResize = false;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(updateScrollbarWidth);
+      resizeObserver.observe(scrollElement);
+    } else if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updateScrollbarWidth);
+      listeningWindowResize = true;
+    }
+
+    return () => {
+      resizeObserver?.disconnect();
+      if (listeningWindowResize && typeof window !== 'undefined') {
+        window.removeEventListener('resize', updateScrollbarWidth);
+      }
+    };
+  }, [obms.length]);
 
   useEffect(() => {
     setPageTitle('Gerenciar OBMs');
@@ -60,7 +106,7 @@ export default function Obms() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '15' });
+      const params = new URLSearchParams({ page: String(currentPage), limit: '1000' }); // Fetch all for virtualization
       if (filters.nome) params.append('nome', filters.nome);
 
       const [obmsRes, optionsRes, metadataRes] = await Promise.all([
@@ -87,7 +133,7 @@ export default function Obms() {
         setLastUpload(null);
       }
     } catch (error) {
-      toast.error('N�o foi poss�vel carregar os dados das OBMs.');
+      toast.error('Nao foi possivel carregar os dados das OBMs.');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -192,7 +238,7 @@ export default function Obms() {
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data?.errors) {
         setValidationErrors(err.response.data.errors);
-        toast.error('Por favor, corrija os erros no formul�rio.');
+        toast.error('Por favor, corrija os erros no formulario.');
       } else {
         toast.error(err.response?.data?.message || 'Erro ao salvar OBM.');
       }
@@ -206,7 +252,7 @@ export default function Obms() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/obms/${itemToDeleteId}`);
-      toast.success('OBM exclu�da com sucesso!');
+      toast.success('OBM excluida com sucesso!');
       fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao excluir OBM.');
@@ -241,9 +287,10 @@ export default function Obms() {
         const preview = response.data.errors.slice(0, 3).join(' | ');
         const remaining = response.data.errors.length > 3 ? ` ... (+${response.data.errors.length - 3} linhas)` : '';
         toast.error(`Algumas linhas foram ignoradas: ${preview}${remaining}`);
-        console.warn('Linhas ignoradas durante a importa��o:', response.data.errors);
+        console.warn('Linhas ignoradas durante a importacao:', response.data.errors);
       }
       fetchData();
+      setIsUploadModalOpen(false);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erro ao enviar o arquivo.');
     } finally {
@@ -262,9 +309,13 @@ export default function Obms() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar OBMs</h2>
-          <p className="text-textSecondary mt-2">Adicione, edite ou remova organiza��es militares.</p>
+          <p className="text-textSecondary mt-2">Adicione, edite ou remova organizacoes militares.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
+          <Button onClick={() => setIsUploadModalOpen(true)} variant="warning">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload / Atualizar
+          </Button>
           <Button
             onClick={() => setIsConfirmDeleteAllModalOpen(true)}
             variant="danger"
@@ -280,14 +331,6 @@ export default function Obms() {
         </div>
       </div>
 
-      <FileUpload
-        title="Atualizar Cidades/Telefones via Planilha"
-        onUpload={handleUpload}
-        isLoading={isUploading}
-        acceptedFileTypes=".csv"
-        lastUpload={lastUpload}
-      />
-
       <Input
         type="text"
         placeholder="Filtrar por nome..."
@@ -297,7 +340,7 @@ export default function Obms() {
       />
 
       <div className="space-y-6">
-        <section className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-4 shadow-sm md:p-6">
+        <section className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-4 shadow-sm md:p-6 md:hidden">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-2xl font-semibold text-textMain">Visao hierarquica das OBMs</h3>
@@ -441,50 +484,67 @@ export default function Obms() {
 
 
         <div className="hidden md:block bg-cardSlate shadow-md rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-fixed">
-              <thead className="bg-searchbar">
+          <table
+            className="min-w-full table-fixed"
+            style={scrollbarWidth > 0 ? { width: `calc(100% - ${scrollbarWidth}px)` } : undefined}
+          >
+            <thead className="bg-searchbar">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '35%' }}>Nome</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Sigla</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>CRBM</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Cidade</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Telefone</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>A��es</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>Acoes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
+          </table>
+          <div ref={parentRef} className="overflow-auto" style={{ height: '600px' }}>
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-10">
-                    <Spinner className="h-10 w-10 mx-auto" />
-                  </td>
-                </tr>
-              ) : obms.length > 0 ? (
-                obms.map((obm) => (
-                  <tr key={obm.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
-                    <td className="block md:table-cell px-6 py-2 md:py-4 text-sm font-medium text-textMain break-words" data-label="Nome:">{obm.nome}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Abreviatura:">{obm.abreviatura}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="CRBM:">{obm.crbm || 'N/A'}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Cidade:">{obm.cidade || 'N/A'}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Telefone:">{obm.telefone || 'N/A'}</td>
-                    <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-center text-sm font-medium space-x-4 mt-2 md:mt-0">
-                      <button onClick={() => handleOpenFormModal(obm)} className="text-tagBlue hover:text-tagBlue/80" title="Editar">
-                        <Edit className="w-5 h-5 inline-block" />
-                      </button>
-                      <button onClick={() => handleDeleteClick(obm.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir">
-                        <Trash2 className="w-5 h-5 inline-block" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                <div className="flex justify-center items-center h-full">
+                  <Spinner className="h-10 w-10" />
+                </div>
+              ) : rowVirtualizer.getVirtualItems().length > 0 ? (
+                rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const obm = obms[virtualRow.index];
+                  return (
+                    <div
+                      key={obm.id}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                      className="border-b border-borderDark/60"
+                    >
+                      <div className="px-6 py-2 text-sm font-medium text-textMain break-words" style={{ width: '35%' }}>{obm.nome}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.abreviatura}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.crbm || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.cidade || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.telefone || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-center text-sm font-medium space-x-4" style={{ width: '10%' }}>
+                        <button onClick={() => handleOpenFormModal(obm)} className="text-tagBlue hover:text-tagBlue/80" title="Editar">
+                          <Edit className="w-5 h-5 inline-block" />
+                        </button>
+                        <button onClick={() => handleDeleteClick(obm.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir">
+                          <Trash2 className="w-5 h-5 inline-block" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
-                <tr>
-                  <td colSpan={6} className="text-center py-10 text-textSecondary">Nenhuma OBM encontrada.</td>
-                </tr>
+                <div className="flex justify-center items-center h-full">
+                  <p className="text-textSecondary">Nenhuma OBM encontrada.</p>
+                </div>
               )}
-              </tbody>
-            </table>
+            </div>
           </div>
         </div>
 
@@ -516,7 +576,7 @@ export default function Obms() {
         isOpen={isConfirmModalOpen}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmDelete}
-        title="Confirmar Exclus�o"
+        title="Confirmar Exclusao"
         message="Tem certeza que deseja excluir esta OBM?"
         isLoading={isDeleting}
       />
@@ -526,17 +586,28 @@ export default function Obms() {
         onClose={() => setIsConfirmDeleteAllModalOpen(false)}
         onConfirm={handleConfirmDeleteAll}
         title="Confirmar limpeza"
-        message="Esta a��o remover� todas as OBMs cadastradas. Deseja continuar?"
+        message="Esta acao removera todas as OBMs cadastradas. Deseja continuar?"
         isLoading={isDeletingAll}
       />
+
+      <Modal
+        isOpen={isUploadModalOpen}
+        title="Atualizar Cidades/Telefones via Planilha"
+        onClose={() => setIsUploadModalOpen(false)}
+      >
+        <FileUpload
+          title="Atualizar Cidades/Telefones via Planilha"
+          onUpload={handleUpload}
+          isLoading={isUploading}
+          acceptedFileTypes=".csv"
+          lastUpload={lastUpload}
+        />
+        <div className="flex justify-end mt-4">
+          <Button onClick={() => setIsUploadModalOpen(false)} variant="secondary">
+            Cancelar
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
-
-
-
-
-
-
-
-

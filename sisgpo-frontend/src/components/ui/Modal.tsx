@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 // Define as propriedades que o componente Modal aceita
 interface ModalProps {
@@ -21,6 +22,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       <div className="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-cardSlate">
         <div className="flex justify-between items-center pb-3 border-b">
           <h3 className="text-2xl font-bold">{title}</h3>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
+            aria-label="Fechar modal"
+          >
+            <X size={24} />
+          </button>
         </div>
         <div className="mt-5">
           {/* O conteúdo (children) do modal será renderizado aqui */}

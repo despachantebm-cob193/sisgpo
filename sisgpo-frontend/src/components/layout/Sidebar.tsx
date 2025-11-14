@@ -60,25 +60,26 @@ export default function Sidebar() {
 
   const renderSidebarContent = (isCollapsed: boolean) => (
     <div className="flex h-full flex-col bg-searchbar text-textMain border-r border-borderDark/60">
-    <div className="px-3">
-      <div
-        className={`relative flex h-16 items-center border-b border-borderDark ${isCollapsed ? 'justify-center' : 'justify-between'
-          }`}>
-        {isCollapsed ? (
-          <TfiJoomla className="text-textMain text-3xl" />
-        ) : (
-          <div className="flex items-center">
-            <TfiJoomla className="mr-2 text-2xl text-textMain" />
-            <div>
+      <div className="px-3">
+        <div
+          className={`relative flex h-16 items-center ${isCollapsed ? 'justify-center' : 'justify-center'
+            }`}>
+          {isCollapsed ? (
+            <TfiJoomla className="text-textMain text-3xl" />
+          ) : (
+            <div className="flex items-center justify-center w-full">
               <h1 className="text-xl font-bold text-textMain">SISGPO</h1>
             </div>
-          </div>
-        )}
-        <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
+          )}
+          <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
             <X size={24} className="text-textMain" />
-        </button>
+          </button>
+        </div>
       </div>
-    </div>
+
+      <div className="px-3">
+        <div className="border-t border-gray-600"></div>
+      </div>
 
       <div className="flex-1 px-3 overflow-y-auto">
         <ul className="space-y-2 pt-4 font-medium pb-24">
