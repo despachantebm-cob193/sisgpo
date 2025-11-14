@@ -14,6 +14,7 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
 import { useUiStore } from '@/store/uiStore';
+import type { Plantao } from './Plantoes';
 
 interface Viatura {
   id: number;
@@ -50,6 +51,7 @@ export default function Viaturas() {
   const [isClearConfirmModalOpen, setIsClearConfirmModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
+  const [empenhadasViaturas, setEmpenhadasViaturas] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -61,6 +63,43 @@ export default function Viaturas() {
     } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
     finally { setIsLoading(false); }
   }, [filters, currentPage]);
+
+  const fetchEmpenhadas = useCallback(async () => {
+    try {
+      const engaged = new Set<string>();
+      let page = 1;
+      const limit = 100;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      while (true) {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        const response = await api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`);
+        const plantoes = response.data.data ?? [];
+        plantoes.forEach((plantao) => {
+          const normalizedPrefix = plantao.viatura_prefixo?.trim().toUpperCase();
+          if (!normalizedPrefix) {
+            return;
+          }
+          const plantaoDate = new Date(plantao.data_plantao);
+          plantaoDate.setHours(0, 0, 0, 0);
+          if (Number.isNaN(plantaoDate.getTime())) {
+            return;
+          }
+          if (plantaoDate >= today) {
+            engaged.add(normalizedPrefix);
+          }
+        });
+        const paginationInfo = response.data.pagination;
+        if (!paginationInfo || paginationInfo.currentPage >= paginationInfo.totalPages) {
+          break;
+        }
+        page += 1;
+      }
+      setEmpenhadasViaturas(engaged);
+    } catch {
+      setEmpenhadasViaturas(new Set());
+    }
+  }, []);
 
   // --- INÍCIO DA CORREÇÃO ---
   const fetchLastUpload = useCallback(async () => {
@@ -91,7 +130,12 @@ export default function Viaturas() {
   }, []);
   // --- FIM DA CORREÇÃO ---
 
-  useEffect(() => { fetchData(); fetchLastUpload(); }, [fetchData, fetchLastUpload]);
+  const refreshData = useCallback(async () => {
+    await fetchData();
+    await fetchEmpenhadas();
+  }, [fetchData, fetchEmpenhadas]);
+
+  useEffect(() => { refreshData(); fetchLastUpload(); }, [refreshData, fetchLastUpload]);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ prefixo: e.target.value }); setCurrentPage(1); };
@@ -154,7 +198,7 @@ export default function Viaturas() {
         toast.success(`Viatura ${action} com sucesso!`);
       }
       handleCloseFormModal();
-      fetchData();
+      await refreshData();
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data.errors) {
         setValidationErrors(err.response.data.errors);
@@ -171,7 +215,7 @@ export default function Viaturas() {
     try {
       await api.delete(`/api/admin/viaturas/${itemToDeleteId}`);
       toast.success('Viatura excluída com sucesso!');
-      fetchData();
+      await refreshData();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir a viatura.'); }
     finally { setIsDeleting(false); handleCloseConfirmModal(); }
   };
@@ -183,7 +227,7 @@ export default function Viaturas() {
     try {
       const response = await api.post('/api/admin/viaturas/upload-csv', formData);
       toast.success(response.data.message || 'Arquivo enviado com sucesso!');
-      fetchData();
+      await refreshData();
       fetchLastUpload();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao enviar arquivo.'); }
     finally { setIsUploading(false); }
@@ -194,10 +238,30 @@ export default function Viaturas() {
     try {
       await api.delete('/api/admin/viaturas/clear-all');
       toast.success('Tabela de viaturas limpa com sucesso!');
-      fetchData();
+      await refreshData();
       fetchLastUpload();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao limpar a tabela de viaturas.'); }
     finally { setIsClearing(false); setIsClearConfirmModalOpen(false); }
+  };
+
+  const getViaturaStatus = (viatura: Viatura) => {
+    const prefix = viatura.prefixo?.toUpperCase() ?? '';
+    if (prefix && empenhadasViaturas.has(prefix)) {
+      return {
+        label: 'EMPENHADO',
+        classes: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40',
+      };
+    }
+    if (viatura.ativa) {
+      return {
+        label: 'ATIVA',
+        classes: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40',
+      };
+    }
+    return {
+      label: 'INATIVA',
+      classes: 'bg-spamRed/20 text-spamRed',
+    };
   };
 
   return (
@@ -222,7 +286,8 @@ export default function Viaturas() {
       <Input type="text" placeholder="Filtrar por prefixo..." value={filters.prefixo} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
 
       <div className="space-y-4">
-        <div className="viaturas-detalhamento space-y-3">
+        {/* Card View for Mobile */}
+        <div className="viaturas-detalhamento space-y-3 md:hidden">
           {isLoading ? (
             <div className="flex justify-center py-6">
               <Spinner className="h-10 w-10" />
@@ -231,6 +296,7 @@ export default function Viaturas() {
             viaturas.map((viatura) => {
               const hasSigla = Boolean(viatura.obm_abreviatura);
               const isExpanded = expandedCards.has(viatura.id);
+              const status = getViaturaStatus(viatura);
               return (
                 <div
                   key={viatura.id}
@@ -266,13 +332,9 @@ export default function Viaturas() {
                       <div>
                         <p className="text-xs font-semibold uppercase">Status</p>
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            viatura.ativa
-                              ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                              : 'bg-spamRed/20 text-spamRed'
-                          }`}
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}
                         >
-                          {viatura.ativa ? 'Ativa' : 'Inativa'}
+                          {status.label}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 pt-2">
@@ -301,6 +363,54 @@ export default function Viaturas() {
           )}
         </div>
 
+        {/* Table View for Desktop */}
+        <div className="hidden md:block bg-cardSlate border border-borderDark/60 rounded-lg shadow-sm">
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Spinner className="h-10 w-10" />
+            </div>
+          ) : viaturas.length > 0 ? (
+            <table className="min-w-full divide-y divide-borderDark/60">
+              <thead className="bg-background/40">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Prefixo</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">OBM</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Cidade</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
+                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borderDark/60">
+                {viaturas.map((viatura) => {
+                  const status = getViaturaStatus(viatura);
+                  return (
+                    <tr key={viatura.id} className="hover:bg-background/40 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-textMain">{viatura.prefixo}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{viatura.obm_abreviatura || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{viatura.cidade || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}>
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className="py-10 text-center text-textSecondary">Nenhuma viatura encontrada.</p>
+          )}
+        </div>
+
 
         {pagination && (
           <div className="mt-4">
@@ -317,4 +427,6 @@ export default function Viaturas() {
     </div>
   );
 }
+
+
 

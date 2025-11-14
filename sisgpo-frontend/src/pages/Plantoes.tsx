@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Plantoes.tsx (VERSÃO FINAL RESPONSIVA)
+// Arquivo: frontend/src/pages/Plantoes.tsx (VERS?O FINAL RESPONSIVA)
 
 import React, { useEffect, useState, useCallback, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
@@ -14,7 +14,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
 import { Edit, Trash2, CalendarPlus, Plane, Shield, Stethoscope, Car, User, Briefcase } from 'lucide-react';
 
-// --- Formulários ---
+// --- Formul?rios ---
 import PlantaoForm from '@/components/forms/PlantaoForm';
 import EscalaMedicoForm from '@/components/forms/EscalaMedicoForm';
 import EscalaAeronaveForm from '@/components/forms/EscalaAeronaveForm';
@@ -36,6 +36,8 @@ export interface GuarnicaoMembro {
 export interface Plantao {
   id: number;
   data_plantao: string;
+  horario_inicio?: string | null;
+  horario_fim?: string | null;
   viatura_prefixo: string;
   obm_abreviatura: string;
   guarnicao: GuarnicaoMembro[];
@@ -46,6 +48,8 @@ export interface Viatura { id: number; prefixo: string; obm_id: number | null; }
 export interface PlantaoDetalhado {
   id: number;
   data_plantao: string;
+  horario_inicio?: string | null;
+  horario_fim?: string | null;
   viatura_id: number;
   obm_id: number | null;
   observacoes: string;
@@ -59,7 +63,7 @@ interface EscalaCodec { id: number; data: string; turno: 'Diurno' | 'Noturno'; o
 
 type ActiveTab = 'plantoes' | 'escalaMedicos' | 'escalaAeronaves' | 'escalaCodec';
 
-// Componente para os botões das abas
+// Componente para os bot?es das abas
 const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: React.ElementType; label: string }) => (
   <button
     onClick={onClick}
@@ -114,21 +118,20 @@ export default function Plantoes() {
       setPlantaoToEdit(response.data);
       setIsPlantaoModalOpen(true);
     } catch (err) {
-      toast.error('Não foi possível carregar os dados do plantão para edição.');
+      toast.error('N?o foi poss?vel carregar os dados do plant?o para edi??o.');
     }
   };
 
   const fetchViaturas = useCallback(async () => {
-      try {
-        // Assegura que o tipo esperado é um array de Viaturas
-        const viaturasRes = await api.get<ApiResponse<Viatura>>('/api/admin/viaturas/simple');
-        // Adiciona fallback para array vazio caso a resposta não venha como esperado
-        setViaturas(viaturasRes.data.data || []);
-      } catch (err) {
-        toast.error('Não foi possível carregar a lista de viaturas.');
-        setViaturas([]); // Garante que seja um array vazio em caso de erro
-      }
-    }, []);
+    try {
+      const params = new URLSearchParams({ page: '1', limit: '500' });
+      const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
+      setViaturas(response.data.data ?? []);
+    } catch (err) {
+      toast.error('N?o foi poss?vel carregar a lista de viaturas.');
+      setViaturas([]);
+    }
+  }, []);
 
   const fetchPlantoes = useCallback(async () => {
     setIsLoadingPlantoes(true);
@@ -139,7 +142,7 @@ export default function Plantoes() {
       setPlantoes(plantoesRes.data.data);
       setPlantaoPagination(plantoesRes.data.pagination);
 
-    } catch (err) { toast.error('Não foi possível carregar os plantões.'); }
+    } catch (err) { toast.error('N?o foi poss?vel carregar os plant?es.'); }
     finally { setIsLoadingPlantoes(false); }
   }, [filters, currentPlantaoPage]);
 
@@ -149,7 +152,7 @@ export default function Plantoes() {
       const params = new URLSearchParams(filters);
       const response = await api.get<ApiResponse<EscalaMedico>>(`/api/admin/escala-medicos?${params.toString()}`);
       setEscalaMedicos(response.data.data || []);
-    } catch (err) { toast.error('Não foi possível carregar a escala de médicos.'); }
+    } catch (err) { toast.error('N?o foi poss?vel carregar a escala de m?dicos.'); }
     finally { setIsLoadingEscalaMedicos(false); }
   }, [filters]);
 
@@ -159,7 +162,7 @@ export default function Plantoes() {
       const params = new URLSearchParams(filters);
       const response = await api.get<EscalaAeronave[]>(`/api/admin/escala-aeronaves?${params.toString()}`);
       setEscalaAeronaves(response.data);
-    } catch (err) { toast.error('Não foi possível carregar a escala de aeronaves.'); }
+    } catch (err) { toast.error('N?o foi poss?vel carregar a escala de aeronaves.'); }
     finally { setIsLoadingAeronaves(false); }
   }, [filters]);
 
@@ -169,13 +172,25 @@ export default function Plantoes() {
       const params = new URLSearchParams(filters);
       const response = await api.get<EscalaCodec[]>(`/api/admin/escala-codec?${params.toString()}`);
       setEscalaCodec(response.data);
-    } catch (err) { toast.error('Não foi possível carregar a escala do CODEC.'); }
+    } catch (err) { toast.error('N?o foi poss?vel carregar a escala do CODEC.'); }
     finally { setIsLoadingCodec(false); }
   }, [filters]);
 
   useEffect(() => {
     fetchViaturas();
   }, [fetchViaturas]);
+
+  useEffect(() => {
+    if (isPlantaoModalOpen) {
+      fetchViaturas();
+    }
+  }, [isPlantaoModalOpen, fetchViaturas]);
+
+  useEffect(() => {
+    if (isPlantaoModalOpen) {
+      fetchViaturas();
+    }
+  }, [isPlantaoModalOpen, fetchViaturas]);
 
   useEffect(() => {
     switch (activeTab) {
@@ -191,25 +206,25 @@ export default function Plantoes() {
     try {
       if (data.id) await api.put(`/api/admin/plantoes/${data.id}`, data);
       else await api.post('/api/admin/plantoes', data);
-      toast.success('Plantão salvo com sucesso!');
+      toast.success('Plant?o salvo com sucesso!');
       setIsPlantaoModalOpen(false);
       fetchPlantoes();
     } catch (err: any) {
-      // Log para depuração
+      // Log para depura??o
       if (err.response) {
         console.log('Dados da resposta de erro do servidor:', err.response.data);
 
         // ADICIONE ESTA LINHA para inspecionar o array de erros diretamente
         if (err.response.data.errors) {
-          console.log('Detalhes dos erros de validação:', err.response.data.errors);
+          console.log('Detalhes dos erros de valida??o:', err.response.data.errors);
         }
 
       } else {
-        console.error("Erro não relacionado a uma resposta do servidor:", err);
+        console.error("Erro n?o relacionado a uma resposta do servidor:", err);
       }
 
-      // Lógica aprimorada para exibir o erro
-      let errorMessage = 'Erro ao salvar o plantão.';
+      // L?gica aprimorada para exibir o erro
+      let errorMessage = 'Erro ao salvar o plant?o.';
       if (err.response && err.response.data) {
         const { data } = err.response;
         
@@ -217,7 +232,7 @@ export default function Plantoes() {
         if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
             errorMessage = data.errors.map((e: { msg: string }) => e.msg).join('; ');
         } 
-        // Senão, usa a mensagem principal se ela existir
+        // Sen?o, usa a mensagem principal se ela existir
         else if (data.message) {
             errorMessage = data.message;
         }
@@ -231,7 +246,7 @@ export default function Plantoes() {
     setIsSavingEscalaMedico(true);
     try {
       await api.post('/api/admin/escala-medicos', data);
-      toast.success('Registro de escala médica salvo com sucesso!');
+      toast.success('Registro de escala m?dica salvo com sucesso!');
       setIsEscalaMedicoModalOpen(false);
       fetchEscalaMedicos();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao salvar escala.'); }
@@ -241,7 +256,7 @@ export default function Plantoes() {
   const handleSaveAeronave = async (data: any) => {
     setIsSavingAeronave(true);
     try {
-      // A requisição POST é feita aqui
+      // A requisi??o POST ? feita aqui
       await api.post('/api/admin/escala-aeronaves', data);
       
       toast.success('Escala de aeronave salva com sucesso!');
@@ -258,12 +273,12 @@ export default function Plantoes() {
         console.error('Erro inesperado:', error);
       }
 
-      // 2. Prepara uma mensagem clara para o usuário
-      let errorMessage = 'Não foi possível salvar a escala.';
+      // 2. Prepara uma mensagem clara para o usu?rio
+      let errorMessage = 'N?o foi poss?vel salvar a escala.';
       if (error.response && error.response.data) {
         const errorData = error.response.data;
         
-        // Concatena múltiplos erros de validação, se o backend os enviar
+        // Concatena m?ltiplos erros de valida??o, se o backend os enviar
         if (errorData.errors && Array.isArray(errorData.errors)) {
           errorMessage = errorData.errors.map((e: { msg: string }) => e.msg).join('; ');
         } else if (errorData.message) {
@@ -271,7 +286,7 @@ export default function Plantoes() {
         }
       }
       
-      // 3. Exibe o erro para o usuário usando um toast
+      // 3. Exibe o erro para o usu?rio usando um toast
       toast.error(errorMessage);
 
     } finally {
@@ -305,7 +320,7 @@ export default function Plantoes() {
       else if (itemToDelete.type === 'escalaCodec') url = `/api/admin/escala-codec/${itemToDelete.id}`;
       
       await api.delete(url);
-      toast.success('Registro excluído com sucesso!');
+      toast.success('Registro exclu?do com sucesso!');
       
       switch (itemToDelete.type) {
         case 'plantoes': fetchPlantoes(); break;
@@ -323,18 +338,32 @@ export default function Plantoes() {
   };
 
   const formatDate = (isoDate: string) => new Date(isoDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-  const formatDateTime = (isoString: string) => new Date(isoString).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatTime = (value?: string | null) => {
+    if (!value) return '--:--';
+    if (/^d{2}:d{2}/.test(value)) return value.slice(0, 5);
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().substring(11, 16);
+    return value;
+  };
+  const formatDateTime = (isoString: string) =>
+    new Date(isoString).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciamento de Escalas</h2>
-          <p className="text-textSecondary mt-2">Gerencie as escalas de viaturas, médicos, pilotos e plantonistas.</p>
+          <p className="text-textSecondary mt-2">Gerencie as escalas de viaturas, m?dicos, pilotos e plantonistas.</p>
         </div>
         <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-          <Button onClick={() => setIsPlantaoModalOpen(true)} variant="primary"><CalendarPlus className="w-4 h-4 mr-2" />Lançar Plantão VTR</Button>
-          <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="!bg-emerald-500 hover:!bg-emerald-600 text-white"><Stethoscope className="w-4 h-4 mr-2" />Escala Médicos</Button>
+          <Button onClick={() => setIsPlantaoModalOpen(true)} variant="primary"><CalendarPlus className="w-4 h-4 mr-2" />Lan?ar Plant?o VTR</Button>
+          <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="!bg-emerald-500 hover:!bg-emerald-600 text-white"><Stethoscope className="w-4 h-4 mr-2" />Escala M?dicos</Button>
           <Button onClick={() => setIsAeronaveModalOpen(true)} className="!bg-amber-500 hover:!bg-amber-600 text-white"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
           <Button onClick={() => setIsCodecModalOpen(true)} className="bg-codecPurple hover:bg-codecPurple/80 text-white"><Shield className="w-4 h-4 mr-2" />Escala CODEC</Button>
         </div>
@@ -342,7 +371,7 @@ export default function Plantoes() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-searchbar rounded-lg border">
         <div>
-          <Label htmlFor="data_inicio">Data Início</Label>
+          <Label htmlFor="data_inicio">Data In?cio</Label>
           <Input id="data_inicio" type="date" value={filters.data_inicio} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({...prev, data_inicio: e.target.value}))} />
         </div>
         <div>
@@ -355,17 +384,17 @@ export default function Plantoes() {
       </div>
 
       <div>
-        {/* --- NAVEGAÇÃO DE ABAS COM BOTÕES --- */}
+        {/* --- NAVEGA??O DE ABAS COM BOT?ES --- */}
         <div className="p-2 bg-background rounded-lg mb-4">
           <div className="flex flex-col sm:flex-row gap-2">
             <TabButton active={activeTab === 'plantoes'} onClick={() => setActiveTab('plantoes')} icon={Car} label="Viaturas" />
-            <TabButton active={activeTab === 'escalaMedicos'} onClick={() => setActiveTab('escalaMedicos')} icon={Stethoscope} label="Médicos" />
+            <TabButton active={activeTab === 'escalaMedicos'} onClick={() => setActiveTab('escalaMedicos')} icon={Stethoscope} label="M?dicos" />
             <TabButton active={activeTab === 'escalaAeronaves'} onClick={() => setActiveTab('escalaAeronaves')} icon={Plane} label="Aeronaves" />
-            <TabButton active={activeTab === 'escalaCodec'} onClick={() => setActiveTab('escalaCodec')} icon={Shield} label="Plantões (Supervisão/Defesa)" />
+            <TabButton active={activeTab === 'escalaCodec'} onClick={() => setActiveTab('escalaCodec')} icon={Shield} label="Plant?es (Supervis?o/Defesa)" />
           </div>
         </div>
 
-        {/* --- CONTEÚDO DAS ABAS COM TABELAS RESPONSIVAS --- */}
+        {/* --- CONTE?DO DAS ABAS COM TABELAS RESPONSIVAS --- */}
         {activeTab === 'plantoes' && (
           <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
             {isLoadingPlantoes ? <div className="text-center py-10"><Spinner /></div> : (
@@ -374,32 +403,65 @@ export default function Plantoes() {
                   <thead className="bg-searchbar hidden md:table-header-group">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Data</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Horario Inicial</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Horario Final</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Viatura</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Militar(es) Escalado(s)</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Funcoes</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">OBM</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Guarnicao</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">A??es</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
                     {plantoes.map(p => (
                       <tr key={p.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(p.data_plantao)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Horario Inicial:">{formatTime(p.horario_inicio)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Horario Final:">{formatTime(p.horario_fim)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Viatura:">{p.viatura_prefixo}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Militar(es) Escalado(s):">
-                          {p.guarnicao.length
-                            ? p.guarnicao.map(m => (m.nome_exibicao || m.nome_completo || '').trim()).filter(Boolean).join(', ')
-                            : 'Sem militar escalado'}
-                        </td>
-                        <td className="block md:table-cell px-6 py-2 md-py-4" data-label="Funcoes:">
-                          {p.guarnicao && p.guarnicao.length > 0
-                            ? p.guarnicao.map(m => m.funcao).join(', ')
-                            : 'Sem funcao definida'}
-                        </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center space-x-4">
-                          <button aria-label="Editar" onClick={() => handleEditClick(p.id)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"><Edit size={18}/> Editar</button>
-                          <button onClick={() => handleDeleteClick(p.id, 'plantoes')} className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"><Trash2 size={18}/> Excluir</button>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Guarnicao:">
+                          {p.guarnicao.length ? (
+                            <ul className="space-y-1">
+                              {p.guarnicao.map((m, index) => {
+                                const nome =
+                                  (m.nome_exibicao || m.nome_completo || m.nome_guerra || '').trim() ||
+                                  'Militar sem identificacao';
+                                return (
+                                  <li
+                                    key={`${p.id}-${m.militar_id ?? index}`}
+                                    className="flex flex-wrap items-center gap-2"
+                                  >
+                                    <span className="font-semibold text-textMain">{nome}</span>
+                                    {m.funcao && (
+                                      <span className="rounded-full bg-tagBlue/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-tagBlue">
+                                        {m.funcao}
+                                      </span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : (
+                            <span className="text-sm text-textSecondary">Sem guarnicao informada</span>
+                          )}
+                        </td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Acoes:">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              aria-label="Editar plantao"
+                              onClick={() => handleEditClick(p.id)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button
+                              aria-label="Excluir plantao"
+                              onClick={() => handleDeleteClick(p.id, 'plantoes')}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -420,9 +482,9 @@ export default function Plantoes() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Nome</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Entrada</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Saída</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Sa?da</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">A??es</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -430,7 +492,7 @@ export default function Plantoes() {
                       <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_completo}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Entrada:">{formatDateTime(e.entrada_servico)}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Saída:">{formatDateTime(e.saida_servico)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Sa?da:">{formatDateTime(e.saida_servico)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-cardGreen/20 text-cardGreen' : 'bg-premiumOrange/20 text-premiumOrange'}`}>{e.status_servico}</span></td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button></td>
                       </tr>
@@ -451,10 +513,10 @@ export default function Plantoes() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Data</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Aeronave</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">1º Piloto</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">2º Piloto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">1? Piloto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">2? Piloto</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">A??es</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -462,8 +524,8 @@ export default function Plantoes() {
                       <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(e.data)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Aeronave:">{e.aeronave_prefixo}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="1º Piloto:">{e.primeiro_piloto}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="2º Piloto:">{e.segundo_piloto}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="1? Piloto:">{e.primeiro_piloto}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="2? Piloto:">{e.segundo_piloto}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:">{e.status}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button></td>
                       </tr>
@@ -486,7 +548,7 @@ export default function Plantoes() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Turno</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Plantonista</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Nome</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">A??es</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -508,27 +570,36 @@ export default function Plantoes() {
       </div>
 
       {/* --- Modais --- */}
-      <Modal isOpen={isPlantaoModalOpen} onClose={() => setIsPlantaoModalOpen(false)} title="Lançar Plantão de Viatura">
+      <Modal isOpen={isPlantaoModalOpen} onClose={() => setIsPlantaoModalOpen(false)} title="Lan?ar Plant?o de Viatura">
         <PlantaoForm plantaoToEdit={plantaoToEdit} viaturas={viaturas} onSave={handleSavePlantao} onCancel={() => setIsPlantaoModalOpen(false)} isLoading={isSavingPlantao} />
       </Modal>
-      <Modal isOpen={isEscalaMedicoModalOpen} onClose={() => setIsEscalaMedicoModalOpen(false)} title="Adicionar Registro na Escala de Médicos">
+      <Modal isOpen={isEscalaMedicoModalOpen} onClose={() => setIsEscalaMedicoModalOpen(false)} title="Adicionar Registro na Escala de M?dicos">
         <EscalaMedicoForm onSave={handleSaveEscalaMedico} onCancel={() => setIsEscalaMedicoModalOpen(false)} isLoading={isSavingEscalaMedico} />
       </Modal>
-      <Modal isOpen={isAeronaveModalOpen} onClose={() => setIsAeronaveModalOpen(false)} title="Lançar Escala de Aeronave">
+      <Modal isOpen={isAeronaveModalOpen} onClose={() => setIsAeronaveModalOpen(false)} title="Lan?ar Escala de Aeronave">
         <EscalaAeronaveForm onSave={handleSaveAeronave} onCancel={() => setIsAeronaveModalOpen(false)} isLoading={isSavingAeronave} />
       </Modal>
-      <Modal isOpen={isCodecModalOpen} onClose={() => setIsCodecModalOpen(false)} title="Lançar Escala do CODEC">
+      <Modal isOpen={isCodecModalOpen} onClose={() => setIsCodecModalOpen(false)} title="Lan?ar Escala do CODEC">
         <EscalaCodecForm onSave={handleSaveCodec} onCancel={() => setIsCodecModalOpen(false)} isLoading={isSavingCodec} />
       </Modal>
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        title="Confirmar Exclusão"
-        message="Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita."
+        title="Confirmar Exclus?o"
+        message="Tem certeza que deseja excluir este registro? Esta a??o n?o pode ser desfeita."
         isLoading={isDeleting}
       />
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
 
