@@ -91,7 +91,7 @@ export default function Militares() {
 
   const {
     data: militares,
-    pagination, // get pagination state
+    pagination,
     isLoading,
     isFormModalOpen,
     itemToEdit,
@@ -99,7 +99,7 @@ export default function Militares() {
     isSaving,
     isDeleting,
     validationErrors,
-    handlePageChange, // get page change handler
+    handlePageChange,
     handleFilterChange,
     handleOpenFormModal,
     handleCloseFormModal,
@@ -110,7 +110,7 @@ export default function Militares() {
     fetchData,
   } = useCrud<Militar>({
     entityName: 'militares',
-    itemsPerPage: 50, // Restore pagination
+    itemsPerPage: 50,
   });
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -125,7 +125,7 @@ export default function Militares() {
   const rowVirtualizer = useVirtualizer({
     count: sortedMilitares.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 65, // Estimate row height
+    estimateSize: () => 65,
     overscan: 5,
   });
 
@@ -148,7 +148,7 @@ export default function Militares() {
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const searchInput = e.currentTarget.elements.namedItem('search') as HTMLInputElement;
-    handleFilterChange('nome_completo', searchInput.value);
+    handleFilterChange('q', searchInput.value);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -193,7 +193,7 @@ export default function Militares() {
                 name="search"
                 placeholder="Buscar por nome, matricula ou posto..."
                 className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus-visible:ring-tagBlue"
-                onChange={(e) => handleFilterChange('nome_completo', e.target.value)}
+                onChange={(e) => handleFilterChange('q', e.target.value)}
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-textSecondary" />
             </div>
@@ -209,6 +209,12 @@ export default function Militares() {
             </Button>
           </div>
         </div>
+
+        {!isLoading && pagination && (
+          <div className="mb-4 text-lg font-semibold text-textMain">
+            {pagination.totalRecords} {pagination.totalRecords === 1 ? 'registro encontrado' : 'registros encontrados'}
+          </div>
+        )}
 
         {isLoading && <Spinner />}
 

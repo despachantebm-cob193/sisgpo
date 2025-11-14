@@ -16,6 +16,15 @@ const guarnicaoItemSchema = Joi.object({
   telefone: Joi.string().max(20).optional().allow(null, ''),
 });
 
+const horarioSchema = Joi.string()
+  .trim()
+  .pattern(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/)
+  .optional()
+  .allow(null, '')
+  .messages({
+    'string.pattern.base': 'O horário deve estar no formato HH:MM.',
+  });
+
 const plantaoSchema = Joi.object({
   data_plantao: Joi.date().iso().required().messages({
     'date.base': 'A data do plantão deve ser uma data válida no formato ISO (YYYY-MM-DD).',
@@ -36,6 +45,8 @@ const plantaoSchema = Joi.object({
       'alternatives.match': 'O ID da OBM deve ser um número válido.',
     }),
   observacoes: Joi.string().optional().allow(null, ''),
+  hora_inicio: horarioSchema,
+  hora_fim: horarioSchema,
   guarnicao: Joi.array().items(guarnicaoItemSchema).min(1).required().messages({
     'array.base': 'A guarnição deve ser uma lista de militares.',
     'array.min': 'A guarnição deve ter pelo menos {#limit} militar.',

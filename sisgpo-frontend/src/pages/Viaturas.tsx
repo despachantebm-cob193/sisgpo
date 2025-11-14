@@ -23,7 +23,7 @@ interface Viatura {
   obm_abreviatura: string | null;
   ativa: boolean;
 }
-interface PaginationState { currentPage: number; totalPages: number; }
+interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Viaturas() {
@@ -31,7 +31,7 @@ export default function Viaturas() {
 
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({ prefixo: '' });
+  const [filters, setFilters] = useState({ q: '' });
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
@@ -65,7 +65,7 @@ export default function Viaturas() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '1000', ...filters }); // Fetch all for virtualization
+      const params = new URLSearchParams({ page: String(currentPage), limit: '1000', ...filters });
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
       setPagination(response.data.pagination);
@@ -142,7 +142,7 @@ export default function Viaturas() {
   useEffect(() => { refreshData(); fetchLastUpload(); }, [refreshData, fetchLastUpload]);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ prefixo: e.target.value }); setCurrentPage(1); };
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ q: e.target.value }); setCurrentPage(1); };
   const handleOpenFormModal = (item: Viatura | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
@@ -285,7 +285,13 @@ export default function Viaturas() {
         </div>
       </div>
       
-      <Input type="text" placeholder="Filtrar por prefixo..." value={filters.prefixo} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
+      <Input type="text" placeholder="Filtrar por prefixo, cidade, obm..." value={filters.q} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
+
+      {!isLoading && pagination && (
+        <div className="mb-4 text-lg font-semibold text-textMain">
+          {pagination.totalRecords} {pagination.totalRecords === 1 ? 'viatura encontrada' : 'viaturas encontradas'}
+        </div>
+      )}
 
       <div className="space-y-4">
         {/* Card View for Mobile */}
@@ -367,68 +373,50 @@ export default function Viaturas() {
 
         {/* Table View for Desktop */}
         <div className="hidden md:block bg-cardSlate border border-borderDark/60 rounded-lg shadow-sm">
-          <table className="min-w-full table-fixed">
-            <thead className="bg-background/40">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '25%' }}>Prefixo</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '25%' }}>OBM</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '25%' }}>Cidade</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '15%' }}>Status</th>
-                <th scope="col" className="relative px-6 py-3" style={{ width: '10%' }}><span className="sr-only">Ações</span></th>
-              </tr>
-            </thead>
-          </table>
-          <div ref={parentRef} className="overflow-auto" style={{ height: '600px' }}>
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-              {isLoading ? (
-                <div className="flex justify-center items-center h-full">
-                  <Spinner className="h-10 w-10" />
-                </div>
-              ) : rowVirtualizer.getVirtualItems().length > 0 ? (
-                rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const viatura = viaturas[virtualRow.index];
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Spinner className="h-10 w-10" />
+            </div>
+          ) : viaturas.length > 0 ? (
+            <table className="min-w-full divide-y divide-borderDark/60">
+              <thead className="bg-background/40">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Prefixo</th>
+                  <th scope="colo" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">OBM</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Cidade</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
+                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borderDark/60">
+                {viaturas.map((viatura) => {
                   const status = getViaturaStatus(viatura);
                   return (
-                    <div
-                      key={viatura.id}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: `${virtualRow.size}px`,
-                        transform: `translateY(${virtualRow.start}px)`,
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                      className="border-b border-borderDark/60"
-                    >
-                      <div className="px-6 py-2 whitespace-nowrap text-sm font-medium text-textMain" style={{ width: '25%' }}>{viatura.prefixo}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '25%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '25%' }}>{viatura.cidade || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm" style={{ width: '15%' }}>
+                    <tr key={viatura.id} className="hover:bg-background/40 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-textMain">{viatura.prefixo}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{viatura.obm_abreviatura || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{viatura.cidade || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}>
                           {status.label}
                         </span>
-                      </div>
-                      <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2" style={{ width: '10%' }}>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                         <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
                   );
-                })
-              ) : (
-                <div className="flex justify-center items-center h-full">
-                  <p className="text-textSecondary">Nenhuma viatura encontrada.</p>
-                </div>
-              )}
-            </div>
-          </div>
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <p className="py-10 text-center text-textSecondary">Nenhuma viatura encontrada.</p>
+          )}
         </div>
 
 

@@ -19,6 +19,7 @@ import Input from '@/components/ui/Input';
 interface PaginationState {
   currentPage: number;
   totalPages: number;
+  totalRecords: number;
 }
 
 interface ApiResponse<T> {
@@ -37,7 +38,7 @@ export default function Obms() {
   const [obms, setObms] = useState<Obm[]>([]);
   const [obmOptions, setObmOptions] = useState<ObmOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({ nome: '' });
+  const [filters, setFilters] = useState({ q: '' });
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [validationErrors, setValidationErrors] = useState<ApiErrorDetail[]>([]);
@@ -106,8 +107,7 @@ export default function Obms() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '1000' }); // Fetch all for virtualization
-      if (filters.nome) params.append('nome', filters.nome);
+      const params = new URLSearchParams({ page: String(currentPage), limit: '1000', ...filters });
 
       const [obmsRes, optionsRes, metadataRes] = await Promise.all([
         api.get<ApiResponse<Obm>>(`/api/admin/obms?${params.toString()}`),
@@ -138,7 +138,7 @@ export default function Obms() {
     } finally {
       setIsLoading(false);
     }
-  }, [filters.nome, currentPage]);
+  }, [filters, currentPage]);
 
   useEffect(() => {
     fetchData();
@@ -175,7 +175,7 @@ export default function Obms() {
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ nome: event.target.value });
+    setFilters({ q: event.target.value });
     setCurrentPage(1);
   };
 
@@ -333,11 +333,17 @@ export default function Obms() {
 
       <Input
         type="text"
-        placeholder="Filtrar por nome..."
-        value={filters.nome}
+        placeholder="Filtrar por nome, sigla, cidade ou CRBM..."
+        value={filters.q}
         onChange={handleFilterChange}
         className="max-w-xs mb-4"
       />
+
+      {!isLoading && pagination && (
+        <div className="mb-4 text-lg font-semibold text-textMain">
+          {pagination.totalRecords} {pagination.totalRecords === 1 ? 'OBM encontrada' : 'OBMs encontradas'}
+        </div>
+      )}
 
       <div className="space-y-6">
         <section className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-4 shadow-sm md:p-6 md:hidden">

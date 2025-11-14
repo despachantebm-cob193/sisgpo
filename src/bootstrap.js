@@ -83,6 +83,8 @@ async function ensureCriticalPlantaoColumnsRaw(knex) {
         await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS viatura_id INTEGER;`);
         await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS obm_id INTEGER;`);
         await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS observacoes TEXT;`);
+        await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS hora_inicio TIME;`);
+        await knex.raw(`ALTER TABLE plantoes ADD COLUMN IF NOT EXISTS hora_fim TIME;`);
 
         // Define as constraints NOT NULL para as colunas que devem ser obrigatórias
         // Apenas se a tabela estiver vazia para evitar erros em dados existentes.

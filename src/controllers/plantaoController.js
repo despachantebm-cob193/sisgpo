@@ -25,6 +25,14 @@ const buildPlantaoNome = (prefixo, dataPlantao, viaturaId) => {
   return `PLANTAO-${token}-${dataPlantao}`;
 };
 
+const normalizeHorarioInput = (value) => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  return trimmed.length ? trimmed : null;
+};
+
 const resolveViaturaContext = async (trx, viaturaId, providedObmId) => {
   const viaturaData = await trx('viaturas as v')
     .leftJoin('obms as o', 'v.obm', 'o.nome')
@@ -62,7 +70,7 @@ const resolveViaturaContext = async (trx, viaturaId, providedObmId) => {
 
 const plantaoController = {
   create: async (req, res) => {
-    const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
+    const { data_plantao, viatura_id, obm_id, observacoes, guarnicao, hora_inicio, hora_fim } = req.body;
     
     await db.transaction(async trx => {
       const plantaoExists = await trx('plantoes').where({ data_plantao, viatura_id }).first();
@@ -72,6 +80,8 @@ const plantaoController = {
 
       const { obmId, prefixo } = await resolveViaturaContext(trx, viatura_id, obm_id);
       const plantaoNome = buildPlantaoNome(prefixo, data_plantao, viatura_id);
+      const horaInicioNormalized = normalizeHorarioInput(hora_inicio);
+      const horaFimNormalized = normalizeHorarioInput(hora_fim);
 
       const [novoPlantao] = await trx('plantoes')
         .insert({
@@ -82,6 +92,8 @@ const plantaoController = {
           data_plantao,
           viatura_id,
           obm_id: obmId,
+          hora_inicio: horaInicioNormalized,
+          hora_fim: horaFimNormalized,
           observacoes,
         })
         .returning('*');
@@ -122,7 +134,7 @@ const plantaoController = {
 
     const baseSelectQuery = query
       .select(
-        'p.id', 'p.data_plantao', 'p.observacoes',
+        'p.id', 'p.data_plantao', 'p.observacoes', 'p.data_inicio', 'p.data_fim', 'p.hora_inicio', 'p.hora_fim', // Added data_inicio and data_fim
         'v.prefixo as viatura_prefixo',
         'o.abreviatura as obm_abreviatura'
       );
@@ -223,7 +235,7 @@ const plantaoController = {
 
   update: async (req, res) => {
     const { id } = req.params;
-    const { data_plantao, viatura_id, obm_id, observacoes, guarnicao } = req.body;
+    const { data_plantao, viatura_id, obm_id, observacoes, guarnicao, hora_inicio, hora_fim } = req.body;
 
     await db.transaction(async trx => {
       const plantaoExists = await trx('plantoes').where({ id }).first();
@@ -241,6 +253,8 @@ const plantaoController = {
 
       const { obmId, prefixo } = await resolveViaturaContext(trx, viatura_id, obm_id);
       const plantaoNome = buildPlantaoNome(prefixo, data_plantao, viatura_id);
+      const horaInicioNormalized = normalizeHorarioInput(hora_inicio);
+      const horaFimNormalized = normalizeHorarioInput(hora_fim);
 
       await trx('plantoes')
         .where({ id })
@@ -252,6 +266,8 @@ const plantaoController = {
           data_plantao,
           viatura_id,
           obm_id: obmId,
+          hora_inicio: horaInicioNormalized,
+          hora_fim: horaFimNormalized,
           observacoes,
           updated_at: db.fn.now(),
         });
@@ -360,9 +376,3 @@ const plantaoController = {
 };
 
 module.exports = plantaoController;
-
-
-
-
-
-

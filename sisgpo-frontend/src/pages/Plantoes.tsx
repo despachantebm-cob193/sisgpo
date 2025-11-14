@@ -36,8 +36,8 @@ export interface GuarnicaoMembro {
 export interface Plantao {
   id: number;
   data_plantao: string;
-  horario_inicio?: string | null;
-  horario_fim?: string | null;
+  hora_inicio: string | null;
+  hora_fim: string | null;
   viatura_prefixo: string;
   obm_abreviatura: string;
   guarnicao: GuarnicaoMembro[];
@@ -48,8 +48,8 @@ export interface Viatura { id: number; prefixo: string; obm_id: number | null; }
 export interface PlantaoDetalhado {
   id: number;
   data_plantao: string;
-  horario_inicio?: string | null;
-  horario_fim?: string | null;
+  hora_inicio: string | null;
+  hora_fim: string | null;
   viatura_id: number;
   obm_id: number | null;
   observacoes: string;
@@ -337,14 +337,14 @@ export default function Plantoes() {
     }
   };
 
-  const formatDate = (isoDate: string) => new Date(isoDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-  const formatTime = (value?: string | null) => {
-    if (!value) return '--:--';
-    if (/^d{2}:d{2}/.test(value)) return value.slice(0, 5);
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().substring(11, 16);
-    return value;
+  const formatHorario = (valor?: string | null) => {
+    if (!valor) return '--';
+    const [hora, minuto] = valor.split(':');
+    if (!hora || !minuto) return '--';
+    return `${hora.padStart(2, '0')}:${minuto.padStart(2, '0')}`;
   };
+
+  const formatDate = (isoDate: string) => new Date(isoDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   const formatDateTime = (isoString: string) =>
     new Date(isoString).toLocaleString('pt-BR', {
       day: '2-digit',
@@ -403,8 +403,8 @@ export default function Plantoes() {
                   <thead className="bg-searchbar hidden md:table-header-group">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Data</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Horario Inicial</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Horario Final</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Hora inicial</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Hora final</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Viatura</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">OBM</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Guarnicao</th>
@@ -415,8 +415,8 @@ export default function Plantoes() {
                     {plantoes.map(p => (
                       <tr key={p.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(p.data_plantao)}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Horario Inicial:">{formatTime(p.horario_inicio)}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Horario Final:">{formatTime(p.horario_fim)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Hora inicial:">{formatHorario(p.hora_inicio)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Hora final:">{formatHorario(p.hora_fim)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Viatura:">{p.viatura_prefixo}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Guarnicao:">

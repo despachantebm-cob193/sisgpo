@@ -1,7 +1,9 @@
-// Arquivo: src/controllers/medicoController.js
-
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
+const { normalizeText } = require('../utils/textUtils');
+
+const ACCENT_FROM = 'ÁÀÃÂÄáàãâäÉÈÊËéèêëÍÌÎÏíìîïÓÒÕÔÖóòõôöÚÙÛÜúùûüÇçÑñ';
+const ACCENT_TO = 'AAAAAaaaaaEEEEeeeeIIIIiiiiOOOOOoooooUUUUuuuuCcNn';
 
 const ensureBaseCivilForMedico = async (trx, medico) => {
   const payload = {
@@ -40,30 +42,22 @@ const deleteBaseCivilForMedico = async (trx, medicoId) => {
 };
 
 const medicoController = {
-  /**
-   * Lista todos os medicos cadastrados.
-   */
   getAll: async (req, res) => {
-    const { nome_completo, page = 1, limit = 20 } = req.query;
+    const { q, page = 1, limit = 20 } = req.query;
     const query = db('medicos').select('*').orderBy('nome_completo', 'asc');
 
-    if (nome_completo) {
-      query.where('nome_completo', 'like', `%${nome_completo}%`);
+    if (q) {
+      const normalizedQ = normalizeText(q);
+      query.where(builder => {
+        builder.where(db.raw(`translate(lower(coalesce(nome_completo, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
+               .orWhere(db.raw(`translate(lower(coalesce(funcao, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
+               .orWhere(db.raw(`translate(lower(coalesce(telefone, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]));
+      });
     }
 
-    const countQuery = db('medicos')
-      .clone()
-      .clearSelect()
-      .count('* as count')
-      .first();
-
-    if (nome_completo) {
-      countQuery.where('nome_completo', 'like', `%${nome_completo}%`);
-    }
-
+    const countQuery = query.clone().clearSelect().count('* as count').first();
     const total = await countQuery;
     const totalPages = Math.ceil(Number(total.count) / limit);
-
     const medicos = await query.offset((page - 1) * limit).limit(limit);
 
     res.status(200).json({
@@ -71,13 +65,11 @@ const medicoController = {
       pagination: {
         currentPage: Number(page),
         totalPages,
+        totalRecords: Number(total.count),
       },
     });
   },
 
-  /**
-   * Cria um novo medico.
-   */
   create: async (req, res) => {
     const { nome_completo, funcao, telefone, observacoes } = req.body;
 
@@ -103,9 +95,6 @@ const medicoController = {
     res.status(201).json(novoMedico);
   },
 
-  /**
-   * Atualiza dados de um medico.
-   */
   update: async (req, res) => {
     const { id } = req.params;
     const { nome_completo, funcao, telefone, observacoes, ativo } = req.body;
@@ -136,9 +125,6 @@ const medicoController = {
     res.status(200).json(medicoAtualizado);
   },
 
-  /**
-   * Remove um medico do sistema.
-   */
   delete: async (req, res) => {
     const { id } = req.params;
 
@@ -155,9 +141,6 @@ const medicoController = {
     res.status(200).json({ message: 'Medico removido com sucesso.' });
   },
 
-  /**
-   * Alterna o status ativo/inativo de um medico.
-   */
   toggleActive: async (req, res) => {
     const { id } = req.params;
 
@@ -184,15 +167,13 @@ const medicoController = {
     });
   },
 
-  /**
-   * Busca rapida de medicos para selects.
-   */
   search: async (req, res) => {
     const { term } = req.query;
     const query = db('medicos').select('*');
 
     if (term) {
-      query.where('nome_completo', 'like', `%${term}%`);
+      const normalizedTerm = normalizeText(term);
+      query.where(db.raw(`translate(lower(coalesce(nome_completo, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedTerm}%`]));
     }
 
     const medicos = await query;
@@ -201,4 +182,3 @@ const medicoController = {
 };
 
 module.exports = medicoController;
-

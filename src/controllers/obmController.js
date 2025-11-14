@@ -29,17 +29,17 @@ const obmController = {
   },
 
   getAll: async (req, res) => {
-    const { nome, abreviatura, cidade } = req.query;
+    const { q } = req.query;
     const query = db('obms').select('*');
 
-    if (nome) {
-      applyAccentInsensitiveFilter(query, 'nome', nome);
-    }
-    if (abreviatura) {
-      applyAccentInsensitiveFilter(query, 'abreviatura', abreviatura);
-    }
-    if (cidade) {
-      applyAccentInsensitiveFilter(query, 'cidade', cidade);
+    if (q) {
+      const normalizedQ = normalizeText(q);
+      query.where(builder => {
+        builder.where(db.raw(`translate(lower(coalesce(nome, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
+               .orWhere(db.raw(`translate(lower(coalesce(abreviatura, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
+               .orWhere(db.raw(`translate(lower(coalesce(cidade, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
+               .orWhere(db.raw(`translate(lower(coalesce(crbm, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]));
+      });
     }
 
     const page = parseInt(req.query.page, 10) || 1;

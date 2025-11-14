@@ -1,6 +1,6 @@
 // Arquivo: frontend/src/components/forms/PlantaoForm.tsx (VERSÃO COM LAYOUT CORRIGIDO)
 
-import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent, useCallback } from 'react';
 import AsyncSelect from 'react-select/async';
 import Input from '../ui/Input';
 import Label from '../ui/Label';
@@ -28,8 +28,8 @@ interface MilitarOption {
 interface PlantaoFormData {
   id?: number;
   data_plantao: string;
-  horario_inicio: string;
-  horario_fim: string;
+  hora_inicio: string;
+  hora_fim: string;
   viatura_id: number | '';
   obm_id: number | '' | null;
   observacoes: string;
@@ -53,21 +53,11 @@ const formatarTelefoneInput = (value: string): string => {
   return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6, 10)}`;
 };
 
-const normalizeTimeValue = (value?: string | null): string => {
-  if (!value) return '';
-  if (/^\d{2}:\d{2}$/.test(value)) return value;
-  if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value.slice(0, 5);
-  const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(11, 16);
-  }
-  return '';
-};
-
-const timeToMinutes = (value: string): number | null => {
-  const [hours, minutes] = value.split(':').map(Number);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-  return hours * 60 + minutes;
+const formatarHorarioParaInput = (valor?: string | null): string => {
+  if (!valor) return '';
+  const [hora, minuto] = valor.split(':');
+  if (!hora || !minuto) return '';
+  return `${hora.padStart(2, '0')}:${minuto.padStart(2, '0')}`;
 };
 
 const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSave, onCancel, isLoading }) => {
@@ -124,8 +114,8 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 
   const getInitialFormData = (): PlantaoFormData => ({
     data_plantao: new Date().toISOString().split('T')[0],
-    horario_inicio: '',
-    horario_fim: '',
+    hora_inicio: '',
+    hora_fim: '',
     viatura_id: '',
     obm_id: '',
     observacoes: '',
@@ -139,8 +129,8 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       setFormData({
         id: plantaoToEdit.id,
         data_plantao: new Date(plantaoToEdit.data_plantao).toISOString().split('T')[0],
-        horario_inicio: normalizeTimeValue(plantaoToEdit.horario_inicio),
-        horario_fim: normalizeTimeValue(plantaoToEdit.horario_fim),
+        hora_inicio: formatarHorarioParaInput(plantaoToEdit.hora_inicio),
+        hora_fim: formatarHorarioParaInput(plantaoToEdit.hora_fim),
         viatura_id: plantaoToEdit.viatura_id,
         obm_id: plantaoToEdit.obm_id,
         observacoes: plantaoToEdit.observacoes,
@@ -204,7 +194,47 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const verificarPlantaoDuplicado = useCallback(
+    async (dataPlantao: string, viaturaId: number, viaturaPrefixo?: string | null) => {
+      try {
+        const params = new URLSearchParams({
+          data_inicio: dataPlantao,
+          data_fim: dataPlantao,
+          limit: '500',
+          all: 'true',
+        });
+        const response = await api.get(`/api/admin/plantoes?${params.toString()}`);
+        const lista =
+          Array.isArray(response.data?.data) ? response.data.data : response.data?.data ? response.data.data : response.data;
+        const normalizedPrefix = viaturaPrefixo?.trim().toUpperCase() || '';
+        return Array.isArray(lista)
+          ? lista.some((plantao: any) => {
+              const prefix =
+                plantao.viatura_prefixo ||
+                plantao.prefixo ||
+                plantao.viatura?.prefixo ||
+                '';
+              const normalized = prefix.trim().toUpperCase();
+              const plantaoViaturaId = Number(
+                plantao.viatura_id ??
+                  plantao.viaturaId ??
+                  plantao.viatura?.id
+              );
+              return (
+                (normalizedPrefix && normalized === normalizedPrefix) ||
+                (Number.isFinite(plantaoViaturaId) && plantaoViaturaId === viaturaId)
+              );
+            })
+          : false;
+      } catch (error) {
+        console.error('Erro ao verificar plantão duplicado', error);
+        return false;
+      }
+    },
+    []
+  );
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const guarnicaoValida = formData.guarnicao.every(m => m.militar_id && m.funcao);
     if (!guarnicaoValida) {
@@ -216,20 +246,19 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       toast.error('Por favor, selecione uma viatura.');
       return;
     }
+
+    const duplicate = await verificarPlantaoDuplicado(
+      formData.data_plantao,
+      Number(formData.viatura_id),
+      viaturaSelecionada.prefixo
+    );
+    if (duplicate && !formData.id) {
+      toast.error('Já existe um plantão para esta viatura nesta data.');
+      return;
+    }
+
     const obmIdFromState = typeof formData.obm_id === 'number' ? formData.obm_id : null;
     const obmId = viaturaSelecionada.obm_id ?? obmIdFromState;
-
-    if (!formData.horario_inicio || !formData.horario_fim) {
-      toast.error('Informe o horario inicial e final do plantao.');
-      return;
-    }
-
-    const inicioMin = timeToMinutes(formData.horario_inicio);
-    const fimMin = timeToMinutes(formData.horario_fim);
-    if (inicioMin === null || fimMin === null) {
-      toast.error('Informe horarios validos para o plantao.');
-      return;
-    }
 
     if (obmId === null || obmId === undefined) {
       toast.error('A viatura selecionada não está vinculada a uma OBM. Atualize o cadastro da viatura ou selecione outra antes de lançar o plantão.');
@@ -238,6 +267,8 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 
     const payload = {
       ...formData,
+      hora_inicio: formData.hora_inicio || null,
+      hora_fim: formData.hora_fim || null,
       obm_id: obmId,
       guarnicao: formData.guarnicao.map(({ militar_id, funcao, telefone }) => ({
         militar_id,
@@ -251,32 +282,12 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Seção de Data e Viatura (permanece no topo) */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <Label htmlFor="data_plantao">Data do Plantão</Label>
           <Input id="data_plantao" type="date" value={formData.data_plantao} onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, data_plantao: e.target.value }))} required />
         </div>
         <div>
-          <Label htmlFor="horario_inicio">Horario Inicial</Label>
-          <Input
-            id="horario_inicio"
-            type="time"
-            value={formData.horario_inicio}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, horario_inicio: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="horario_fim">Horario Final</Label>
-          <Input
-            id="horario_fim"
-            type="time"
-            value={formData.horario_fim}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, horario_fim: e.target.value }))}
-            required
-          />
-        </div>
-        <div className="lg:col-span-2">
           <Label htmlFor="viatura_id">Viatura</Label>
           <select
             id="viatura_id"
@@ -303,6 +314,27 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
             <option value="">Selecione uma viatura</option>
             {viaturas?.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
           </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <Label htmlFor="hora_inicio">Horario inicial</Label>
+          <Input
+            id="hora_inicio"
+            type="time"
+            value={formData.hora_inicio}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label htmlFor="hora_fim">Horario final</Label>
+          <Input
+            id="hora_fim"
+            type="time"
+            value={formData.hora_fim}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_fim: e.target.value }))}
+          />
         </div>
       </div>
 

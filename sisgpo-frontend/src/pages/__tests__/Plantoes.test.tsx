@@ -14,22 +14,22 @@ const mockPlantoesData = {
     {
       id: 1,
       data_plantao: "2025-10-28",
-      horario_inicio: "08:00",
-      horario_fim: "18:00",
+      hora_inicio: "08:00",
+      hora_fim: "20:00",
       viatura_prefixo: "ABS-36",
-      obm_abreviatura: "2Âº BBM",
+      obm_abreviatura: "2�� BBM",
       guarnicao: [
-        { militar_id: 10, posto_graduacao: "SGT", nome_guerra: "JOÃƒO", nome_completo: "JOÃƒO DA SILVA", nome_exibicao: "SGT JOÃƒO DA SILVA", funcao: "MOTORISTA", telefone: "62999999999" },
+        { militar_id: 10, posto_graduacao: "SGT", nome_guerra: "JOǟO", nome_completo: "JOǟO DA SILVA", nome_exibicao: "SGT JOǟO DA SILVA", funcao: "MOTORISTA", telefone: "62999999999" },
         { militar_id: 12, posto_graduacao: "CB", nome_guerra: "SILVA", nome_completo: "PEDRO SILVA", nome_exibicao: "CB PEDRO SILVA", funcao: "COMANDANTE", telefone: "62888888888" },
       ],
     },
     {
         id: 2,
         data_plantao: "2025-10-28",
-        horario_inicio: "19:00",
-        horario_fim: "23:00",
+        hora_inicio: null,
+        hora_fim: null,
         viatura_prefixo: "ABS-37",
-        obm_abreviatura: "1Âº BBM",
+        obm_abreviatura: "1�� BBM",
         guarnicao: [],
     }
   ],
@@ -39,13 +39,13 @@ const mockPlantoesData = {
 const mockDetailedPlantao = {
     id: 1,
     data_plantao: "2025-10-28",
-    horario_inicio: "08:00",
-    horario_fim: "18:00",
+    hora_inicio: "08:00",
+    hora_fim: "20:00",
     viatura_id: 1,
     obm_id: 1,
     observacoes: "Observacao de teste",
     guarnicao: [
-        { militar_id: 10, posto_graduacao: "SGT", nome_guerra: "JOÃƒO", nome_completo: "JOÃƒO DA SILVA", nome_exibicao: "SGT JOÃƒO DA SILVA", funcao: "MOTORISTA", telefone: "62999999999" },
+        { militar_id: 10, posto_graduacao: "SGT", nome_guerra: "JOǟO", nome_completo: "JOǟO DA SILVA", nome_exibicao: "SGT JOǟO DA SILVA", funcao: "MOTORISTA", telefone: "62999999999" },
     ],
 };
 
@@ -104,23 +104,22 @@ describe("Plantoes", () => {
     await userEvent.click(editButtons[0]);
 
     // Check if the modal opened with the correct title
-    expect(await screen.findByText("LanÃ§ar PlantÃ£o de Viatura")).toBeInTheDocument();
+    expect(await screen.findByText(/Lan.?ar Plant.?o de Viatura/i)).toBeInTheDocument();
 
     // Check if the form is populated with data from the detailed mock
     expect(await screen.findByDisplayValue("Observacao de teste")).toBeInTheDocument();
   });
 
-  it("should display the total number of military personnel in shifts", async () => {
+  it("should render horario columns for viatura schedules", async () => {
     render(<Plantoes />);
 
     await waitFor(() => {
-      expect(screen.getByText("Total de Militares Escalados (PerÃ­odo Filtrado):")).toBeInTheDocument();
+      expect(screen.getByText("Viatura")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("2")).toBeInTheDocument(); // Assert the mocked value
+    expect(screen.getByText(/Hora inicial/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hora final/i)).toBeInTheDocument();
+    expect(screen.getAllByText("08:00")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("20:00")[0]).toBeInTheDocument();
   });
 });
-
-
-
-

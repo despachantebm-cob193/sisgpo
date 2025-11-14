@@ -97,7 +97,7 @@ exports.getAll = async (req, res, next) => {
   try {
     const page = parsePositiveNumber(req.query.page, 1);
     const limit = parsePositiveNumber(req.query.limit, 15);
-    const prefixo = typeof req.query.prefixo === 'string' ? req.query.prefixo.trim() : '';
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     const offset = (page - 1) * limit;
 
     const baseQuery = db('viaturas as v')
@@ -115,8 +115,13 @@ exports.getAll = async (req, res, next) => {
         'o.abreviatura as obm_abreviatura',
       );
 
-    if (prefixo) {
-      baseQuery.where('v.prefixo', 'ilike', `%${prefixo}%`);
+    if (q) {
+      baseQuery.where(function() {
+        this.where(db.raw('v.prefixo::text'), 'ilike', `%${q}%`)
+            .orWhere(db.raw('v.cidade::text'), 'ilike', `%${q}%`)
+            .orWhere(db.raw('v.obm::text'), 'ilike', `%${q}%`)
+            .orWhere(db.raw('o.abreviatura::text'), 'ilike', `%${q}%`);
+      });
     }
 
     const countQuery = baseQuery.clone().clearSelect().clearOrder().count({ count: 'v.id' }).first();

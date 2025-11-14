@@ -1,10 +1,9 @@
-// Arquivo: frontend/src/pages/Dashboard.tsx
-// (Removido o 't' extra que estava antes do Card de "OBMs Cadastradas")
-
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 // Importação do store de UI para gerenciar o título da página
 import { useUiStore } from '@/store/uiStore';
@@ -23,8 +22,11 @@ import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import AeronavesCard from '@/components/dashboard/AeronavesCard';
 import CodecCard from '@/components/dashboard/CodecCard';
+import TopFleetSummary from '@/components/dashboard/TopFleetSummary'; // Import the new component
 
 // Interfaces
+interface Viatura { id: number; prefixo: string; ativa: boolean; }
+interface Plantao { viatura_prefixo: string | null; data_plantao: string; }
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; }
@@ -33,26 +35,21 @@ interface Obm { id: number; abreviatura: string; nome: string; }
 interface ObmGrupo { nome: string; prefixos: string[]; }
 interface ViaturaStatAgrupada { tipo: string; quantidade: number; obms: ObmGrupo[]; }
 interface ViaturaPorObmStat { id: number; nome: string; quantidade: number; prefixos: string[]; crbm: string | null; }
-
-// Corrigido da etapa anterior
-interface ServicoInfo { 
-  funcao: string; 
-  nome_guerra: string | null; 
-  posto_graduacao: string | null; 
-  telefone: string | null;
-}
-
+interface ServicoInfo {funcao: string; nome_guerra: string | null; posto_graduacao: string | null; telefone: string | null; }
 interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: string; primeiro_piloto: string; segundo_piloto: string; }
 interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
 
 export default function Dashboard() {
   const location = useLocation();
   const isLoggedInArea = location.pathname.startsWith('/app');
-
-  // Hook para definir o título da página no cabeçalho principal
   const { setPageTitle } = useUiStore();
 
-  // Estados (sem alteração)
+  // States for the new TopFleetSummary component
+  const [totalViaturasAtivas, setTotalViaturasAtivas] = useState<number | null>(null);
+  const [totalViaturasEmpenhadas, setTotalViaturasEmpenhadas] = useState<number | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+
+  // Existing states
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
@@ -68,12 +65,49 @@ export default function Dashboard() {
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  // Define o título da página ao carregar o componente
   useEffect(() => {
     setPageTitle('Dashboard Operacional');
   }, [setPageTitle]);
 
-  // Funções de busca de dados (sem alteração)
+  const fetchFleetSummaryData = useCallback(async () => {
+    try {
+      // Fetch all active viaturas
+      const viaturasRes = await api.get<ApiResponse<Viatura>>('/api/admin/viaturas?ativa=true&limit=1000');
+      const ativas = viaturasRes.data.data.length;
+      setTotalViaturasAtivas(ativas);
+
+      // Fetch all plantoes to find engaged viaturas
+      const engaged = new Set<string>();
+      let page = 1;
+      const limit = 100;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      while (true) {
+        const plantoesParams = new URLSearchParams({ page: String(page), limit: String(limit) });
+        const response = await api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${plantoesParams.toString()}`);
+        const plantoes = response.data.data ?? [];
+        plantoes.forEach((plantao) => {
+          const normalizedPrefix = plantao.viatura_prefixo?.trim().toUpperCase();
+          if (!normalizedPrefix) return;
+          const plantaoDate = new Date(plantao.data_plantao);
+          plantaoDate.setHours(0, 0, 0, 0);
+          if (!Number.isNaN(plantaoDate.getTime()) && plantaoDate >= today) {
+            engaged.add(normalizedPrefix);
+          }
+        });
+        const paginationInfo = response.data.pagination;
+        if (!paginationInfo || paginationInfo.currentPage >= paginationInfo.totalPages) {
+          break;
+        }
+        page += 1;
+      }
+      setTotalViaturasEmpenhadas(engaged.size);
+      setLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
+    } catch (err) {
+      toast.error('Não foi possível carregar o resumo da frota.');
+    }
+  }, []);
+
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
@@ -121,6 +155,7 @@ export default function Dashboard() {
   }, [selectedObm, isLoggedInArea]);
 
   useEffect(() => {
+    fetchFleetSummaryData(); // Fetch summary data
     if (isLoggedInArea) {
       const fetchAdminData = async () => {
         try {
@@ -135,7 +170,7 @@ export default function Dashboard() {
       fetchAdminData();
     }
     fetchDashboardData();
-  }, [fetchDashboardData, isLoggedInArea]);
+  }, [fetchDashboardData, isLoggedInArea, fetchFleetSummaryData]);
 
   const publicUrl = `${window.location.origin}`;
   const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
@@ -147,7 +182,6 @@ export default function Dashboard() {
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            {/* TÍTULO H2 REMOVIDO DAQUI */}
             <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
           </div>
           {isLoggedInArea && (
@@ -163,11 +197,27 @@ export default function Dashboard() {
           </div>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <StatCard title="Militares Ativos" value={stats?.total_militares_ativos ?? 0} description="Total de militares na ativa." isLoading={isLoading} />
-          <StatCard title="Viaturas Disponíveis" value={stats?.total_viaturas_disponiveis ?? 0} description="Viaturas em condições de uso." isLoading={isLoading} />
-          {/* ▼▼▼ LINHA CORRIGIDA (letra 't' removida) ▼▼▼ */}
-          <StatCard title="OBMs Cadastradas" value={stats?.total_obms ?? 0} description="Total de unidades operacionais." isLoading={isLoading} />
+        
+        {/* Render the new component here */}
+        <TopFleetSummary 
+          ativas={totalViaturasAtivas}
+          empenhadas={totalViaturasEmpenhadas}
+          atualizadoEm={lastUpdate}
+        />
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <StatCard
+            title="Militares Ativos"
+            value={stats?.total_militares_ativos ?? 0}
+            description="Total de militares na ativa."
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="OBMs Cadastradas"
+            value={stats?.total_obms ?? 0}
+            description="Total de unidades operacionais."
+            isLoading={isLoading}
+          />
         </div>
       </div>
 

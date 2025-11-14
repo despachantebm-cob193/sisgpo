@@ -6,16 +6,27 @@ const militarController = {
    * Lista todos os militares com suporte a filtros e paginação obrigatória.
    */
   getAll: async (req, res) => {
-    const { nome_completo, matricula, posto_graduacao, ativo } = req.query;
+    const { q, ativo } = req.query; // Use 'q' for generic search
 
     const query = db('militares').select(
       'id', 'matricula', 'nome_completo', 'nome_guerra',
       'posto_graduacao', 'ativo', 'obm_nome', 'telefone'
     );
 
-    if (nome_completo) query.where('nome_completo', 'ilike', `%${nome_completo}%`);
-    if (matricula) query.where('matricula', 'ilike', `%${matricula}%`);
-    if (posto_graduacao) query.where('posto_graduacao', 'ilike', `%${posto_graduacao}%`);
+    if (q) {
+      query.where(function() {
+        this.where(db.raw('??::text', ['nome_completo']), 'ilike', `${q}%`)
+            .orWhere(db.raw('??::text', ['nome_completo']), 'ilike', `% ${q}%`)
+            .orWhere(db.raw('??::text', ['nome_guerra']), 'ilike', `${q}%`)
+            .orWhere(db.raw('??::text', ['nome_guerra']), 'ilike', `% ${q}%`)
+            .orWhere(db.raw('??::text', ['matricula']), 'ilike', `${q}%`)
+            .orWhere(db.raw('??::text', ['posto_graduacao']), 'ilike', `${q}%`)
+            .orWhere(db.raw('??::text', ['posto_graduacao']), 'ilike', `% ${q}%`)
+            .orWhere(db.raw('??::text', ['obm_nome']), 'ilike', `${q}%`)
+            .orWhere(db.raw('??::text', ['obm_nome']), 'ilike', `% ${q}%`);
+      });
+    }
+
     if (ativo) query.where('ativo', '=', ativo);
 
     const page = parseInt(req.query.page, 10) || 1;
@@ -164,4 +175,3 @@ const militarController = {
 };
 
 module.exports = militarController;
-
