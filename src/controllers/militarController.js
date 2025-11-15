@@ -6,7 +6,7 @@ const militarController = {
    * Lista todos os militares com suporte a filtros e paginação obrigatória.
    */
   getAll: async (req, res) => {
-    const { q, ativo, posto_graduacao, obm_nome } = req.query; // Use 'q' for generic search
+    const { q, ativo, posto_graduacao, obm_nome, escalado } = req.query; // Use 'q' for generic search
 
     const query = db('militares').select(
       'id', 'matricula', 'nome_completo', 'nome_guerra',
@@ -36,6 +36,18 @@ const militarController = {
     }
 
     if (ativo) query.where('ativo', '=', ativo);
+
+    // Filtro independente por "Escalado": retorna apenas militares
+    // que estao em guarnicoes de plantoes hoje ou no futuro
+    const escaladoFlag = typeof escalado === 'string' ? escalado.trim().toLowerCase() : '';
+    if (['true', '1', 'yes', 'on', 'escalado'].includes(escaladoFlag)) {
+      query.whereIn('id',
+        db('plantoes_militares as pm')
+          .join('plantoes as p', 'pm.plantao_id', 'p.id')
+          .whereRaw("COALESCE(p.data_plantao, p.data_inicio, p.data_fim) >= CURRENT_DATE")
+          .select('pm.militar_id')
+      );
+    }
 
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 50;

@@ -29,7 +29,7 @@ const obmController = {
   },
 
   getAll: async (req, res) => {
-    const { q } = req.query;
+    const { q, cidade, crbm } = req.query;
     const query = db('obms').select('*');
 
     if (q) {
@@ -40,6 +40,14 @@ const obmController = {
                .orWhere(db.raw(`translate(lower(coalesce(cidade, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
                .orWhere(db.raw(`translate(lower(coalesce(crbm, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]));
       });
+    }
+
+    if (cidade) {
+        query.where('cidade', cidade);
+    }
+
+    if (crbm) {
+        query.where('crbm', crbm);
     }
 
     const page = parseInt(req.query.page, 10) || 1;

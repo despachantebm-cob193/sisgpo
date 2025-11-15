@@ -6,28 +6,31 @@ interface StatCardProps {
   value: string | number;
   description?: string;
   isLoading?: boolean;
-  variant?: 'default' | 'highlight'; // Add variant prop
+  variant?: 'default' | 'highlight' | 'highlight-secondary';
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoading, variant = 'default' }) => {
-  const cardClasses = `
-    flex flex-col justify-between gap-3 p-6 rounded-lg shadow-sm
-    ${variant === 'highlight' ? 'bg-tagBlue/20 border border-tagBlue text-white' : 'bg-cardSlate border border-borderDark/60'}
-  `;
+  let cardClasses = `flex flex-col justify-between gap-3 p-6 rounded-lg shadow-sm`;
+  let titleClasses = `text-sm font-medium uppercase tracking-wide text-center`;
+  let valueClasses = `mt-1 text-3xl font-semibold text-center`;
+  let spinnerClasses = ``;
 
-  const titleClasses = `
-    text-sm font-medium uppercase tracking-wide text-center
-    ${variant === 'highlight' ? 'text-white' : 'text-textSecondary'}
-  `;
-
-  const valueClasses = `
-    mt-1 text-3xl font-semibold text-center
-    ${variant === 'highlight' ? 'text-white' : 'text-textMain'}
-  `;
-
-  const spinnerClasses = `
-    ${variant === 'highlight' ? 'text-white' : 'text-tagBlue'}
-  `;
+  if (variant === 'highlight') {
+    cardClasses += ' bg-tagBlue/20 border border-tagBlue text-white';
+    titleClasses += ' text-white';
+    valueClasses += ' text-white';
+    spinnerClasses += ' text-white';
+  } else if (variant === 'highlight-secondary') {
+    cardClasses += ' bg-emerald-500/20 border border-emerald-500 text-white';
+    titleClasses += ' text-white';
+    valueClasses += ' text-white';
+    spinnerClasses += ' text-white';
+  } else { // default
+    cardClasses += ' bg-cardSlate border border-borderDark/60';
+    titleClasses += ' text-textSecondary';
+    valueClasses += ' text-textMain';
+    spinnerClasses += ' text-tagBlue';
+  }
 
   return (
     <div className={cardClasses}>

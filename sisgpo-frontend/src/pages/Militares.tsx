@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
@@ -7,6 +7,31 @@ import { useCrud } from '@/hooks/useCrud';
 import api from '@/services/api';
 
 import type { Militar, Obm } from '@/types/entities';
+
+// Interfaces from Plantoes.tsx
+interface GuarnicaoMembro {
+  militar_id: number;
+  funcao: string;
+  nome_guerra: string | null;
+  nome_completo: string | null;
+  nome_exibicao: string;
+  posto_graduacao: string | null;
+  telefone: string | null;
+  plantao_id?: number;
+}
+
+interface Plantao {
+  id: number;
+  data_plantao: string;
+  hora_inicio: string | null;
+  hora_fim: string | null;
+  viatura_prefixo: string;
+  obm_abreviatura: string;
+  guarnicao: GuarnicaoMembro[];
+  // Campos opcionais para compatibilidade com respostas antigas da API
+  data_inicio?: string | null;
+  data_fim?: string | null;
+}
 
 import FileUpload from '@/components/ui/FileUpload';
 import MilitarForm from '@/components/forms/MilitarForm';
@@ -22,7 +47,8 @@ import StatCard from '@/components/ui/StatCard';
 import { Edit, Trash2, UserPlus, Search, Upload } from 'lucide-react';
 
 // Memoized Row Component for performance
-const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDeleteClick }: { militar: Militar, virtualRow: any, handleOpenFormModal: (militar: Militar) => void, handleDeleteClick: (id: number) => void }) => {
+const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDeleteClick, getMilitarStatus }: { militar: Militar, virtualRow: any, handleOpenFormModal: (militar: Militar) => void, handleDeleteClick: (id: number) => void, getMilitarStatus: (militar: Militar) => { label: string; classes: string; } }) => {
+  const status = getMilitarStatus(militar);
   return (
     <div
       key={militar.id}
@@ -50,14 +76,8 @@ const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDelet
       </div>
       <div className="px-6 py-4 text-sm text-textSecondary" style={{ width: '15%' }}>{militar.obm_nome || 'N/A'}</div>
       <div className="px-6 py-4 text-sm" style={{ width: '10%' }}>
-        <span
-          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-            militar.ativo
-              ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'
-              : 'bg-premiumOrange/20 text-premiumOrange'
-          }`}
-        >
-          {militar.ativo ? 'Ativo' : 'Inativo'}
+        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${status.classes}`}>
+          {status.label}
         </span>
       </div>
       <div className="px-6 py-4 text-sm text-textSecondary" style={{ width: '10%' }}>
@@ -90,9 +110,11 @@ export default function Militares() {
   const [obms, setObms] = useState<Obm[]>([]);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [escaladosMilitares, setEscaladosMilitares] = useState<Set<number>>(new Set());
   
   const [postoGradFilter, setPostoGradFilter] = useState('');
   const [obmFilter, setObmFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [allMilitaresForFilters, setAllMilitaresForFilters] = useState<Militar[]>([]);
 
   const {
@@ -121,12 +143,37 @@ export default function Militares() {
 
   const parentRef = useRef<HTMLDivElement>(null);
 
+  const getMilitarStatus = useCallback((militar: Militar) => {
+    if (escaladosMilitares.has(militar.id)) {
+      return {
+        label: 'Escalado',
+        classes: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40',
+      };
+    }
+    if (militar.ativo) {
+      return {
+        label: 'Ativo',
+        classes: 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40',
+      };
+    }
+    return {
+      label: 'Inativo',
+      classes: 'bg-premiumOrange/20 text-premiumOrange',
+    };
+  }, [escaladosMilitares]);
+
   const sortedMilitares = useMemo(() => {
     if (!militares) return [];
-    return [...militares].sort((a, b) =>
-      (a.nome_completo || '').localeCompare(b.nome_completo || '', 'pt-BR'),
-    );
-  }, [militares]);
+    return [...militares]
+      .filter(militar => {
+        if (!statusFilter) return true;
+        const status = getMilitarStatus(militar).label;
+        return status === statusFilter;
+      })
+      .sort((a, b) =>
+        (a.nome_completo || '').localeCompare(b.nome_completo || '', 'pt-BR'),
+      );
+  }, [militares, statusFilter, getMilitarStatus]);
 
   const rowVirtualizer = useVirtualizer({
     count: sortedMilitares.length,
@@ -134,6 +181,43 @@ export default function Militares() {
     estimateSize: () => 65,
     overscan: 5,
   });
+
+  const fetchEscalados = useCallback(async () => {
+    try {
+      const response = await api.get('/api/admin/plantoes?all=true');
+      const plantoes: Plantao[] = response.data.data ?? [];
+      const escalados = new Set<number>();
+      // Normaliza comparacao de datas por string (YYYY-MM-DD) para evitar timezone
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      plantoes.forEach((plantao) => {
+        const rawDate = plantao.data_plantao || plantao.data_inicio || plantao.data_fim;
+        if (!rawDate) return;
+        const plantaoDate = new Date(rawDate);
+        if (Number.isNaN(plantaoDate.getTime())) {
+            return;
+        }
+
+        const plantaoStr = plantaoDate.toISOString().slice(0, 10);
+        if (plantaoStr >= todayStr) {
+          plantao.guarnicao.forEach((membro) => {
+            const idNum = Number(membro.militar_id);
+            if (Number.isFinite(idNum)) {
+              escalados.add(idNum);
+            }
+          });
+        }
+      });
+      setEscaladosMilitares(escalados);
+    } catch {
+      toast.error('Não foi possível carregar os dados de militares escalados.');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    fetchEscalados();
+  }, [fetchData, fetchEscalados]);
 
   useEffect(() => {
     setPageTitle('Efetivo (Militares)');
@@ -238,8 +322,8 @@ export default function Militares() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-          <div className="flex flex-col md:flex-row gap-4"> {/* Wrapper for filters */}
+        <div className="flex flex-col md:flex-row justify-between items-start mb-4 gap-4">
+          <div className="flex flex-wrap items-center gap-4"> {/* Wrapper for filters lado a lado */}
             <Select
               value={postoGradFilter}
               onChange={(e) => {
@@ -247,7 +331,7 @@ export default function Militares() {
                 setPostoGradFilter(value);
                 handleFilterChange('posto_graduacao', value);
               }}
-              className="w-full md:w-auto"
+              className="w-full md:w-56"
             >
               <option value="">Filtrar por Posto/Grad...</option>
               {postosGraduacoes.map(posto => (
@@ -261,19 +345,37 @@ export default function Militares() {
                 setObmFilter(value);
                 handleFilterChange('obm_nome', value);
               }}
-              className="w-full md:w-auto"
+              className="w-full md:w-56"
             >
               <option value="">Filtrar por OBM...</option>
               {obmsForFilter.map(obm => (
                 <option key={obm} value={obm}>{obm}</option>
               ))}
             </Select>
+            <Select
+                value={statusFilter}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setStatusFilter(value);
+                  // Aciona filtro independente no backend
+                  // para que 'Escalado' funcione em todas as paginas
+                  handleFilterChange('escalado', value === 'Escalado' ? 'true' : '');
+                }}
+                className="w-full md:w-56"
+            >
+                <option value="">Filtrar por Status...</option>
+                <option value="Ativo">Ativo</option>
+                <option value="Inativo">Inativo</option>
+                <option value="Escalado">Escalado</option>
+            </Select>
             <Button onClick={() => {
               setPostoGradFilter('');
               setObmFilter('');
+              setStatusFilter('');
               handleFilterChange('posto_graduacao', '');
               handleFilterChange('obm_nome', '');
               handleFilterChange('q', '');
+              handleFilterChange('escalado', '');
             }} variant="secondary" className="w-full md:w-auto">
               Limpar Filtros
             </Button>
@@ -334,6 +436,7 @@ export default function Militares() {
                         virtualRow={virtualRow}
                         handleOpenFormModal={handleOpenFormModal}
                         handleDeleteClick={handleDeleteClick}
+                        getMilitarStatus={getMilitarStatus}
                       />
                     );
                   })}
@@ -350,6 +453,7 @@ export default function Militares() {
                   onToggle={() => handleToggleCard(militar.id)}
                   onEdit={() => handleOpenFormModal(militar)}
                   onDelete={() => handleDeleteClick(militar.id)}
+                  getMilitarStatus={getMilitarStatus}
                 />
               ))}
             </div>

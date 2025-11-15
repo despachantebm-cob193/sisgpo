@@ -15,12 +15,16 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
 import FileUpload from '@/components/ui/FileUpload';
 import Input from '@/components/ui/Input';
+import StatCard from '@/components/ui/StatCard';
+import Select from '@/components/ui/Select';
 
 interface PaginationState {
   currentPage: number;
   totalPages: number;
   totalRecords: number;
 }
+
+
 
 interface ApiResponse<T> {
   data: T[];
@@ -38,7 +42,7 @@ export default function Obms() {
   const [obms, setObms] = useState<Obm[]>([]);
   const [obmOptions, setObmOptions] = useState<ObmOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '' });
+  const [filters, setFilters] = useState({ q: '', cidade: '', crbm: '' });
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [validationErrors, setValidationErrors] = useState<ApiErrorDetail[]>([]);
@@ -55,6 +59,9 @@ export default function Obms() {
   const [openCrbmKeys, setOpenCrbmKeys] = useState<Set<string>>(() => new Set());
   const [openCitiesByCrbm, setOpenCitiesByCrbm] = useState<Record<string, Set<string>>>(() => ({}));
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [allObmsForFilters, setAllObmsForFilters] = useState<Obm[]>([]);
+  const [cidadeFilter, setCidadeFilter] = useState('');
+  const [crbmFilter, setCrbmFilter] = useState('');
 
   const parentRef = useRef<HTMLDivElement>(null);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
@@ -99,6 +106,28 @@ export default function Obms() {
       }
     };
   }, [obms.length]);
+
+  useEffect(() => {
+    const fetchAllForFilters = async () => {
+      try {
+        const response = await api.get('/api/admin/obms?limit=9999');
+        setAllObmsForFilters(response.data.data);
+      } catch {
+        toast.error('Falha ao carregar opções de filtro.');
+      }
+    };
+    fetchAllForFilters();
+  }, []);
+
+  const cidades = useMemo(() => {
+    const allCidades = allObmsForFilters.map(o => o.cidade).filter(Boolean);
+    return [...new Set(allCidades)].sort();
+  }, [allObmsForFilters]);
+
+  const crbms = useMemo(() => {
+    const allCrbms = allObmsForFilters.map(o => o.crbm).filter(Boolean);
+    return [...new Set(allCrbms)].sort();
+  }, [allObmsForFilters]);
 
   useEffect(() => {
     setPageTitle('Gerenciar OBMs');
@@ -174,8 +203,8 @@ export default function Obms() {
   );
 
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ q: event.target.value });
+  const handleFilterChange = (filterName: string, value: string) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
     setCurrentPage(1);
   };
 
@@ -331,19 +360,61 @@ export default function Obms() {
         </div>
       </div>
 
-      <Input
-        type="text"
-        placeholder="Filtrar por nome, sigla, cidade ou CRBM..."
-        value={filters.q}
-        onChange={handleFilterChange}
-        className="max-w-xs mb-4"
-      />
-
-      {!isLoading && pagination && (
-        <div className="mb-4 text-lg font-semibold text-textMain">
-          {pagination.totalRecords} {pagination.totalRecords === 1 ? 'OBM encontrada' : 'OBMs encontradas'}
+      <div className="flex flex-wrap items-end gap-4 mb-4">
+        <Input
+          type="text"
+          placeholder="Filtrar por nome, sigla, cidade ou CRBM..."
+          value={filters.q}
+          onChange={(e) => handleFilterChange('q', e.target.value)}
+          className="flex-1 min-w-[200px]"
+        />
+        <Select
+          value={cidadeFilter}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCidadeFilter(value);
+            handleFilterChange('cidade', value);
+          }}
+          className="flex-1 min-w-[150px]"
+        >
+          <option value="">Filtrar por Cidade...</option>
+          {cidades.map(cidade => (
+            <option key={cidade} value={cidade}>{cidade}</option>
+          ))}
+        </Select>
+        <Select
+          value={crbmFilter}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCrbmFilter(value);
+            handleFilterChange('crbm', value);
+          }}
+          className="flex-1 min-w-[150px]"
+        >
+          <option value="">Filtrar por CRBM...</option>
+          {crbms.map(crbm => (
+            <option key={crbm} value={crbm}>{crbm}</option>
+          ))}
+        </Select>
+        <Button onClick={() => {
+            setCidadeFilter('');
+            setCrbmFilter('');
+            handleFilterChange('cidade', '');
+            handleFilterChange('crbm', '');
+            handleFilterChange('q', '');
+            setFilters({ q: '', cidade: '', crbm: '' });
+        }} variant="secondary" className="w-full md:w-auto">
+            Limpar Filtros
+        </Button>
+        <div className="w-full md:flex-grow md:max-w-[250px]">
+          <StatCard
+              title="Total de OBMs"
+              value={isLoading ? '' : pagination?.totalRecords ?? 0}
+              isLoading={isLoading}
+              variant="highlight"
+          />
         </div>
-      )}
+      </div>
 
       <div className="space-y-6">
         <section className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-4 shadow-sm md:p-6 md:hidden">

@@ -1,7 +1,6 @@
-import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, ChangeEvent, useEffect, useCallback, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2, ChevronDown } from 'lucide-react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -13,6 +12,7 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
 import StatCard from '../components/ui/StatCard'; // Import StatCard
+import Select from '../components/ui/Select';
 import { useUiStore } from '@/store/uiStore';
 import type { Plantao } from './Plantoes';
 
@@ -32,7 +32,7 @@ export default function Viaturas() {
 
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({ q: '' });
+  const [filters, setFilters] = useState({ q: '', obm: '', cidade: '' });
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [validationErrors, setValidationErrors] = useState<any[]>([]);
@@ -49,19 +49,67 @@ export default function Viaturas() {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
   const [empenhadasViaturas, setEmpenhadasViaturas] = useState<Set<string>>(new Set());
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [allViaturasForFilters, setAllViaturasForFilters] = useState<Viatura[]>([]);
+  const [obmFilter, setObmFilter] = useState('');
+  const [cidadeFilter, setCidadeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
-  const parentRef = useRef<HTMLDivElement>(null);
+  const getViaturaStatus = useCallback((viatura: Viatura) => {
+    const prefix = viatura.prefixo?.toUpperCase() ?? '';
+    if (prefix && empenhadasViaturas.has(prefix)) {
+      return {
+        label: 'EMPENHADO',
+        classes: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40',
+      };
+    }
+    if (viatura.ativa) {
+      return {
+        label: 'ATIVA',
+        classes: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40',
+      };
+    }
+    return {
+      label: 'INATIVA',
+      classes: 'bg-spamRed/20 text-spamRed',
+    };
+  }, [empenhadasViaturas]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: viaturas.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 65, // Estimate row height
-    overscan: 5,
-  });
+  const filteredViaturas = useMemo(() => {
+    if (!statusFilter) return viaturas;
+    return viaturas.filter(v => getViaturaStatus(v).label === statusFilter);
+  }, [viaturas, statusFilter, getViaturaStatus]);
+
+  const empenhadasCount = useMemo(() => {
+    return viaturas.filter(v => v.prefixo && empenhadasViaturas.has(v.prefixo.toUpperCase())).length;
+  }, [viaturas, empenhadasViaturas]);
+  // Virtualização removida: listagem usa mapeamento direto
 
   useEffect(() => {
     setPageTitle("Viaturas");
   }, [setPageTitle]);
+
+  useEffect(() => {
+    const fetchAllForFilters = async () => {
+      try {
+        const response = await api.get('/api/admin/viaturas?limit=9999');
+        setAllViaturasForFilters(response.data.data);
+      } catch {
+        toast.error('Falha ao carregar opÃ§Ãµes de filtro.');
+      }
+    };
+    fetchAllForFilters();
+  }, []);
+
+  const obms = useMemo(() => {
+    const allObms = allViaturasForFilters.map(v => v.obm).filter(Boolean);
+    return [...new Set(allObms)].sort();
+  }, [allViaturasForFilters]);
+
+  const cidades = useMemo(() => {
+    const allCidades = allViaturasForFilters.map(v => v.cidade).filter(Boolean);
+    return [...new Set(allCidades)].sort();
+  }, [allViaturasForFilters]);
+
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -70,7 +118,7 @@ export default function Viaturas() {
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
       setPagination(response.data.pagination);
-    } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
+    } catch (err) { toast.error('NÃ£o foi possÃ­vel carregar as viaturas.'); }
     finally { setIsLoading(false); }
   }, [filters, currentPage]);
 
@@ -121,7 +169,7 @@ export default function Viaturas() {
       }
       const parsedDate = new Date(value);
       if (Number.isNaN(parsedDate.getTime())) {
-        console.warn('Valor de upload inválido recebido:', value);
+        console.warn('Valor de upload invÃ¡lido recebido:', value);
         setLastUpload(null);
         return;
       }
@@ -143,7 +191,10 @@ export default function Viaturas() {
   useEffect(() => { refreshData(); fetchLastUpload(); }, [refreshData, fetchLastUpload]);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilters({ q: e.target.value }); setCurrentPage(1); };
+  const handleFilterChange = (filterName: string, value: string) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+    setCurrentPage(1);
+  };
   const handleOpenFormModal = (item: Viatura | null = null) => { setItemToEdit(item); setValidationErrors([]); setIsFormModalOpen(true); };
   const handleCloseFormModal = () => setIsFormModalOpen(false);
   const handleDeleteClick = (id: number) => { setItemToDeleteId(id); setIsConfirmModalOpen(true); };
@@ -177,13 +228,13 @@ export default function Viaturas() {
         duplicateCount = duplicates;
         if (duplicates > 0) {
           const confirmBulk = window.confirm(
-            `Encontramos ${duplicates} outra(s) viatura(s) com o mesmo valor de OBM (${previousObm}). Deseja aplicar esta mesma correção em todas elas?`
+            `Encontramos ${duplicates} outra(s) viatura(s) com o mesmo valor de OBM (${previousObm}). Deseja aplicar esta mesma correÃ§Ã£o em todas elas?`
           );
           applyToDuplicates = confirmBulk;
         }
       } catch (countError) {
         console.error('Falha ao verificar duplicidades de OBM antes de atualizar viaturas:', countError);
-        toast.error('Não foi possível verificar outras viaturas com a mesma OBM. Atualizando apenas esta viatura.');
+        toast.error('NÃ£o foi possÃ­vel verificar outras viaturas com a mesma OBM. Atualizando apenas esta viatura.');
       }
     }
 
@@ -219,7 +270,7 @@ export default function Viaturas() {
     setIsDeleting(true);
     try {
       await api.delete(`/api/admin/viaturas/${itemToDeleteId}`);
-      toast.success('Viatura excluída com sucesso!');
+      toast.success('Viatura excluÃ­da com sucesso!');
       await refreshData();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao excluir a viatura.'); }
     finally { setIsDeleting(false); handleCloseConfirmModal(); }
@@ -250,27 +301,8 @@ export default function Viaturas() {
     finally { setIsClearing(false); setIsClearConfirmModalOpen(false); }
   };
 
-  const getViaturaStatus = (viatura: Viatura) => {
-    const prefix = viatura.prefixo?.toUpperCase() ?? '';
-    if (prefix && empenhadasViaturas.has(prefix)) {
-      return {
-        label: 'EMPENHADO',
-        classes: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40',
-      };
-    }
-    if (viatura.ativa) {
-      return {
-        label: 'ATIVA',
-        classes: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40',
-      };
-    }
-    return {
-      label: 'INATIVA',
-      classes: 'bg-spamRed/20 text-spamRed',
-    };
-  };
-
-  const empenhadasCount = viaturas.filter(v => v.prefixo && empenhadasViaturas.has(v.prefixo.toUpperCase())).length;
+  
+  // Removido: duplicaÃ§Ã£o de getViaturaStatus, empenhadasCount e filteredViaturas
 
   return (
     <div>
@@ -288,20 +320,77 @@ export default function Viaturas() {
         </div>
       </div>
       
-      <Input type="text" placeholder="Filtrar por prefixo, cidade, obm..." value={filters.q} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <StatCard
           title="Total de Viaturas"
           value={isLoading ? '' : pagination?.totalRecords ?? 0}
           isLoading={isLoading}
+          variant="highlight"
         />
         <StatCard
           title="Viaturas Empenhadas"
           value={isLoading ? '' : empenhadasCount}
           isLoading={isLoading}
-          description="Viaturas atualmente empenhadas em plantões futuros ou presentes."
+          description="Viaturas atualmente empenhadas em plantÃµes futuros ou presentes."
+          variant="highlight-secondary"
         />
+      </div>
+
+      {/* Barra de filtros posicionada abaixo dos cards */}
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <Input
+          type="text"
+          placeholder="Filtrar por prefixo, cidade, obm..."
+          value={filters.q}
+          onChange={(e) => handleFilterChange('q', e.target.value)}
+          className="w-full md:w-72"
+        />
+        <Select
+          value={obmFilter}
+          onChange={(e) => {
+            setObmFilter(e.target.value);
+            handleFilterChange('obm', e.target.value);
+          }}
+          className="w-full md:w-56"
+        >
+          <option value="">Filtrar por OBM...</option>
+          {obms.map(obm => (
+            <option key={obm} value={obm}>{obm}</option>
+          ))}
+        </Select>
+        <Select
+          value={cidadeFilter}
+          onChange={(e) => {
+            setCidadeFilter(e.target.value);
+            handleFilterChange('cidade', e.target.value);
+          }}
+          className="w-full md:w-56"
+        >
+          <option value="">Filtrar por Cidade...</option>
+          {cidades.map(cidade => (
+            <option key={cidade} value={cidade}>{cidade}</option>
+          ))}
+        </Select>
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="w-full md:w-56"
+        >
+          <option value="">Filtrar por Status...</option>
+          <option value="ATIVA">Ativa</option>
+          <option value="INATIVA">Inativa</option>
+          <option value="EMPENHADO">Empenhado</option>
+        </Select>
+        <Button onClick={() => {
+          setObmFilter('');
+          setCidadeFilter('');
+          setStatusFilter('');
+          handleFilterChange('obm', '');
+          handleFilterChange('cidade', '');
+          handleFilterChange('q', '');
+        }} variant="secondary" className="w-full md:w-auto">
+          Limpar Filtros
+        </Button>
       </div>
 
       <div className="space-y-4">
@@ -311,8 +400,8 @@ export default function Viaturas() {
             <div className="flex justify-center py-6">
               <Spinner className="h-10 w-10" />
             </div>
-          ) : viaturas.length > 0 ? (
-            viaturas.map((viatura) => {
+          ) : filteredViaturas.length > 0 ? (
+            filteredViaturas.map((viatura) => {
               const hasSigla = Boolean(viatura.obm_abreviatura);
               const isExpanded = expandedCards.has(viatura.id);
               const status = getViaturaStatus(viatura);
@@ -388,19 +477,19 @@ export default function Viaturas() {
             <div className="flex justify-center py-10">
               <Spinner className="h-10 w-10" />
             </div>
-          ) : viaturas.length > 0 ? (
+          ) : filteredViaturas.length > 0 ? (
             <table className="min-w-full divide-y divide-borderDark/60">
               <thead className="bg-background/40">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Prefixo</th>
-                  <th scope="colo" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">OBM</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">OBM</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Cidade</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
-                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">AÃ§Ãµes</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-borderDark/60">
-                {viaturas.map((viatura) => {
+                {filteredViaturas.map((viatura) => {
                   const status = getViaturaStatus(viatura);
                   return (
                     <tr key={viatura.id} className="hover:bg-background/40 transition-colors">
@@ -441,8 +530,8 @@ export default function Viaturas() {
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
-      <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÇÃO: Esta ação é irreversível e irá apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
+      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar ExclusÃ£o" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
+      <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÃ‡ÃƒO: Esta aÃ§Ã£o Ã© irreversÃ­vel e irÃ¡ apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
       
       <Modal
         isOpen={isUploadModalOpen}
@@ -464,3 +553,8 @@ export default function Viaturas() {
     </div>
   );
 }
+
+
+
+
+

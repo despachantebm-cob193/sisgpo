@@ -8,6 +8,7 @@ interface MilitarCardProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  getMilitarStatus: (militar: Militar) => { label: string; classes: string; };
 }
 
 const MilitarCard: React.FC<MilitarCardProps> = ({
@@ -16,7 +17,9 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
   onToggle,
   onEdit,
   onDelete,
+  getMilitarStatus,
 }) => {
+  const status = getMilitarStatus(militar);
   return (
     <div className="surface-card transition-all">
       <div className="flex cursor-pointer items-center justify-between p-4" onClick={onToggle}>
@@ -70,12 +73,8 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
             <div>
               <p className="text-xs font-semibold uppercase text-textSecondary">Status</p>
               <p className="text-sm text-textMain">
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold leading-5 ${
-                    militar.ativo ? 'bg-cardGreen text-textMain' : 'bg-spamRed text-textMain'
-                  }`}
-                >
-                  {militar.ativo ? 'Ativo' : 'Inativo'}
+                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold leading-5 ${status.classes}`}>
+                  {status.label}
                 </span>
               </p>
             </div>

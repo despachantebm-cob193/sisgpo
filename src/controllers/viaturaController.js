@@ -98,7 +98,8 @@ exports.getAll = async (req, res, next) => {
     const page = parsePositiveNumber(req.query.page, 1);
     const limit = parsePositiveNumber(req.query.limit, 15);
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const offset = (page - 1) * limit;
+    const obm = typeof req.query.obm === 'string' ? req.query.obm.trim() : '';
+    const cidade = typeof req.query.cidade === 'string' ? req.query.cidade.trim() : '';
 
     const baseQuery = db('viaturas as v')
       .leftJoin('obms as o', function joinObms() {
@@ -123,6 +124,16 @@ exports.getAll = async (req, res, next) => {
             .orWhere(db.raw('o.abreviatura::text'), 'ilike', `%${q}%`);
       });
     }
+
+    if (obm) {
+        baseQuery.where('v.obm', obm);
+    }
+
+    if (cidade) {
+        baseQuery.where('v.cidade', cidade);
+    }
+
+    const offset = (page - 1) * limit;
 
     const countQuery = baseQuery.clone().clearSelect().clearOrder().count({ count: 'v.id' }).first();
     const dataQuery = baseQuery.clone().orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
