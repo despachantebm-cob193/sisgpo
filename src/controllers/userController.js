@@ -193,6 +193,15 @@ const userController = {
       updatePayload.nome = trimmedNome;
     }
     if (typeof trimmedEmail === 'string' && trimmedEmail && trimmedEmail.toLowerCase() !== (user.email ?? '').toLowerCase()) {
+      // Check for duplicate email (case-insensitive)
+      const emailInUse = await db('usuarios')
+        .whereRaw('LOWER(email) = ?', [trimmedEmail.toLowerCase()])
+        .whereNot({ id: userId })
+        .first();
+
+      if (emailInUse) {
+        throw new AppError('Email informado ja esta em uso.', 409);
+      }
       updatePayload.email = trimmedEmail.toLowerCase();
     }
 

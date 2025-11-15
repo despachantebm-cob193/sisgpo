@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { useUiStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import { useCrud } from '@/hooks/useCrud';
 import api from '@/services/api';
 
@@ -47,7 +48,7 @@ import StatCard from '@/components/ui/StatCard';
 import { Edit, Trash2, UserPlus, Search, Upload } from 'lucide-react';
 
 // Memoized Row Component for performance
-const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDeleteClick, getMilitarStatus }: { militar: Militar, virtualRow: any, handleOpenFormModal: (militar: Militar) => void, handleDeleteClick: (id: number) => void, getMilitarStatus: (militar: Militar) => { label: string; classes: string; } }) => {
+const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDeleteClick, getMilitarStatus, isAdmin }: { militar: Militar, virtualRow: any, handleOpenFormModal: (militar: Militar) => void, handleDeleteClick: (id: number) => void, getMilitarStatus: (militar: Militar) => { label: string; classes: string; }, isAdmin: boolean }) => {
   const status = getMilitarStatus(militar);
   return (
     <div
@@ -84,20 +85,22 @@ const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDelet
         {militar.telefone || 'Nao informado'}
       </div>
       <div className="px-6 py-4 text-sm" style={{ width: '15%' }}>
-        <div className="flex items-center justify-end gap-4">
-          <button
-            onClick={() => handleOpenFormModal(militar)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-          >
-            <Edit size={18} />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(militar.id)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-          >
-            <Trash2 size={18} />
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center justify-end gap-4">
+            <button
+              onClick={() => handleOpenFormModal(militar)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
+            >
+              <Edit size={18} />
+            </button>
+            <button
+              onClick={() => handleDeleteClick(militar.id)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -106,6 +109,9 @@ const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDelet
 
 export default function Militares() {
   const { setPageTitle } = useUiStore();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.perfil === 'admin';
+
   const [isUploading, setIsUploading] = useState(false);
   const [obms, setObms] = useState<Obm[]>([]);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
@@ -311,14 +317,18 @@ export default function Militares() {
             </div>
           </form>
           <div className="flex gap-2 w-full md:w-auto">
-            <Button onClick={() => setIsUploadModalOpen(true)} variant="warning" className="w-full md:w-auto">
-              <Upload className="w-4 h-4 mr-2" />
-              Importar Militares
-            </Button>
-            <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Adicionar Militar
-            </Button>
+            {isAdmin && (
+              <>
+                <Button onClick={() => setIsUploadModalOpen(true)} variant="warning" className="w-full md:w-auto">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importar Militares
+                </Button>
+                <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Adicionar Militar
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -437,6 +447,7 @@ export default function Militares() {
                         handleOpenFormModal={handleOpenFormModal}
                         handleDeleteClick={handleDeleteClick}
                         getMilitarStatus={getMilitarStatus}
+                        isAdmin={isAdmin}
                       />
                     );
                   })}
@@ -454,6 +465,7 @@ export default function Militares() {
                   onEdit={() => handleOpenFormModal(militar)}
                   onDelete={() => handleDeleteClick(militar.id)}
                   getMilitarStatus={getMilitarStatus}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>

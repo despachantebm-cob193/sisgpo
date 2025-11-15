@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Pencil, Ban, RotateCcw, Trash2, Check, X } from 'lucide-react';
 
 import api from '../services/api';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
@@ -15,6 +15,7 @@ export default function Users() {
   const navigate = useNavigate();
   const { user: loggedUser } = useAuthStore();
   const { setPageTitle } = useUiStore();
+  const isAdmin = loggedUser?.perfil === 'admin';
 
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,11 +31,11 @@ export default function Users() {
   }, [setPageTitle]);
 
   useEffect(() => {
-    if (loggedUser && loggedUser.perfil !== 'admin') {
+    if (loggedUser && !isAdmin) {
       toast.error('Acesso restrito aos administradores.');
       navigate('/app/dashboard');
     }
-  }, [loggedUser, navigate]);
+  }, [loggedUser, isAdmin, navigate]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -51,8 +52,10 @@ export default function Users() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin]);
 
   const handleSave = async () => {
     setIsFormModalOpen(false);
@@ -78,7 +81,7 @@ export default function Users() {
   const handleToggleStatus = async (item: UserRecord) => {
     setRowActionLoading(item.id);
     try {
-      await api.patch(`/api/admin/users/${item.id}/status`, { ativo: !item.ativo });
+      await api.post(`/api/admin/users/${item.id}/toggle-active`);
       toast.success(!item.ativo ? 'Usuario reativado com sucesso!' : 'Usuario bloqueado com sucesso!');
       await fetchUsers();
     } catch (err: any) {
@@ -169,24 +172,26 @@ export default function Users() {
       <div className="rounded-lg bg-cardSlate p-6 shadow-md">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h3 className="text-xl font-semibold text-textMain">Usuarios cadastrados</h3>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <button
-              type="button"
-              onClick={fetchUsers}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center rounded-md border border-borderDark/60 bg-cardSlate px-4 py-2 text-sm font-medium text-textSecondary shadow-sm transition hover:bg-searchbar focus:outline-none focus:ring-2 focus-visible:ring-tagBlue disabled:opacity-60"
-            >
-              {isLoading ? 'Atualizando...' : 'Atualizar'}
-            </button>
-            <button
-              type="button"
-              onClick={startCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-transparent bg-tagBlue px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-tagBlue/80 focus:outline-none focus:ring-2 focus-visible:ring-tagBlue focus:ring-offset-2"
-            >
-              <PlusCircle className="h-5 w-5" />
-              Novo usuario
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <button
+                type="button"
+                onClick={fetchUsers}
+                disabled={isLoading}
+                className="inline-flex items-center justify-center rounded-md border border-borderDark/60 bg-cardSlate px-4 py-2 text-sm font-medium text-textSecondary shadow-sm transition hover:bg-searchbar focus:outline-none focus:ring-2 focus-visible:ring-tagBlue disabled:opacity-60"
+              >
+                {isLoading ? 'Atualizando...' : 'Atualizar'}
+              </button>
+              <button
+                type="button"
+                onClick={startCreate}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-transparent bg-tagBlue px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-tagBlue/80 focus:outline-none focus:ring-2 focus-visible:ring-tagBlue focus:ring-offset-2"
+              >
+                <PlusCircle className="h-5 w-5" />
+                Novo usuario
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -197,20 +202,85 @@ export default function Users() {
               Nenhum usuario cadastrado ate o momento.
             </div>
           ) : (
-            sortedUsers.map((user) => (
-              <UserRow
-                key={user.id}
-                user={user}
-                onEdit={startEdit}
-                onToggleStatus={handleToggleStatus}
-                onDelete={openDeleteModal}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                isOwnAccount={isOwnAccount(user.id)}
-                rowActionLoading={rowActionLoading}
-                isDeleting={isDeleting}
-              />
-            ))
+            <>
+              {/* Mobile Card View */}
+              <div className="space-y-3 md:hidden">
+                {sortedUsers.map((user) => (
+                  <UserRow
+                    key={user.id}
+                    user={user}
+                    onEdit={startEdit}
+                    onToggleStatus={handleToggleStatus}
+                    onDelete={openDeleteModal}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    isOwnAccount={isOwnAccount(user.id)}
+                    rowActionLoading={rowActionLoading}
+                    isDeleting={isDeleting}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <table className="min-w-full divide-y divide-borderDark/60">
+                  <thead className="bg-searchbar">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Usuário</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Email</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Perfil</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
+                      <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-cardSlate divide-y divide-borderDark/60">
+                    {sortedUsers.map((user) => (
+                      <tr key={user.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-textMain">{user.nome_completo || user.login}</div>
+                          <div className="text-sm text-textSecondary">{user.login}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{user.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{user.perfil}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {/* Status logic from UserRow */}
+                          {user.status === 'pending' ? (
+                            <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
+                              Pendente
+                            </span>
+                          ) : user.ativo ? (
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/40">
+                              Ativo
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-premiumOrange/20 px-2.5 py-0.5 text-xs font-semibold text-premiumOrange">
+                              Bloqueado
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {/* Action buttons logic from UserRow */}
+                          <div className="flex items-center justify-end gap-2">
+                            {user.status === 'pending' ? (
+                              <>
+                                <button onClick={() => handleApprove(user)} title="Aprovar" className="text-green-400 hover:text-green-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Check className="h-5 w-5" /></button>
+                                <button onClick={() => handleReject(user)} title="Rejeitar" className="text-red-400 hover:text-red-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><X className="h-5 w-5" /></button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={() => startEdit(user)} title="Editar" className="text-sky-400 hover:text-sky-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Pencil className="h-5 w-5" /></button>
+                                <button onClick={() => handleToggleStatus(user)} title={user.ativo ? 'Bloquear' : 'Reativar'} className="text-amber-400 hover:text-amber-300 disabled:opacity-50" disabled={rowActionLoading === user.id || isOwnAccount(user.id)}>{user.ativo ? <Ban className="h-5 w-5" /> : <RotateCcw className="h-5 w-5" />}</button>
+                                <button onClick={() => openDeleteModal(user)} title="Excluir" className="text-rose-400 hover:text-rose-300 disabled:opacity-50" disabled={rowActionLoading === user.id || isOwnAccount(user.id)}><Trash2 className="h-5 w-5" /></button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -72,7 +72,20 @@ const servicoDiaController = {
       await db.transaction(async trx => {
         await trx('servico_dia').where({ data_inicio }).del();
 
-        const servicosParaInserir = servicos
+        const uniqueServicos = [];
+        const seen = new Set(); // To track duplicates
+
+        servicos.forEach(s => {
+          if (s.funcao && s.pessoa_id && s.pessoa_type) {
+            const key = `${s.pessoa_type}-${s.pessoa_id}-${s.funcao}`;
+            if (!seen.has(key)) {
+              uniqueServicos.push(s);
+              seen.add(key);
+            }
+          }
+        });
+
+        const servicosParaInserir = uniqueServicos
           .filter(s => s.funcao && s.pessoa_id && s.pessoa_type)
           .map(s => ({
             data_inicio,

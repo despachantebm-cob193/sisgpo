@@ -113,13 +113,13 @@ export const router = createBrowserRouter([
       },
 
       // Rotas de Administração protegidas com AdminRoute
-      { path: 'obms', element: <AdminRoute><Suspended><Obms /></Suspended></AdminRoute> },
-      { path: 'viaturas', element: <AdminRoute><Suspended><Viaturas /></Suspended></AdminRoute> },
-      { path: 'aeronaves', element: <AdminRoute><Suspended><Aeronaves /></Suspended></AdminRoute> },
-      { path: 'militares', element: <AdminRoute><Suspended><Militares /></Suspended></AdminRoute> },
-      { path: 'medicos', element: <AdminRoute><Suspended><Medicos /></Suspended></AdminRoute> },
-      { path: 'plantoes', element: <AdminRoute><Suspended><Plantoes /></Suspended></AdminRoute> },
-      { path: 'servico-dia', element: <AdminRoute><Suspended><ServicoDia /></Suspended></AdminRoute> },
+      { path: 'obms', element: <Suspended><Obms /></Suspended> },
+      { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
+      { path: 'aeronaves', element: <Suspended><Aeronaves /></Suspended> },
+      { path: 'militares', element: <Suspended><Militares /></Suspended> },
+      { path: 'medicos', element: <Suspended><Medicos /></Suspended> },
+      { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
+      { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
       { path: 'usuarios', element: <AdminRoute><Suspended><UsersManagement /></Suspended></AdminRoute> },
       
       // Rotas comuns

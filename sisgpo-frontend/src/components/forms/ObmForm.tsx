@@ -68,7 +68,11 @@ const ObmForm: React.FC<ObmFormProps> = ({ obmToEdit, obmOptions, onSave, onCanc
   // Handler gen�rico para inputs normais
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name as keyof ObmFormData]: value }));
+    if (name === 'abreviatura') {
+      setFormData(prev => ({ ...prev, [name as keyof ObmFormData]: value.toUpperCase() }));
+    } else {
+      setFormData(prev => ({ ...prev, [name as keyof ObmFormData]: value }));
+    }
   };
 
   // Handler para o CreatableSelect (campo nome)

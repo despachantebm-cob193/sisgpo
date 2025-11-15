@@ -9,6 +9,7 @@ interface MilitarCardProps {
   onEdit: () => void;
   onDelete: () => void;
   getMilitarStatus: (militar: Militar) => { label: string; classes: string; };
+  isAdmin: boolean;
 }
 
 const MilitarCard: React.FC<MilitarCardProps> = ({
@@ -18,6 +19,7 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
   onEdit,
   onDelete,
   getMilitarStatus,
+  isAdmin,
 }) => {
   const status = getMilitarStatus(militar);
   return (
@@ -30,26 +32,28 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-4 md:mt-0 md:justify-end">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="text-tagBlue hover:text-tagBlue/80"
-            >
-              <Edit size={18} />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="text-spamRed hover:text-spamRed/80"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-4 md:mt-0 md:justify-end">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="text-tagBlue hover:text-tagBlue/80"
+              >
+                <Edit size={18} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="text-spamRed hover:text-spamRed/80"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          )}
           <ChevronDown
             size={20}
             className={`transform text-textSecondary transition-transform ${

@@ -104,6 +104,7 @@ const obmController = {
 
     const nomeTrim = nome ? nome.trim() : '';
     const abreviaturaTrim = abreviatura ? abreviatura.trim() : '';
+    const abreviaturaUpper = abreviaturaTrim.toUpperCase();
 
     if (!nomeTrim) {
       throw new AppError('O nome da OBM nao pode ser vazio.', 400);
@@ -112,7 +113,7 @@ const obmController = {
       throw new AppError('A abreviatura da OBM nao pode ser vazia.', 400);
     }
 
-    const exists = await db('obms').where('abreviatura', abreviaturaTrim).first();
+    const exists = await db('obms').whereRaw('UPPER(abreviatura) = ?', [abreviaturaUpper]).first();
     if (exists) {
       throw new AppError('Abreviatura ja cadastrada no sistema.', 409);
     }
@@ -137,6 +138,7 @@ const obmController = {
     const obmId = Number(id);
     const nomeTrim = nome ? nome.trim() : '';
     const abreviaturaTrim = abreviatura ? abreviatura.trim() : '';
+    const abreviaturaUpper = abreviaturaTrim.toUpperCase();
 
     if (!nomeTrim) {
       throw new AppError('O nome da OBM nao pode ser vazio.', 400);
@@ -150,9 +152,9 @@ const obmController = {
       throw new AppError('OBM nao encontrada.', 404);
     }
 
-    if (abreviaturaTrim !== obmPraAtualizar.abreviatura) {
+    if (abreviaturaUpper !== obmPraAtualizar.abreviatura?.toUpperCase()) {
       const conflito = await db('obms')
-        .where('abreviatura', abreviaturaTrim)
+        .whereRaw('UPPER(abreviatura) = ?', [abreviaturaUpper])
         .andWhere('id', '!=', obmId)
         .first();
 

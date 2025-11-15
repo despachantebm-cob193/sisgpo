@@ -47,7 +47,12 @@ export default function Dashboard() {
   // States for the new TopFleetSummary component
   const [totalViaturasAtivas, setTotalViaturasAtivas] = useState<number | null>(null);
   const [totalViaturasEmpenhadas, setTotalViaturasEmpenhadas] = useState<number | null>(null);
+  const [empenhadasViaturasSet, setEmpenhadasViaturasSet] = useState<Set<string>>(new Set());
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+
+  // New state for militares escalados
+  const [militaresEscaladosCount, setMilitaresEscaladosCount] = useState<number | null>(null);
+  const [isLoadingMilitaresEscalados, setIsLoadingMilitaresEscalados] = useState(true);
 
   // Existing states
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -100,14 +105,15 @@ export default function Dashboard() {
           break;
         }
         page += 1;
-      }
-      setTotalViaturasEmpenhadas(engaged.size);
-      setLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
-    } catch (err) {
-      toast.error('Não foi possível carregar o resumo da frota.');
-    }
-  }, []);
-
+                }
+            setTotalViaturasEmpenhadas(engaged.size);
+            setEmpenhadasViaturasSet(engaged); // Store the set
+            console.log('Dashboard: engaged set populated:', engaged); // Debug log
+            setLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
+          } catch (err) {
+            toast.error('Não foi possível carregar o resumo da frota.');
+          }
+        }, []);
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
@@ -127,6 +133,7 @@ export default function Dashboard() {
         servicoDiaRes,
         escalaAeronavesRes,
         escalaCodecRes,
+        militaresEscaladosRes, // New API call
       ] = await Promise.all([
         api.get<DashboardStats>(`${apiPrefix}/stats${qs}`),
         api.get<ChartStat[]>(`${apiPrefix}/viatura-stats-por-tipo${qs}`),
@@ -136,6 +143,7 @@ export default function Dashboard() {
         api.get<ServicoInfo[]>(`${apiPrefix}/servico-dia${qs}`),
         api.get<Aeronave[]>(`${apiPrefix}/escala-aeronaves${qs}`),
         api.get<PlantonistaCodec[]>(`${apiPrefix}/escala-codec${qs}`),
+        api.get<{ count: number }>(`${apiPrefix}/militares-escalados-count${qs}`), // Fetch new count
       ]);
       setStats(statsRes.data || null);
       setViaturaTipoStats(Array.isArray(viaturaTipoRes.data) ? viaturaTipoRes.data : []);
@@ -145,12 +153,14 @@ export default function Dashboard() {
       setServicoDia(Array.isArray(servicoDiaRes.data) ? servicoDiaRes.data : []);
       setEscalaAeronaves(Array.isArray(escalaAeronavesRes.data) ? escalaAeronavesRes.data : []);
       setEscalaCodec(Array.isArray(escalaCodecRes.data) ? escalaCodecRes.data : []);
+      setMilitaresEscaladosCount(militaresEscaladosRes.data.count); // Set new count
       setError(null);
     } catch (err) {
       setError('Não foi possível carregar os dados do dashboard.');
       console.error(err);
     } finally {
       setIsLoading(false);
+      setIsLoadingMilitaresEscalados(false); // Set loading to false
     }
   }, [selectedObm, isLoggedInArea]);
 
@@ -205,12 +215,19 @@ export default function Dashboard() {
           atualizadoEm={lastUpdate}
         />
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {console.log('Dashboard: empenhadasViaturasSet passed to ViaturaByObmCard:', empenhadasViaturasSet)}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Militares Ativos"
             value={stats?.total_militares_ativos ?? 0}
             description="Total de militares na ativa."
             isLoading={isLoading}
+          />
+          <StatCard
+            title="Militares Escalados"
+            value={militaresEscaladosCount ?? 0}
+            description="Total de militares em escala hoje/futuro."
+            isLoading={isLoadingMilitaresEscalados}
           />
           <StatCard
             title="OBMs Cadastradas"
@@ -228,7 +245,7 @@ export default function Dashboard() {
         <CodecCard data={escalaCodec} isLoading={isLoading} />
       </div>
 
-      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} />
+      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} empenhadasViaturas={empenhadasViaturasSet} />
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ViaturaTypeChart data={viaturaTipoStats} isLoading={isLoading} lastUpdated={lastUpload} />

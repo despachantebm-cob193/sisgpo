@@ -14,6 +14,7 @@ import FileUpload from '../components/ui/FileUpload';
 import StatCard from '../components/ui/StatCard'; // Import StatCard
 import Select from '../components/ui/Select';
 import { useUiStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import type { Plantao } from './Plantoes';
 
 interface Viatura {
@@ -29,6 +30,8 @@ interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
 export default function Viaturas() {
   const { setPageTitle } = useUiStore();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.perfil === 'admin';
 
   const [viaturas, setViaturas] = useState<Viatura[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +49,8 @@ export default function Viaturas() {
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [isClearConfirmModalOpen, setIsClearConfirmModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isImpactModalOpen, setIsImpactModalOpen] = useState(false);
+  const [impactAck, setImpactAck] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
   const [empenhadasViaturas, setEmpenhadasViaturas] = useState<Set<string>>(new Set());
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -53,6 +58,14 @@ export default function Viaturas() {
   const [obmFilter, setObmFilter] = useState('');
   const [cidadeFilter, setCidadeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  const [previewData, setPreviewData] = useState<{
+    totalViaturas: number;
+    totalRelatedPlantoes: number;
+    totalViaturaVinculos: number;
+    totalMilitarVinculos: number;
+  } | null>(null);
+  const [confirmText, setConfirmText] = useState('');
 
   const getViaturaStatus = useCallback((viatura: Viatura) => {
     const prefix = viatura.prefixo?.toUpperCase() ?? '';
@@ -87,6 +100,24 @@ export default function Viaturas() {
   useEffect(() => {
     setPageTitle("Viaturas");
   }, [setPageTitle]);
+
+  useEffect(() => {
+    if (isImpactModalOpen) {
+      const fetchPreview = async () => {
+        try {
+          const response = await api.get('/api/admin/viaturas/clear-all/preview');
+          setPreviewData(response.data);
+        } catch (err) {
+          toast.error('Não foi possível carregar o preview da limpeza.');
+          setIsImpactModalOpen(false); // Close modal if preview fails
+        }
+      };
+      fetchPreview();
+    } else {
+      setPreviewData(null); // Clear preview data when modal closes
+      setConfirmText(''); // Clear confirm text
+    }
+  }, [isImpactModalOpen]);
 
   useEffect(() => {
     const fetchAllForFilters = async () => {
@@ -293,7 +324,11 @@ export default function Viaturas() {
   const handleClearAllViaturas = async () => {
     setIsClearing(true);
     try {
-      await api.delete('/api/admin/viaturas/clear-all');
+      await api.delete('/api/admin/viaturas/clear-all?confirm=1', {
+        headers: {
+          'X-Confirm-Purge': 'VIATURAS',
+        },
+      });
       toast.success('Tabela de viaturas limpa com sucesso!');
       await refreshData();
       fetchLastUpload();
@@ -308,16 +343,18 @@ export default function Viaturas() {
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold tracking-tight text-textMain">Viaturas</h2>
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button onClick={() => setIsUploadModalOpen(true)} variant="warning" className="w-full md:w-auto">
-            <Upload className="w-4 h-4 mr-2" />
-            Importar Viaturas
-          </Button>
-          <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">Adicionar Viatura</Button>
-          <Button onClick={() => setIsClearConfirmModalOpen(true)} className="!bg-rose-500 hover:!bg-rose-600 w-full md:w-auto text-white">
-            <Trash2 className="w-4 h-4 mr-2" /> Limpar Tabela
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button onClick={() => setIsUploadModalOpen(true)} variant="warning" className="w-full md:w-auto">
+              <Upload className="w-4 h-4 mr-2" />
+              Importar Viaturas
+            </Button>
+            <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">Adicionar Viatura</Button>
+            <Button onClick={() => { setImpactAck(false); setIsImpactModalOpen(true); }} className="!bg-rose-500 hover:!bg-rose-600 w-full md:w-auto text-white">
+              <Trash2 className="w-4 h-4 mr-2" /> Limpar Tabela
+            </Button>
+          </div>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -445,22 +482,24 @@ export default function Viaturas() {
                           {status.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 pt-2">
-                        <button
-                          onClick={() => handleOpenFormModal(viatura)}
-                          className="inline-flex flex-1 items-center justify-center rounded bg-sky-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-sky-600"
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(viatura.id)}
-                          className="inline-flex flex-1 items-center justify-center rounded bg-rose-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-rose-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center gap-3 pt-2">
+                          <button
+                            onClick={() => handleOpenFormModal(viatura)}
+                            className="inline-flex flex-1 items-center justify-center rounded bg-sky-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-sky-600"
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(viatura.id)}
+                            className="inline-flex flex-1 items-center justify-center rounded bg-rose-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-rose-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -502,12 +541,16 @@ export default function Viaturas() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   );
@@ -526,6 +569,57 @@ export default function Viaturas() {
           </div>
         )}
       </div>
+
+      {/* Modal de Impacto antes da confirmação final */}
+      <Modal
+        isOpen={isImpactModalOpen}
+        onClose={() => setIsImpactModalOpen(false)}
+        title="Atenção: Exclusão de Viaturas e Dados Relacionados"
+      >
+        <div className="space-y-4 text-textSecondary">
+          <p>Esta ação removerá permanentemente todos os registros da tabela de Viaturas.</p>
+          {previewData ? (
+            <div className="bg-cardSlate p-4 rounded-md border border-borderDark/60">
+              <h3 className="font-semibold text-textMain mb-2">Impacto da Operação:</h3>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Serão removidas: <span className="font-bold text-rose-400">{previewData.totalViaturas}</span> viaturas.</li>
+                <li>Serão afetados: <span className="font-bold text-rose-400">{previewData.totalRelatedPlantoes}</span> plantões futuros/presentes.</li>
+                <li>Serão removidos: <span className="font-bold text-rose-400">{previewData.totalViaturaVinculos}</span> vínculos de viaturas em plantões.</li>
+                <li>Serão removidos: <span className="font-bold text-rose-400">{previewData.totalMilitarVinculos}</span> vínculos de militares em plantões.</li>
+              </ul>
+            </div>
+          ) : (
+            <div className="flex justify-center py-4"><Spinner /></div>
+          )}
+          <p>Esta operação é irreversível. Para confirmar, digite "APAGAR VIATURAS" no campo abaixo.</p>
+          <Input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Digite APAGAR VIATURAS"
+            className="w-full"
+          />
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={impactAck}
+              onChange={(e) => setImpactAck(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <span className="text-sm">Entendo as consequências e desejo continuar</span>
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setIsImpactModalOpen(false)}>Cancelar</Button>
+            <Button
+              className="!bg-rose-500 hover:!bg-rose-600 text-white disabled:opacity-60"
+              disabled={!impactAck || confirmText !== 'APAGAR VIATURAS'}
+              onClick={() => { setIsImpactModalOpen(false); setIsClearConfirmModalOpen(true); }}
+            >
+              Continuar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />

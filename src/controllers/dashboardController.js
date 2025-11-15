@@ -410,6 +410,31 @@ const dashboardController = {
       throw new AppError('Erro interno ao buscar dados do dashboard para integração.', 500);
     }
   },
+
+  getMilitaresEscaladosCount: async (req, res) => {
+    try {
+      const hasMilitarPlantaoTable = await db.schema.hasTable('militar_plantao');
+      if (!hasMilitarPlantaoTable) {
+        console.warn('Tabela militar_plantao não existe. Retornando 0 para militares escalados.');
+        return res.status(200).json({ count: 0 });
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of today
+
+      const countResult = await db('militar_plantao as mp')
+        .join('plantoes as p', 'mp.plantao_id', 'p.id')
+        .where('p.data_plantao', '>=', today.toISOString().split('T')[0]) // Compare only date part
+        .countDistinct('mp.militar_id as count')
+        .first();
+
+      const count = parseInt(countResult?.count || 0, 10);
+      res.status(200).json({ count });
+    } catch (error) {
+      console.error('ERRO AO BUSCAR CONTAGEM DE MILITARES ESCALADOS:', error);
+      throw new AppError('Não foi possível carregar a contagem de militares escalados.', 500);
+    }
+  },
 };
 
 module.exports = dashboardController;

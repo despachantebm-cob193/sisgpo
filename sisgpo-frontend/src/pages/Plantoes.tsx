@@ -20,6 +20,7 @@ import EscalaMedicoForm from '@/components/forms/EscalaMedicoForm';
 import EscalaAeronaveForm from '@/components/forms/EscalaAeronaveForm';
 import EscalaCodecForm from '@/components/forms/EscalaCodecForm';
 import { useUiStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 
 // --- Interfaces ---
 export interface GuarnicaoMembro {
@@ -81,6 +82,8 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; on
 
 export default function Plantoes() {
   const { setPageTitle } = useUiStore();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.perfil === 'admin';
 
   useEffect(() => {
     setPageTitle("Gerenciamento de Escalas");
@@ -361,12 +364,14 @@ export default function Plantoes() {
           <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciamento de Escalas</h2>
           <p className="text-textSecondary mt-2">Gerencie as escalas de viaturas, m?dicos, pilotos e plantonistas.</p>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-          <Button onClick={() => setIsPlantaoModalOpen(true)} variant="primary"><CalendarPlus className="w-4 h-4 mr-2" />Lan?ar Plant?o VTR</Button>
-          <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="!bg-emerald-500 hover:!bg-emerald-600 text-white"><Stethoscope className="w-4 h-4 mr-2" />Escala M?dicos</Button>
-          <Button onClick={() => setIsAeronaveModalOpen(true)} className="!bg-amber-500 hover:!bg-amber-600 text-white"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
-          <Button onClick={() => setIsCodecModalOpen(true)} className="bg-codecPurple hover:bg-codecPurple/80 text-white"><Shield className="w-4 h-4 mr-2" />Escala CODEC</Button>
-        </div>
+        {isAdmin && (
+          <div className="flex flex-wrap gap-2 justify-center md:justify-end">
+            <Button onClick={() => setIsPlantaoModalOpen(true)} variant="primary"><CalendarPlus className="w-4 h-4 mr-2" />Lan?ar Plant?o VTR</Button>
+            <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="!bg-emerald-500 hover:!bg-emerald-600 text-white"><Stethoscope className="w-4 h-4 mr-2" />Escala M?dicos</Button>
+            <Button onClick={() => setIsAeronaveModalOpen(true)} className="!bg-amber-500 hover:!bg-amber-600 text-white"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
+            <Button onClick={() => setIsCodecModalOpen(true)} className="bg-codecPurple hover:bg-codecPurple/80 text-white"><Shield className="w-4 h-4 mr-2" />Escala CODEC</Button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-searchbar rounded-lg border">
@@ -446,22 +451,24 @@ export default function Plantoes() {
                           )}
                         </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Acoes:">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              aria-label="Editar plantao"
-                              onClick={() => handleEditClick(p.id)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button
-                              aria-label="Excluir plantao"
-                              onClick={() => handleDeleteClick(p.id, 'plantoes')}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
+                          {isAdmin && (
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                aria-label="Editar plantao"
+                                onClick={() => handleEditClick(p.id)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
+                              >
+                                <Edit size={18} />
+                              </button>
+                              <button
+                                aria-label="Excluir plantao"
+                                onClick={() => handleDeleteClick(p.id, 'plantoes')}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -494,7 +501,9 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Entrada:">{formatDateTime(e.entrada_servico)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Sa?da:">{formatDateTime(e.saida_servico)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-cardGreen/20 text-cardGreen' : 'bg-premiumOrange/20 text-premiumOrange'}`}>{e.status_servico}</span></td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button></td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
+                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -527,7 +536,9 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="1? Piloto:">{e.primeiro_piloto}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="2? Piloto:">{e.segundo_piloto}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:">{e.status}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button></td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
+                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -558,7 +569,9 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Turno:">{e.turno}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Plantonista:">Plantonista {e.ordem_plantonista}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_plantonista}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center"><button onClick={() => handleDeleteClick(e.id, 'escalaCodec')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button></td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
+                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaCodec')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

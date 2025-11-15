@@ -360,13 +360,34 @@ exports.getDistinctObms = async (req, res, next) => {
 
 exports.clearAll = async (req, res, next) => {
   try {
-    await db('plantoes').del();
+    // 1. Check for confirm=1 query parameter
+    const confirmQuery = req.query.confirm;
+    if (confirmQuery !== '1') {
+      throw new AppError('Precondition Required: Adicione "?confirm=1" na URL para confirmar a operacao.', 412);
+    }
+
+    // 2. Check for X-Confirm-Purge: VIATURAS header
+    const confirmHeader = req.headers['x-confirm-purge'];
+    if (confirmHeader !== 'VIATURAS') {
+      throw new AppError('Precondition Required: Adicione o cabecalho "X-Confirm-Purge: VIATURAS" para confirmar a operacao.', 412);
+    }
+
+    // 3. In production: require ALLOW_VIATURA_PURGE=true
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_VIATURA_PURGE !== 'true') {
+      throw new AppError('Operacao nao permitida em producao sem a flag ALLOW_VIATURA_PURGE=true.', 403);
+    }
+
+    // Perform deletion
+    await db('plantoes').del(); // This will delete viatura_plantao and militar_plantao due to CASCADE
     await db('viaturas').del();
     await db('metadata').where({ key: 'viaturas_last_upload' }).del();
 
     return res.status(200).json({ message: 'Tabela de viaturas limpa com sucesso!' });
   } catch (error) {
     console.error('Erro ao limpar viaturas:', error);
+    if (error instanceof AppError) {
+      return next(error);
+    }
     return next(new AppError('Não foi possível limpar a tabela de viaturas.', 500));
   }
 };
@@ -401,5 +422,60 @@ exports.toggleActive = async (req, res, next) => {
     });
   } catch (error) {
     return next(error);
+  }
+};
+
+exports.previewClearAll = async (req, res, next) => {
+  try {
+    // 1. Count total viaturas
+    const totalViaturasResult = await db('viaturas').count('id as count').first();
+    const totalViaturas = parseInt(totalViaturasResult.count, 10);
+
+    // 2. Count plantoes related to these viaturas (present/future)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const relatedPlantoesResult = await db('plantoes as p')
+      .join('viatura_plantao as vp', 'p.id', 'vp.plantao_id')
+      .distinct('p.id')
+      .where('p.data_plantao', '>=', today.toISOString().split('T')[0])
+      .count('p.id as count') // Count distinct plantao IDs
+      .first();
+    const totalRelatedPlantoes = parseInt(relatedPlantoesResult.count, 10);
+
+    // 3. Count vinculados (militar_plantao and viatura_plantao entries)
+    // Get IDs of plantoes that will be affected
+    const affectedPlantaoIds = await db('plantoes as p')
+      .join('viatura_plantao as vp', 'p.id', 'vp.viatura_id') // Corrected join condition
+      .distinct('p.id')
+      .where('p.data_plantao', '>=', today.toISOString().split('T')[0])
+      .pluck('p.id');
+
+    let totalViaturaVinculos = 0;
+    let totalMilitarVinculos = 0;
+
+    if (affectedPlantaoIds.length > 0) {
+      const viaturaVinculosResult = await db('viatura_plantao')
+        .whereIn('plantao_id', affectedPlantaoIds)
+        .count('id as count')
+        .first();
+      totalViaturaVinculos = parseInt(viaturaVinculosResult.count, 10);
+
+      const militarVinculosResult = await db('militar_plantao')
+        .whereIn('plantao_id', affectedPlantaoIds)
+        .count('id as count')
+        .first();
+      totalMilitarVinculos = parseInt(militarVinculosResult.count, 10);
+    }
+
+    res.status(200).json({
+      totalViaturas,
+      totalRelatedPlantoes,
+      totalViaturaVinculos,
+      totalMilitarVinculos,
+    });
+  } catch (error) {
+    console.error('Erro ao gerar preview de limpeza de viaturas:', error);
+    return next(new AppError('Não foi possível gerar o preview de limpeza de viaturas.', 500));
   }
 };

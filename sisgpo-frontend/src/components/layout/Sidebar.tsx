@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useRef, useEffect } from 'react';
 import {
   ClipboardList,
   FileText,
@@ -40,8 +40,31 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, toggleMobileMenu } = useUiStore();
+  const { isSidebarCollapsed, setSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
+  const timerRef = useRef<number | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    setSidebarCollapsed(false); // Expand
+  };
+
+  const handleMouseLeave = () => {
+    timerRef.current = window.setTimeout(() => {
+      setSidebarCollapsed(true); // Collapse
+    }, 5000);
+  };
+
+  useEffect(() => {
+    // Limpa o timer quando o componente é desmontado
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -289,7 +312,7 @@ export default function Sidebar() {
       </div>
 
       <div className="w-full px-3 pb-4 space-y-2 border-t border-borderDark/60 bg-cardSlate">
-        <div className="flex flex-col space-y-2 border-t border-borderDark/60 p-2">
+        <div className="flex flex-col space-y-2 pt-2">
           <NavLink
             to="/app/perfil"
             onClick={handleLinkClick}
@@ -303,29 +326,13 @@ export default function Sidebar() {
               text={user?.nome}
             />
           </NavLink>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleSidebar}
-              aria-label={isSidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
-              className="hidden md:inline-flex h-11 w-11 items-center justify-center rounded-lg border border-borderDark/60 text-textMain transition hover:border-tagBlue hover:text-tagBlue"
-            >
-              {isSidebarCollapsed ? (
-                <ChevronsRight className="h-6 w-6" />
-              ) : (
-                <ChevronsLeft className="h-6 w-6" />
-              )}
-            </button>
-            <button
-              onClick={handleLogout}
-              className={`flex-1 rounded-lg bg-spamRed text-white font-semibold shadow-sm transition hover:bg-spamRed/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spamRed/60 ${isCollapsed ? 'px-0 py-2.5' : 'px-3 py-2.5'}`}
-            >
-              <NavLinkContent
-                isCollapsed={isCollapsed}
-                icon={<LogOut className={`${isCollapsed ? '' : 'mr-3'} h-6 w-6`} />}
-                text="Sair"
-              />
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            className={`w-full rounded-lg bg-spamRed text-white font-semibold shadow-sm transition hover:bg-spamRed/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spamRed/60 ${isCollapsed ? 'px-0 py-2.5 flex justify-center' : 'px-3 py-2.5 flex items-center justify-center'}`}
+          >
+            <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-6 w-6`} />
+            {!isCollapsed && "Sair"}
+          </button>
         </div>
       </div>
     </div>
@@ -357,6 +364,8 @@ export default function Sidebar() {
         className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
           } border-r border-borderDark/60 bg-searchbar`}
         aria-label="Sidebar"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {renderSidebarContent(isSidebarCollapsed)}
       </aside>

@@ -50,9 +50,18 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
   // Função para lidar com a mudança de um plantonista
   const handlePlantonistaChange = (turno: 'diurno' | 'noturno', index: number, selectedOption: SingleValue<MilitarOption>) => {
     const novosPlantonistas = [...formData[turno]];
+    const newMilitarId = selectedOption ? selectedOption.value : null;
+
+    // Check for duplicates within the same turno list
+    const isDuplicate = novosPlantonistas.some((p, i) => i !== index && p.militar_id === newMilitarId && newMilitarId !== null);
+    if (isDuplicate) {
+      toast.error('Este militar já foi adicionado neste turno.');
+      return; // Prevent updating state with duplicate
+    }
+
     novosPlantonistas[index] = {
       ...novosPlantonistas[index],
-      militar_id: selectedOption ? selectedOption.value : null,
+      militar_id: newMilitarId,
     };
     setFormData(prev => ({ ...prev, [turno]: novosPlantonistas }));
   };
@@ -78,6 +87,35 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const allMilitarIds = new Set<number>();
+    let hasDuplicates = false;
+
+    // Check diurno for duplicates
+    formData.diurno.forEach(p => {
+      if (p.militar_id !== null) {
+        if (allMilitarIds.has(p.militar_id)) {
+          hasDuplicates = true;
+        }
+        allMilitarIds.add(p.militar_id);
+      }
+    });
+
+    // Check noturno for duplicates
+    formData.noturno.forEach(p => {
+      if (p.militar_id !== null) {
+        if (allMilitarIds.has(p.militar_id)) {
+          hasDuplicates = true;
+        }
+        allMilitarIds.add(p.militar_id);
+      }
+    });
+
+    if (hasDuplicates) {
+      toast.error('O mesmo militar não pode ser escalado mais de uma vez no mesmo dia (incluindo ambos os turnos).');
+      return;
+    }
+
     onSave(formData);
   };
 

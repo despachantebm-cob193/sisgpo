@@ -9,9 +9,12 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Spinner from '../components/ui/Spinner';
 import Card from '../components/ui/Card';
 import { useUiStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 
 const Aeronaves: React.FC = () => {
   const { setPageTitle } = useUiStore();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.perfil === 'admin';
 
   useEffect(() => {
     setPageTitle('Gerenciar Aeronaves');
@@ -71,10 +74,12 @@ const Aeronaves: React.FC = () => {
             Cadastre e mantenha a frota aerea atualizada para garantir o planejamento operacional.
           </p>
         </div>
-        <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto gap-2">
-          <Plus className="w-4 h-4" />
-          Adicionar Aeronave
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto gap-2">
+            <Plus className="w-4 h-4" />
+            Adicionar Aeronave
+          </Button>
+        )}
       </div>
 
       <Card title="Lista de Aeronaves" titleClassName="text-lg font-semibold text-textMain">
@@ -113,22 +118,24 @@ const Aeronaves: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">{renderStatusBadge(aeronave.ativa)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex justify-center md:justify-end items-center space-x-3">
-                          <button
-                            onClick={() => handleOpenFormModal(aeronave)}
-                            className="text-tagBlue hover:text-tagBlue/80 transition-colors"
-                            title="Editar aeronave"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(aeronave.id)}
-                            className="text-spamRed hover:text-red-700 transition-colors"
-                            title="Excluir aeronave"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex justify-center md:justify-end items-center space-x-3">
+                            <button
+                              onClick={() => handleOpenFormModal(aeronave)}
+                              className="text-tagBlue hover:text-tagBlue/80 transition-colors"
+                              title="Editar aeronave"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(aeronave.id)}
+                              className="text-spamRed hover:text-red-700 transition-colors"
+                              title="Excluir aeronave"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -153,24 +160,26 @@ const Aeronaves: React.FC = () => {
                     <span className="text-textSecondary">Tipo de Asa</span>
                     {renderTipoAsaBadge(aeronave.tipo_asa)}
                   </div>
-                  <div className="flex justify-end gap-4 pt-2">
-                    <button
-                      onClick={() => handleOpenFormModal(aeronave)}
-                      className="flex items-center gap-1 text-xs font-medium text-tagBlue hover:text-tagBlue/80"
-                      title="Editar aeronave"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(aeronave.id)}
-                      className="flex items-center gap-1 text-xs font-medium text-spamRed hover:text-red-600"
-                      title="Excluir aeronave"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Excluir
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex justify-end gap-4 pt-2">
+                      <button
+                        onClick={() => handleOpenFormModal(aeronave)}
+                        className="flex items-center gap-1 text-xs font-medium text-tagBlue hover:text-tagBlue/80"
+                        title="Editar aeronave"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(aeronave.id)}
+                        className="flex items-center gap-1 text-xs font-medium text-spamRed hover:text-red-600"
+                        title="Excluir aeronave"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Excluir
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

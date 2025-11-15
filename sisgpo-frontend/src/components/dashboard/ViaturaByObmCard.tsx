@@ -15,6 +15,7 @@ interface ViaturaPorObmStat {
 interface ViaturaByObmCardProps {
   data: ViaturaPorObmStat[];
   isLoading: boolean;
+  empenhadasViaturas: Set<string>;
 }
 
 const normalizarCrbm = (value: string | null | undefined): string => {
@@ -28,7 +29,8 @@ const normalizarCrbm = (value: string | null | undefined): string => {
     .replace(/\s+/g, ' ');
 };
 
-const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) => {
+const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading, empenhadasViaturas }) => {
+  console.log('ViaturaByObmCard: empenhadasViaturas prop received:', empenhadasViaturas); // Debug log
   if (isLoading) {
     return (
       <Card
@@ -107,14 +109,18 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading }) 
                         {obm.prefixos
                           .slice()
                           .sort((a, b) => a.localeCompare(b))
-                          .map((prefixo) => (
-                            <span
-                              key={prefixo}
-                              className="px-2 py-1 rounded text-xs font-medium bg-background text-textMain"
-                            >
-                              {prefixo}
-                            </span>
-                          ))}
+                          .map((prefixo) => {
+                            const isEmpenhada = empenhadasViaturas.has(prefixo.toUpperCase());
+                            console.log(`ViaturaByObmCard: Checking prefixo '${prefixo}', isEmpenhada: ${isEmpenhada}`); // Debug log
+                            return (
+                              <span
+                                key={prefixo}
+                                className={`px-2 py-1 rounded text-xs font-medium ${isEmpenhada ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-background text-textMain'}`}
+                              >
+                                {prefixo}
+                              </span>
+                            );
+                          })}
                       </div>
                     ) : (
                       <p className="text-sm text-textSecondary italic mt-3 flex-grow">

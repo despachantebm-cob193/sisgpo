@@ -6,6 +6,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Obm, ObmOption } from '@/types/entities';
 import api from '@/services/api';
 import { useUiStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 
 import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
@@ -38,6 +39,8 @@ interface ApiErrorDetail {
 
 export default function Obms() {
   const { setPageTitle } = useUiStore();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.perfil === 'admin';
 
   const [obms, setObms] = useState<Obm[]>([]);
   const [obmOptions, setObmOptions] = useState<ObmOption[]>([]);
@@ -340,24 +343,26 @@ export default function Obms() {
           <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar OBMs</h2>
           <p className="text-textSecondary mt-2">Adicione, edite ou remova organizacoes militares.</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button onClick={() => setIsUploadModalOpen(true)} variant="warning">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload / Atualizar
-          </Button>
-          <Button
-            onClick={() => setIsConfirmDeleteAllModalOpen(true)}
-            variant="danger"
-            disabled={obms.length === 0 || isDeletingAll}
-          >
-            <Trash className="w-4 h-4 mr-2" />
-            {isDeletingAll ? 'Excluindo...' : 'Excluir Todas as OBMs'}
-          </Button>
-          <Button onClick={() => handleOpenFormModal()} variant="primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Nova OBM
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button onClick={() => setIsUploadModalOpen(true)} variant="warning">
+              <Upload className="w-4 h-4 mr-2" />
+              Upload / Atualizar
+            </Button>
+            <Button
+              onClick={() => setIsConfirmDeleteAllModalOpen(true)}
+              variant="danger"
+              disabled={obms.length === 0 || isDeletingAll}
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              {isDeletingAll ? 'Excluindo...' : 'Excluir Todas as OBMs'}
+            </Button>
+            <Button onClick={() => handleOpenFormModal()} variant="primary">
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Nova OBM
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-4 mb-4">
@@ -525,24 +530,26 @@ export default function Obms() {
                                         </div>
                                       </dl>
 
-                                      <div className="mt-3 flex flex-wrap gap-2">
-                                        <button
-                                          onClick={() => handleOpenFormModal(obm)}
-                                          className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-tagBlue/50 bg-tagBlue/10 px-3 py-1.5 text-sm font-medium text-tagBlue transition hover:bg-tagBlue/20"
-                                        >
-                                          <Edit className="mr-2 h-4 w-4" />
-                                          Editar
-                                        </button>
-                                        {obm.id && (
+                                      {isAdmin && (
+                                        <div className="mt-3 flex flex-wrap gap-2">
                                           <button
-                                            onClick={() => handleDeleteClick(obm.id!)}
-                                            className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-rose-500 bg-spamRed/10 px-3 py-1.5 text-sm font-medium text-rose-400 transition hover:text-rose-300"
+                                            onClick={() => handleOpenFormModal(obm)}
+                                            className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-tagBlue/50 bg-tagBlue/10 px-3 py-1.5 text-sm font-medium text-tagBlue transition hover:bg-tagBlue/20"
                                           >
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Excluir
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Editar
                                           </button>
-                                        )}
-                                      </div>
+                                          {obm.id && (
+                                            <button
+                                              onClick={() => handleDeleteClick(obm.id!)}
+                                              className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-rose-500 bg-spamRed/10 px-3 py-1.5 text-sm font-medium text-rose-400 transition hover:text-rose-300"
+                                            >
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              Excluir
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
                                     </article>
                                   ))}
                                 </div>
@@ -605,14 +612,16 @@ export default function Obms() {
                       <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.crbm || 'N/A'}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.cidade || 'N/A'}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.telefone || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-center text-sm font-medium space-x-4" style={{ width: '10%' }}>
-                        <button onClick={() => handleOpenFormModal(obm)} className="text-tagBlue hover:text-tagBlue/80" title="Editar">
-                          <Edit className="w-5 h-5 inline-block" />
-                        </button>
-                        <button onClick={() => handleDeleteClick(obm.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir">
-                          <Trash2 className="w-5 h-5 inline-block" />
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="px-6 py-2 whitespace-nowrap text-center text-sm font-medium space-x-4" style={{ width: '10%' }}>
+                          <button onClick={() => handleOpenFormModal(obm)} className="text-tagBlue hover:text-tagBlue/80" title="Editar">
+                            <Edit className="w-5 h-5 inline-block" />
+                          </button>
+                          <button onClick={() => handleDeleteClick(obm.id)} className="text-spamRed hover:text-spamRed/80" title="Excluir">
+                            <Trash2 className="w-5 h-5 inline-block" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })

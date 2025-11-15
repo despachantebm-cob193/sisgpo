@@ -32,26 +32,30 @@ const splitByTurno = (registros) => {
 
 const prepararPlantonistas = (data, diurno = [], noturno = []) => {
   const inserir = [];
+  const addedMilitarIdsDiurno = new Set();
+  const addedMilitarIdsNoturno = new Set();
 
   diurno.forEach((p, index) => {
-    if (p && p.militar_id) {
+    if (p && p.militar_id && !addedMilitarIdsDiurno.has(p.militar_id)) {
       inserir.push({
         data,
         turno: 'diurno',
         militar_id: p.militar_id,
         ordem_plantonista: typeof p.ordem_plantonista === 'number' ? p.ordem_plantonista : index + 1,
       });
+      addedMilitarIdsDiurno.add(p.militar_id);
     }
   });
 
   noturno.forEach((p, index) => {
-    if (p && p.militar_id) {
+    if (p && p.militar_id && !addedMilitarIdsNoturno.has(p.militar_id)) {
       inserir.push({
         data,
         turno: 'noturno',
         militar_id: p.militar_id,
         ordem_plantonista: typeof p.ordem_plantonista === 'number' ? p.ordem_plantonista : index + 1,
       });
+      addedMilitarIdsNoturno.add(p.militar_id);
     }
   });
 
