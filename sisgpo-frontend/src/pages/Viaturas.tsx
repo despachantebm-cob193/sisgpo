@@ -12,6 +12,7 @@ import ViaturaForm from '../components/forms/ViaturaForm';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import Pagination from '../components/ui/Pagination';
 import FileUpload from '../components/ui/FileUpload';
+import StatCard from '../components/ui/StatCard'; // Import StatCard
 import { useUiStore } from '@/store/uiStore';
 import type { Plantao } from './Plantoes';
 
@@ -269,6 +270,8 @@ export default function Viaturas() {
     };
   };
 
+  const empenhadasCount = viaturas.filter(v => v.prefixo && empenhadasViaturas.has(v.prefixo.toUpperCase())).length;
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -287,11 +290,19 @@ export default function Viaturas() {
       
       <Input type="text" placeholder="Filtrar por prefixo, cidade, obm..." value={filters.q} onChange={handleFilterChange} className="w-full md:max-w-xs mb-4" />
 
-      {!isLoading && pagination && (
-        <div className="mb-4 text-lg font-semibold text-textMain">
-          {pagination.totalRecords} {pagination.totalRecords === 1 ? 'viatura encontrada' : 'viaturas encontradas'}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <StatCard
+          title="Total de Viaturas"
+          value={isLoading ? '' : pagination?.totalRecords ?? 0}
+          isLoading={isLoading}
+        />
+        <StatCard
+          title="Viaturas Empenhadas"
+          value={isLoading ? '' : empenhadasCount}
+          isLoading={isLoading}
+          description="Viaturas atualmente empenhadas em plantões futuros ou presentes."
+        />
+      </div>
 
       <div className="space-y-4">
         {/* Card View for Mobile */}

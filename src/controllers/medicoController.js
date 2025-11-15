@@ -43,11 +43,15 @@ const deleteBaseCivilForMedico = async (trx, medicoId) => {
 
 const medicoController = {
   getAll: async (req, res) => {
-    const { q, page = 1, limit = 20 } = req.query;
+    const { nome_completo } = req.query;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const offset = (page - 1) * limit;
+
     const query = db('medicos').select('*').orderBy('nome_completo', 'asc');
 
-    if (q) {
-      const normalizedQ = normalizeText(q);
+    if (nome_completo) {
+      const normalizedQ = normalizeText(nome_completo);
       query.where(builder => {
         builder.where(db.raw(`translate(lower(coalesce(nome_completo, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
                .orWhere(db.raw(`translate(lower(coalesce(funcao, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
@@ -55,17 +59,18 @@ const medicoController = {
       });
     }
 
-    const countQuery = query.clone().clearSelect().count('* as count').first();
-    const total = await countQuery;
-    const totalPages = Math.ceil(Number(total.count) / limit);
-    const medicos = await query.offset((page - 1) * limit).limit(limit);
+    const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'id' }).first();
+    const totalResult = await countQuery;
+    const totalRecords = Number(totalResult?.count ?? 0);
+    const totalPages = Math.ceil(totalRecords / limit) || 1;
+    const medicos = await query.clone().limit(limit).offset(offset);
 
     res.status(200).json({
       data: medicos,
       pagination: {
         currentPage: Number(page),
         totalPages,
-        totalRecords: Number(total.count),
+        totalRecords,
       },
     });
   },

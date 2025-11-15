@@ -16,6 +16,8 @@ import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
 import MilitarCard from '@/components/cards/MilitarCard';
 import Pagination from '@/components/ui/Pagination';
+import Select from '@/components/ui/Select';
+import StatCard from '@/components/ui/StatCard';
 
 import { Edit, Trash2, UserPlus, Search, Upload } from 'lucide-react';
 
@@ -88,6 +90,10 @@ export default function Militares() {
   const [obms, setObms] = useState<Obm[]>([]);
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  
+  const [postoGradFilter, setPostoGradFilter] = useState('');
+  const [obmFilter, setObmFilter] = useState('');
+  const [allMilitaresForFilters, setAllMilitaresForFilters] = useState<Militar[]>([]);
 
   const {
     data: militares,
@@ -132,6 +138,28 @@ export default function Militares() {
   useEffect(() => {
     setPageTitle('Efetivo (Militares)');
   }, [setPageTitle]);
+
+  useEffect(() => {
+    const fetchAllForFilters = async () => {
+      try {
+        const response = await api.get('/api/admin/militares?limit=9999');
+        setAllMilitaresForFilters(response.data.data);
+      } catch {
+        toast.error('Falha ao carregar opções de filtro.');
+      }
+    };
+    fetchAllForFilters();
+  }, []);
+
+  const postosGraduacoes = useMemo(() => {
+    const allPostos = allMilitaresForFilters.map(m => m.posto_graduacao).filter(Boolean);
+    return [...new Set(allPostos)].sort();
+  }, [allMilitaresForFilters]);
+
+  const obmsForFilter = useMemo(() => {
+      const allObms = allMilitaresForFilters.map(m => m.obm_nome).filter(Boolean);
+      return [...new Set(allObms)].sort();
+  }, [allMilitaresForFilters]);
 
   useEffect(() => {
     const fetchObms = async () => {
@@ -210,11 +238,55 @@ export default function Militares() {
           </div>
         </div>
 
-        {!isLoading && pagination && (
-          <div className="mb-4 text-lg font-semibold text-textMain">
-            {pagination.totalRecords} {pagination.totalRecords === 1 ? 'registro encontrado' : 'registros encontrados'}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+          <div className="flex flex-col md:flex-row gap-4"> {/* Wrapper for filters */}
+            <Select
+              value={postoGradFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setPostoGradFilter(value);
+                handleFilterChange('posto_graduacao', value);
+              }}
+              className="w-full md:w-auto"
+            >
+              <option value="">Filtrar por Posto/Grad...</option>
+              {postosGraduacoes.map(posto => (
+                <option key={posto} value={posto}>{posto}</option>
+              ))}
+            </Select>
+            <Select
+              value={obmFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setObmFilter(value);
+                handleFilterChange('obm_nome', value);
+              }}
+              className="w-full md:w-auto"
+            >
+              <option value="">Filtrar por OBM...</option>
+              {obmsForFilter.map(obm => (
+                <option key={obm} value={obm}>{obm}</option>
+              ))}
+            </Select>
+            <Button onClick={() => {
+              setPostoGradFilter('');
+              setObmFilter('');
+              handleFilterChange('posto_graduacao', '');
+              handleFilterChange('obm_nome', '');
+              handleFilterChange('q', '');
+            }} variant="secondary" className="w-full md:w-auto">
+              Limpar Filtros
+            </Button>
           </div>
-        )}
+          <div className="w-full md:w-auto"> {/* Wrapper for StatCard to control its width */}
+            <StatCard
+              title="Total de Militares"
+              value={isLoading ? '' : pagination?.totalRecords ?? 0}
+              isLoading={isLoading}
+              variant="highlight"
+            />
+          </div>
+        </div>
 
         {isLoading && <Spinner />}
 

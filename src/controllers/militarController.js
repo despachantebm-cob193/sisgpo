@@ -6,7 +6,7 @@ const militarController = {
    * Lista todos os militares com suporte a filtros e paginação obrigatória.
    */
   getAll: async (req, res) => {
-    const { q, ativo } = req.query; // Use 'q' for generic search
+    const { q, ativo, posto_graduacao, obm_nome } = req.query; // Use 'q' for generic search
 
     const query = db('militares').select(
       'id', 'matricula', 'nome_completo', 'nome_guerra',
@@ -25,6 +25,14 @@ const militarController = {
             .orWhere(db.raw('??::text', ['obm_nome']), 'ilike', `${q}%`)
             .orWhere(db.raw('??::text', ['obm_nome']), 'ilike', `% ${q}%`);
       });
+    }
+
+    if (posto_graduacao) {
+      query.where('posto_graduacao', '=', posto_graduacao);
+    }
+
+    if (obm_nome) {
+      query.where('obm_nome', '=', obm_nome);
     }
 
     if (ativo) query.where('ativo', '=', ativo);
