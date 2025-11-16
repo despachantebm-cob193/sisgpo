@@ -1,4 +1,4 @@
-// src/routes/publicRoutes.js
+﻿// src/routes/publicRoutes.js
 
 const express = require('express');
 const router = express.Router();
@@ -6,8 +6,14 @@ const router = express.Router();
 // Controlador original
 const dashboardController = require('../controllers/dashboardController');
 
-// 1. NOVO: Controlador de estatísticas externas
-.log('[publicRoutes] dashboardController keys:', Object.keys(require('../controllers/dashboardController') || {}));\nconsole.log('[publicRoutes] estatisticasExternasController keys:', Object.keys(estatisticasExternasController || {}));\n// Helper para evitar crashes caso algum handler não seja carregado corretamente
+// Controlador de estatísticas externas
+const estatisticasExternasController = require('../controllers/estatisticasExternasController');
+
+// Logs de diagnóstico para confirmar carregamento dos controllers
+console.log('[publicRoutes] dashboardController keys:', Object.keys(dashboardController || {}));
+console.log('[publicRoutes] estatisticasExternasController keys:', Object.keys(estatisticasExternasController || {}));
+
+// Helper para evitar crashes caso algum handler não seja carregado corretamente
 const safeHandler = (controller, methodName) => {
   const fn = controller?.[methodName];
   if (typeof fn === 'function') return fn;
@@ -26,8 +32,6 @@ router.get('/dashboard/escala-aeronaves', safeHandler(dashboardController, 'getE
 router.get('/dashboard/escala-codec', safeHandler(dashboardController, 'getEscalaCodec'));
 
 // --- NOVA ROTA DE INTEGRAÇÃO ---
-// Esta é a rota que consome o novo controller
 router.get('/estatisticas-externas', safeHandler(estatisticasExternasController, 'getDashboardOcorrencias'));
-
 
 module.exports = router;
