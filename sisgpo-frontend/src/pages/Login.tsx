@@ -144,9 +144,36 @@ export default function Login() {
             <Button
               onClick={() => googleLogin()}
               disabled={isLoading}
-              className="w-full bg-cardSlate text-white hover:bg-cardSlate/80"
+              className="w-full bg-cardSlate text-white hover:bg-cardSlate/80 flex items-center justify-center gap-2"
             >
-              {isLoading ? 'Carregando...' : 'Iniciar sessão com o Google'}
+              {!isLoading && (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                  className="inline-block"
+                >
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.5 2.3 30.23 0 24 0 14.62 0 6.51 5.4 2.56 13.22l7.98 6.19C12.5 13.17 17.73 9.5 24 9.5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.5 24.5c0-1.57-.14-3.08-.39-4.54H24v9.09h12.65c-.55 3-2.23 5.53-4.76 7.23l7.73 6c4.52-4.17 7.13-10.3 7.13-17.78z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.54 28.41a14.5 14.5 0 0 1 0-8.82l-7.98-6.19A24 24 0 0 0 0 24c0 3.82.92 7.43 2.56 10.6l7.98-6.19z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M24 48c6.48 0 11.92-2.13 15.9-5.79l-7.73-6c-2.14 1.45-4.9 2.29-8.17 2.29-6.27 0-11.5-3.67-13.46-8.86l-7.98 6.19C6.51 42.6 14.62 48 24 48z"
+                  />
+                  <path fill="none" d="M0 0h48v48H0z" />
+                </svg>
+              )}
+              {isLoading ? 'Carregando...' : 'Continuar com Google'}
             </Button>
           </div>
 
@@ -200,7 +227,11 @@ export default function Login() {
               }`}
               style={{ transitionDelay: intro ? '1300ms' : '0ms' }}
             >
-              <Button type="submit" disabled={isLoading} className="w-full">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
                 {isLoading ? 'Entrando...' : 'Entrar'}
               </Button>
             </div>
