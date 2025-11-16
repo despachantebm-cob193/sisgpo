@@ -35,7 +35,7 @@ const allowedOrigins = [
 ].filter(Boolean); 
 
 // Permitir subdominios do Render via flag para evitar bloqueios nao intencionais
-const allowRenderOrigins = process.env.ALLOW_RENDER_ORIGINS === 'true';
+const allowRenderOrigins = process.env.ALLOW_RENDER_ORIGINS !== 'false';
 const isAllowedOrigin = (origin: string) => {
   try {
     const hostname = new URL(origin).hostname;
