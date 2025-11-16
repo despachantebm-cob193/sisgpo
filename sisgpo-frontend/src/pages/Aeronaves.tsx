@@ -215,7 +215,7 @@ const Aeronaves: React.FC = () => {
           isOpen={isConfirmModalOpen}
           onClose={handleCloseConfirmModal}
           onConfirm={handleConfirmDelete}
-          title="Confirmar Exclusao"
+          title="Confirmar Exclusão"
           message="Tem certeza que deseja excluir esta aeronave?"
           isLoading={isDeleting}
         />

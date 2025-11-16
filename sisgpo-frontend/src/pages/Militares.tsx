@@ -500,8 +500,8 @@ export default function Militares() {
 
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
-        title="Confirmar Exclusao"
-        message="Tem certeza de que deseja excluir este militar? Esta acao nao pode ser desfeita."
+        title="Confirmar Exclusão"
+        message="Tem certeza de que deseja excluir este militar? Esta ação não pode ser desfeita."
         onConfirm={handleConfirmDelete}
         onClose={handleCloseConfirmModal}
         isLoading={isDeleting}

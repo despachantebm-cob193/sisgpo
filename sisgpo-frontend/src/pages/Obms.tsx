@@ -662,7 +662,7 @@ export default function Obms() {
         isOpen={isConfirmModalOpen}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmDelete}
-        title="Confirmar Exclusao"
+        title="Confirmar Exclusão"
         message="Tem certeza que deseja excluir esta OBM?"
         isLoading={isDeleting}
       />
