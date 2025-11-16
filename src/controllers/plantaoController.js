@@ -125,14 +125,31 @@ const plantaoController = {
     try {
       const { data_inicio, data_fim, obm_id, all } = req.query;
 
-      const query = db('plantoes as p')
-        .join('viaturas as v', 'p.viatura_id', 'v.id')
-        // Usa LEFT JOIN por nome, evitando depender de p.obm_id (inexistente em alguns bancos)
-        .leftJoin('obms as o', function() {
+      const [hasViaturaId, hasObmId, hasDataPlantao, hasViaturaPlantao] = await Promise.all([
+        db.schema.hasColumn('plantoes', 'viatura_id').catch(() => false),
+        db.schema.hasColumn('plantoes', 'obm_id').catch(() => false),
+        db.schema.hasColumn('plantoes', 'data_plantao').catch(() => false),
+        db.schema.hasTable('viatura_plantao').catch(() => false),
+      ]);
+
+      const query = db('plantoes as p');
+      if (hasViaturaId) {
+        query.join('viaturas as v', 'p.viatura_id', 'v.id');
+      } else if (hasViaturaPlantao) {
+        query.leftJoin('viatura_plantao as vp', 'vp.plantao_id', 'p.id')
+             .join('viaturas as v', 'vp.viatura_id', 'v.id');
+      } else {
+        query.leftJoin('viaturas as v', db.raw('1'), db.raw('1'));
+      }
+      if (hasObmId) {
+        query.leftJoin('obms as o', 'p.obm_id', 'o.id');
+      } else {
+        query.leftJoin('obms as o', function() {
           this.onRaw('LOWER(o.nome) = LOWER(v.obm)');
         });
+      }
 
-      const dataCol = db.raw('COALESCE(p.data_plantao, p.data_inicio)');
+      const dataCol = hasDataPlantao ? 'p.data_plantao' : 'p.data_inicio';
       if (data_inicio) query.where(dataCol, '>=', data_inicio);
       if (data_fim) query.where(dataCol, '<=', data_fim);
       if (obm_id) query.where('o.id', '=', obm_id);
@@ -140,7 +157,7 @@ const plantaoController = {
       const baseSelectQuery = query
         .select(
           'p.id',
-          db.raw('COALESCE(p.data_plantao, p.data_inicio) as data_plantao'),
+          hasDataPlantao ? db.raw('p.data_plantao as data_plantao') : db.raw('p.data_inicio as data_plantao'),
           'p.observacoes', 'p.data_inicio', 'p.data_fim', 'p.hora_inicio', 'p.hora_fim',
           'v.prefixo as viatura_prefixo',
           'o.abreviatura as obm_abreviatura'
@@ -185,7 +202,7 @@ const plantaoController = {
       const limit = parseInt(req.query.limit, 10) || 20;
       const offset = (page - 1) * limit;
 
-      const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'p.id' }).first();
+      const countQuery = query.clone().clearSelect().clearOrder().countDistinct({ count: 'p.id' }).first();
       const dataQuery = baseSelectQuery.clone().orderBy(dataCol, 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
 
       const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
