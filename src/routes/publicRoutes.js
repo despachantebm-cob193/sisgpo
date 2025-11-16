@@ -10,19 +10,27 @@ const dashboardController = require('../controllers/dashboardController');
 const estatisticasExternasController = require('../controllers/estatisticasExternasController');
 
 
+// Helper para evitar crashes caso algum handler não seja carregado corretamente
+const safeHandler = (controller, methodName) => {
+  const fn = controller?.[methodName];
+  if (typeof fn === 'function') return fn;
+  console.error(`[publicRoutes] Handler ausente ou inválido: ${methodName}`);
+  return (_req, res) => res.status(500).json({ message: `Handler indisponível: ${methodName}` });
+};
+
 // --- ROTAS PÚBLICAS DE DASHBOARD ORIGINAIS ---
-router.get('/dashboard/stats', dashboardController.getStats);
-router.get('/dashboard/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
-router.get('/dashboard/militar-stats', dashboardController.getMilitarStats);
-router.get('/dashboard/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
-router.get('/dashboard/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
-router.get('/dashboard/servico-dia', dashboardController.getServicoDia);
-router.get('/dashboard/escala-aeronaves', dashboardController.getEscalaAeronaves);
-router.get('/dashboard/escala-codec', dashboardController.getEscalaCodec);
+router.get('/dashboard/stats', safeHandler(dashboardController, 'getStats'));
+router.get('/dashboard/viatura-stats-por-tipo', safeHandler(dashboardController, 'getViaturaStatsPorTipo'));
+router.get('/dashboard/militar-stats', safeHandler(dashboardController, 'getMilitarStats'));
+router.get('/dashboard/viatura-stats-detalhado', safeHandler(dashboardController, 'getViaturaStatsDetalhado'));
+router.get('/dashboard/viatura-stats-por-obm', safeHandler(dashboardController, 'getViaturaStatsPorObm'));
+router.get('/dashboard/servico-dia', safeHandler(dashboardController, 'getServicoDia'));
+router.get('/dashboard/escala-aeronaves', safeHandler(dashboardController, 'getEscalaAeronaves'));
+router.get('/dashboard/escala-codec', safeHandler(dashboardController, 'getEscalaCodec'));
 
 // --- NOVA ROTA DE INTEGRAÇÃO ---
 // Esta é a rota que consome o novo controller
-router.get('/estatisticas-externas', estatisticasExternasController.getDashboardOcorrencias);
+router.get('/estatisticas-externas', safeHandler(estatisticasExternasController, 'getDashboardOcorrencias'));
 
 
 module.exports = router;
