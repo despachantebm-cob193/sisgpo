@@ -77,12 +77,12 @@ export default function Sidebar() {
     }
   };
 
-  const navLinkClass =
-    'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
-  const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
+const navLinkClass =
+  'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
   const renderSidebarContent = (isCollapsed: boolean) => (
-    <div className="flex h-full flex-col bg-spamRed text-white border-r border-borderDark/60">
+    <div className="flex h-full flex-col bg-[#1f2658] text-white border-r border-borderDark/60">
       <div className="px-3">
         <div
           className={`relative flex h-16 items-center ${isCollapsed ? 'justify-center' : 'justify-center'
@@ -328,7 +328,7 @@ export default function Sidebar() {
           </NavLink>
           <button
             onClick={handleLogout}
-            className={`w-full rounded-lg bg-spamRed text-white font-semibold shadow-sm transition hover:bg-spamRed/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spamRed/60 ${isCollapsed ? 'px-0 py-2.5 flex justify-center' : 'px-3 py-2.5 flex items-center justify-center'}`}
+            className={`w-full rounded-lg bg-[#23306b] text-white font-semibold shadow-sm transition hover:bg-[#2d3a82] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d3a82] ${isCollapsed ? 'px-0 py-2.5 flex justify-center' : 'px-3 py-2.5 flex items-center justify-center'}`}
           >
             <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-6 w-6`} />
             {!isCollapsed && "Sair"}
@@ -351,7 +351,7 @@ export default function Sidebar() {
       {/* Sidebar for Mobile */}
       <aside
         id="logo-sidebar-mobile"
-        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-spamRed transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-[#1f2658] transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         aria-label="Sidebar"
       >
@@ -362,7 +362,7 @@ export default function Sidebar() {
       <aside
         id="logo-sidebar-desktop"
         className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
-          } border-r border-borderDark/60 bg-spamRed`}
+          } border-r border-borderDark/60 bg-[#1f2658]`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
