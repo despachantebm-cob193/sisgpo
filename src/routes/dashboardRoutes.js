@@ -4,17 +4,25 @@ const obmController = require('../controllers/obmController');
 
 const router = Router();
 
+// Helper para evitar crash caso algum handler não esteja disponível
+const safeHandler = (controller, methodName) => {
+  const fn = controller?.[methodName];
+  if (typeof fn === 'function') return fn;
+  console.error(`[dashboardRoutes] Handler ausente ou inválido: ${methodName}`);
+  return (_req, res) => res.status(500).json({ message: `Handler indisponível: ${methodName}` });
+};
+
 // --- ROTAS DO DASHBOARD ---
-router.get('/stats', dashboardController.getStats);
-router.get('/viatura-stats-por-tipo', dashboardController.getViaturaStatsPorTipo);
-router.get('/militar-stats', dashboardController.getMilitarStats);
-router.get('/viatura-stats-detalhado', dashboardController.getViaturaStatsDetalhado);
-router.get('/viatura-stats-por-obm', dashboardController.getViaturaStatsPorObm);
-router.get('/servico-dia', dashboardController.getServicoDia);
-router.get('/escala-aeronaves', dashboardController.getEscalaAeronaves);
-router.get('/escala-codec', dashboardController.getEscalaCodec);
-router.get('/militares-escalados-count', dashboardController.getMilitaresEscaladosCount);
-router.get('/metadata/:key', dashboardController.getMetadataByKey);
+router.get('/stats', safeHandler(dashboardController, 'getStats'));
+router.get('/viatura-stats-por-tipo', safeHandler(dashboardController, 'getViaturaStatsPorTipo'));
+router.get('/militar-stats', safeHandler(dashboardController, 'getMilitarStats'));
+router.get('/viatura-stats-detalhado', safeHandler(dashboardController, 'getViaturaStatsDetalhado'));
+router.get('/viatura-stats-por-obm', safeHandler(dashboardController, 'getViaturaStatsPorObm'));
+router.get('/servico-dia', safeHandler(dashboardController, 'getServicoDia'));
+router.get('/escala-aeronaves', safeHandler(dashboardController, 'getEscalaAeronaves'));
+router.get('/escala-codec', safeHandler(dashboardController, 'getEscalaCodec'));
+router.get('/militares-escalados-count', safeHandler(dashboardController, 'getMilitaresEscaladosCount'));
+router.get('/metadata/:key', safeHandler(dashboardController, 'getMetadataByKey'));
 router.get('/obms', obmController.getAll);
 
 module.exports = router;
