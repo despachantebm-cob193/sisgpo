@@ -3,6 +3,33 @@
 const db = require('../config/database');
 const AppError = require('../utils/AppError');
 
+// Helpers to handle schema variations across deployments
+async function resolvePlantaoVinculoMeta(knex) {
+  const hasPm = await knex.schema.hasTable('plantoes_militares').catch(() => false);
+  const hasMp = await knex.schema.hasTable('militar_plantao').catch(() => false);
+  const table = hasPm ? 'plantoes_militares' : (hasMp ? 'militar_plantao' : null);
+  let hasFuncao = false;
+  if (table) {
+    hasFuncao = await knex.schema.hasColumn(table, 'funcao').catch(() => false);
+  }
+  return { table, hasFuncao };
+}
+
+async function resolvePlantoesDateExpr(knex, alias = 'p.') {
+  const [hasDP, hasDI, hasDF] = await Promise.all([
+    knex.schema.hasColumn('plantoes', 'data_plantao').catch(() => false),
+    knex.schema.hasColumn('plantoes', 'data_inicio').catch(() => false),
+    knex.schema.hasColumn('plantoes', 'data_fim').catch(() => false),
+  ]);
+  const cols = [];
+  if (hasDP) cols.push(`${alias}data_plantao`);
+  if (hasDI) cols.push(`${alias}data_inicio`);
+  if (hasDF) cols.push(`${alias}data_fim`);
+  if (cols.length === 0) return null;
+  if (cols.length === 1) return cols[0];
+  return `COALESCE(${cols.join(', ')})`;
+}
+
 const parsePositiveInt = (value) => {
   const numericValue = Number(value);
   return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : null;
@@ -99,12 +126,19 @@ const plantaoController = {
         .returning('*');
       
       if (guarnicao && guarnicao.length > 0) {
-        const guarnicaoParaInserir = guarnicao.map(militar => ({
-          plantao_id: novoPlantao.id,
-          militar_id: militar.militar_id,
-          funcao: militar.funcao,
-        }));
-        await trx('plantoes_militares').insert(guarnicaoParaInserir);
+        const { table: pmTable, hasFuncao } = await resolvePlantaoVinculoMeta(trx);
+        if (!pmTable) {
+          throw new AppError('Tabela de vinculo de plantao nao encontrada.', 500);
+        }
+        const guarnicaoParaInserir = guarnicao.map((militar) => {
+          const row = {
+            plantao_id: novoPlantao.id,
+            militar_id: militar.militar_id,
+          };
+          if (hasFuncao) row.funcao = militar.funcao;
+          return row;
+        });
+        await trx(pmTable).insert(guarnicaoParaInserir);
 
         // --- LÓGICA DE ATUALIZAÇÃO DE TELEFONE (CREATE) ---
         for (const militar of guarnicao) {
@@ -179,19 +213,23 @@ const plantaoController = {
 
         let guarnicoes = [];
         if (plantaoIds.length > 0) {
-          guarnicoes = await db('plantoes_militares as pm')
-            .join('militares as m', 'pm.militar_id', 'm.id')
-            .select(
+          const { table: pmTable, hasFuncao } = await resolvePlantaoVinculoMeta(db);
+          if (pmTable) {
+            const selectFields = [
               'pm.plantao_id',
               'pm.militar_id',
-              'pm.funcao',
+              hasFuncao ? 'pm.funcao' : db.raw('NULL as funcao'),
               'm.posto_graduacao',
               'm.nome_guerra',
               'm.nome_completo',
               db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"),
-              'm.telefone'
-            )
-            .whereIn('pm.plantao_id', plantaoIds);
+              'm.telefone',
+            ];
+            guarnicoes = await db(`${pmTable} as pm`)
+              .join('militares as m', 'pm.militar_id', 'm.id')
+              .select(selectFields)
+              .whereIn('pm.plantao_id', plantaoIds);
+          }
         }
 
         const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
@@ -267,10 +305,21 @@ const plantaoController = {
       throw new AppError('Plantão não encontrado.', 404);
     }
     
-    const guarnicao = await db('plantoes_militares as pm')
-      .join('militares as m', 'pm.militar_id', 'm.id')
-      .select('pm.militar_id', 'pm.funcao', 'm.nome_guerra', 'm.posto_graduacao', 'm.nome_completo', db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"), 'm.telefone')
-      .where('pm.plantao_id', id);
+    const { table: pmTableGet, hasFuncao: hasFuncaoGet } = await resolvePlantaoVinculoMeta(db);
+    const guarnicao = pmTableGet
+      ? await db(`${pmTableGet} as pm`)
+          .join('militares as m', 'pm.militar_id', 'm.id')
+          .select(
+            'pm.militar_id',
+            hasFuncaoGet ? 'pm.funcao' : db.raw('NULL as funcao'),
+            'm.nome_guerra',
+            'm.posto_graduacao',
+            'm.nome_completo',
+            db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"),
+            'm.telefone'
+          )
+          .where('pm.plantao_id', id)
+      : [];
       
     res.status(200).json({ ...plantao, guarnicao });
   },
@@ -314,14 +363,20 @@ const plantaoController = {
           updated_at: db.fn.now(),
         });
       
-      await trx('plantoes_militares').where({ plantao_id: id }).del();
-      if (guarnicao && guarnicao.length > 0) {
-        const guarnicaoParaInserir = guarnicao.map(militar => ({
-          plantao_id: id,
-          militar_id: militar.militar_id,
-          funcao: militar.funcao,
-        }));
-        await trx('plantoes_militares').insert(guarnicaoParaInserir);
+      const { table: pmTableUpd, hasFuncao: hasFuncaoUpd } = await resolvePlantaoVinculoMeta(trx);
+      if (pmTableUpd) {
+        await trx(pmTableUpd).where({ plantao_id: id }).del();
+      }
+      if (pmTableUpd && guarnicao && guarnicao.length > 0) {
+        const guarnicaoParaInserir = guarnicao.map((militar) => {
+          const row = {
+            plantao_id: id,
+            militar_id: militar.militar_id,
+          };
+          if (hasFuncaoUpd) row.funcao = militar.funcao;
+          return row;
+        });
+        await trx(pmTableUpd).insert(guarnicaoParaInserir);
 
         // --- LÓGICA DE ATUALIZAÇÃO DE TELEFONE (UPDATE) ---
         for (const militar of guarnicao) {
@@ -384,7 +439,8 @@ const plantaoController = {
       const parsedDataFim = (typeof data_fim === 'string' && data_fim.trim() !== '') ? data_fim.trim() : null;
       const parsedObmId = parsePositiveInt(obm_id);
 
-      const query = db('plantoes_militares as pm')
+      const { table: pmTableTotal } = await resolvePlantaoVinculoMeta(db);
+      const query = db(`${pmTableTotal} as pm`)
         .join('plantoes as p', 'pm.plantao_id', 'p.id');
 
       // Apply OBM filter if present
@@ -393,16 +449,19 @@ const plantaoController = {
       }
 
       // Apply date filters
-      if (parsedDataInicio && parsedDataFim) {
-        query.whereBetween('p.data_plantao', [parsedDataInicio, parsedDataFim]);
-      } else if (parsedDataInicio) {
-        query.where('p.data_plantao', '>=', parsedDataInicio);
-      } else if (parsedDataFim) {
-        query.where('p.data_plantao', '<=', parsedDataFim);
-      } else {
-        // Fallback to current day if no date filters are provided
-        const hoje = new Date().toISOString().split('T')[0];
-        query.whereBetween('p.data_plantao', [hoje, hoje]);
+      const dateExpr = await resolvePlantoesDateExpr(db, 'p.');
+      if (dateExpr) {
+        if (parsedDataInicio && parsedDataFim) {
+          query.whereRaw(`${dateExpr} BETWEEN ? AND ?`, [parsedDataInicio, parsedDataFim]);
+        } else if (parsedDataInicio) {
+          query.whereRaw(`${dateExpr} >= ?`, [parsedDataInicio]);
+        } else if (parsedDataFim) {
+          query.whereRaw(`${dateExpr} <= ?`, [parsedDataFim]);
+        } else {
+          // Fallback to current day if no date filters are provided
+          const hoje = new Date().toISOString().split('T')[0];
+          query.whereRaw(`${dateExpr} BETWEEN ? AND ?`, [hoje, hoje]);
+        }
       }
 
       const result = await query.countDistinct('pm.militar_id as total').first();
