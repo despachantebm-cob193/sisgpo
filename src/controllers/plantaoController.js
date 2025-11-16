@@ -126,12 +126,15 @@ const plantaoController = {
     
     const query = db('plantoes as p')
       .join('viaturas as v', 'p.viatura_id', 'v.id')
-      .join('obms as o', 'p.obm_id', 'o.id');
+      // Usa LEFT JOIN por nome, evitando depender de p.obm_id (inexistente em alguns bancos)
+      .leftJoin('obms as o', function() {
+        this.onRaw('LOWER(o.nome) = LOWER(v.obm)');
+      });
 
     const dataCol = db.raw('COALESCE(p.data_plantao, p.data_inicio)');
     if (data_inicio) query.where(dataCol, '>=', data_inicio);
     if (data_fim) query.where(dataCol, '<=', data_fim);
-    if (obm_id) query.where('p.obm_id', '=', obm_id);
+    if (obm_id) query.where('o.id', '=', obm_id);
 
     const baseSelectQuery = query
       .select(
