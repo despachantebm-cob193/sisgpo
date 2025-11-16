@@ -1,7 +1,7 @@
 import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { GoogleLogin, CredentialResponse, useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -56,11 +56,19 @@ export default function Login() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+  const googleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => {
+      toast.error('Falha no login com Google. Tente novamente.');
+    },
+    flow: 'auth-code', // Specify authorization code flow
+  });
+
+  const handleGoogleSuccess = async (tokenResponse: { code: string }) => {
     setIsLoading(true);
     try {
       const response = await api.post<LoginResponse>('/api/auth/google/callback', {
-        credential: credentialResponse.credential,
+        code: tokenResponse.code, // Send the authorization code
       });
       authLogin(response.data.token, response.data.user);
       toast.success('Login com Google bem-sucedido!');
@@ -133,13 +141,13 @@ export default function Login() {
             }`}
             style={{ transitionDelay: intro ? '700ms' : '0ms' }}
           >
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => {
-                toast.error('Falha no login com Google. Tente novamente.');
-              }}
-              useOneTap
-            />
+            <Button
+              onClick={() => googleLogin()}
+              disabled={isLoading}
+              className="w-full bg-cardSlate text-white hover:bg-cardSlate/80"
+            >
+              {isLoading ? 'Carregando...' : 'Iniciar sessão com o Google'}
+            </Button>
           </div>
 
           <div

@@ -7,7 +7,11 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const AppError = require('../utils/AppError');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.FRONTEND_URL // Redirect URI
+);
 
 const authController = {
   login: async (req, res) => {
@@ -113,14 +117,23 @@ const authController = {
   },
 
   googleLogin: async (req, res) => {
-    const { credential } = req.body;
+    const { code } = req.body;
 
-    if (!credential) {
-      throw new AppError('Token do Google não fornecido.', 400);
+    if (!code) {
+      throw new AppError('Código de autorização do Google não fornecido.', 400);
+    }
+
+    let idToken;
+    try {
+      const { tokens } = await client.getToken(code);
+      idToken = tokens.id_token;
+    } catch (error) {
+      console.error('Erro ao trocar código por tokens do Google:', error.message);
+      throw new AppError('Falha na autenticação com Google. Código inválido ou expirado.', 401);
     }
 
     const ticket = await client.verifyIdToken({
-      idToken: credential,
+      idToken: idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
