@@ -3,11 +3,12 @@
 const express = require('express');
 const router = express.Router();
 
-// Controlador original
-const dashboardController = require('../controllers/dashboardController');
+const path = require('path');
+// Controlador original (carregando direto da pasta src para evitar artefato vazio em dist)
+const dashboardController = require(path.join(process.cwd(), 'src', 'controllers', 'dashboardController'));
 
 // Controlador de estatísticas externas
-const estatisticasExternasController = require('../controllers/estatisticasExternasController');
+const estatisticasExternasController = require(path.join(process.cwd(), 'src', 'controllers', 'estatisticasExternasController'));
 
 // Logs de diagnóstico para confirmar carregamento dos controllers (ping leve)
 console.log('[publicRoutes] dashboardController keys:', Object.keys(dashboardController || {}));
