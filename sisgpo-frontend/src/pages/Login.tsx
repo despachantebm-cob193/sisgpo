@@ -56,14 +56,6 @@ export default function Login() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: () => {
-      toast.error('Falha no login com Google. Tente novamente.');
-    },
-    flow: 'auth-code', // Specify authorization code flow
-  });
-
   const handleGoogleSuccess = async (tokenResponse: { code: string }) => {
     setIsLoading(true);
     try {
@@ -80,6 +72,14 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => {
+      toast.error('Falha no login com Google. Tente novamente.');
+    },
+    flow: 'auth-code', // Specify authorization code flow
+  });
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
