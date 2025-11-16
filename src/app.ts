@@ -32,6 +32,20 @@ const allowedOrigins = [
   'http://localhost:3000', 
 ].filter(Boolean); 
 
+// Permitir subdominios do Render via flag para evitar bloqueios nao intencionais
+const allowRenderOrigins = process.env.ALLOW_RENDER_ORIGINS === 'true';
+const isAllowedOrigin = (origin: string) => {
+  try {
+    const hostname = new URL(origin).hostname;
+    if (allowRenderOrigins && (hostname.endsWith('.onrender.com') || hostname === 'localhost')) {
+      return true;
+    }
+  } catch (e) {
+    // ignora erros de parsing
+  }
+  return allowedOrigins.includes(origin);
+};
+
 app.use(cors({
   origin: (origin, callback) => {
 
@@ -39,7 +53,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     // Se a origem da requisição estiver na lista de permitidas, autorize.
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     

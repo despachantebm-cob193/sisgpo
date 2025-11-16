@@ -362,12 +362,27 @@ exports.getDistinctObms = async (req, res, next) => {
 exports.previewClearAll = async (req, res, next) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
+
+    const [hasDataPlantao, hasDataInicio, hasDataFim] = await Promise.all([
+      db.schema.hasColumn('plantoes', 'data_plantao').catch(() => false),
+      db.schema.hasColumn('plantoes', 'data_inicio').catch(() => false),
+      db.schema.hasColumn('plantoes', 'data_fim').catch(() => false),
+    ]);
+
+    let dateExpr = null;
+    if (hasDataPlantao && hasDataInicio) dateExpr = 'COALESCE(data_plantao, data_inicio)';
+    else if (hasDataPlantao) dateExpr = 'data_plantao';
+    else if (hasDataInicio) dateExpr = 'data_inicio';
+    else if (hasDataFim) dateExpr = 'data_fim';
+
+    const plantoesBase = db('plantoes');
+    const plantoesQuery = dateExpr
+      ? plantoesBase.whereRaw(`${dateExpr} >= ?`, [today])
+      : plantoesBase;
+
     const [viaturas, plantoesFuturos, vinculos] = await Promise.all([
       db('viaturas').count({ count: 'id' }).first(),
-      db('plantoes')
-        .whereRaw("COALESCE(data_plantao, data_inicio) >= ?", [today])
-        .count({ count: 'id' })
-        .first(),
+      plantoesQuery.count({ count: 'id' }).first(),
       db('plantoes_militares').count({ count: 'id' }).first().catch(() => ({ count: 0 })),
     ]);
 

@@ -41,12 +41,31 @@ const militarController = {
     // que estao em guarnicoes de plantoes hoje ou no futuro
     const escaladoFlag = typeof escalado === 'string' ? escalado.trim().toLowerCase() : '';
     if (['true', '1', 'yes', 'on', 'escalado'].includes(escaladoFlag)) {
-      query.whereIn('id',
-        db('plantoes_militares as pm')
-          .join('plantoes as p', 'pm.plantao_id', 'p.id')
-          .whereRaw("COALESCE(p.data_plantao, p.data_inicio, p.data_fim) >= CURRENT_DATE")
-          .select('pm.militar_id')
-      );
+      const [hasPm, hasMp] = await Promise.all([
+        db.schema.hasTable('plantoes_militares').catch(() => false),
+        db.schema.hasTable('militar_plantao').catch(() => false),
+      ]);
+      const pmTable = hasPm ? 'plantoes_militares' : (hasMp ? 'militar_plantao' : null);
+
+      if (pmTable) {
+        const [hasDP, hasDI, hasDF] = await Promise.all([
+          db.schema.hasColumn('plantoes', 'data_plantao').catch(() => false),
+          db.schema.hasColumn('plantoes', 'data_inicio').catch(() => false),
+          db.schema.hasColumn('plantoes', 'data_fim').catch(() => false),
+        ]);
+        const cols = [];
+        if (hasDP) cols.push('p.data_plantao');
+        if (hasDI) cols.push('p.data_inicio');
+        if (hasDF) cols.push('p.data_fim');
+        const dateExpr = cols.length > 1 ? `COALESCE(${cols.join(', ')})` : (cols[0] || null);
+
+        let sub = db(`${pmTable} as pm`).join('plantoes as p', 'pm.plantao_id', 'p.id');
+        if (dateExpr) sub = sub.whereRaw(`${dateExpr} >= CURRENT_DATE`);
+        query.whereIn('id', sub.select('pm.militar_id'));
+      } else {
+        // Sem tabela de vinculo, garante resultado vazio para filtro 'escalado'
+        query.whereRaw('1=0');
+      }
     }
 
     const page = parseInt(req.query.page, 10) || 1;

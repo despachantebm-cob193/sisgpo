@@ -413,18 +413,40 @@ const dashboardController = {
 
   getMilitaresEscaladosCount: async (req, res) => {
     try {
-      const hasMilitarPlantaoTable = await db.schema.hasTable('militar_plantao');
-      if (!hasMilitarPlantaoTable) {
+      const [hasPm, hasMp] = await Promise.all([
+        db.schema.hasTable('plantoes_militares').catch(() => false),
+        db.schema.hasTable('militar_plantao').catch(() => false),
+      ]);
+      const pmTable = hasPm ? 'plantoes_militares' : (hasMp ? 'militar_plantao' : null);
+      if (!pmTable) {
+        console.warn('Tabelas de vinculo de plantao nao existem. Retornando 0 para militares escalados.');
+        return res.status(200).json({ count: 0 });
+      }
+      if (false) {
         console.warn('Tabela militar_plantao não existe. Retornando 0 para militares escalados.');
         return res.status(200).json({ count: 0 });
       }
 
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Set to start of today
+      const todayISO = today.toISOString().split('T')[0];
 
-      const countResult = await db('militar_plantao as mp')
-        .join('plantoes as p', 'mp.plantao_id', 'p.id')
-        .where('p.data_plantao', '>=', today.toISOString().split('T')[0]) // Compare only date part
+      const [hasDP, hasDI, hasDF] = await Promise.all([
+        db.schema.hasColumn('plantoes', 'data_plantao').catch(() => false),
+        db.schema.hasColumn('plantoes', 'data_inicio').catch(() => false),
+        db.schema.hasColumn('plantoes', 'data_fim').catch(() => false),
+      ]);
+      const cols: string[] = [];
+      if (hasDP) cols.push('p.data_plantao');
+      if (hasDI) cols.push('p.data_inicio');
+      if (hasDF) cols.push('p.data_fim');
+      const dateExpr = cols.length > 1 ? `COALESCE(${cols.join(', ')})` : (cols[0] || null);
+
+      let base = db(`${pmTable} as mp`).join('plantoes as p', 'mp.plantao_id', 'p.id');
+      if (dateExpr) {
+        base = base.whereRaw(`${dateExpr} >= ?`, [todayISO]);
+      }
+      const countResult = await base
         .countDistinct('mp.militar_id as count')
         .first();
 
