@@ -31,7 +31,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
         // Permite navegação SPA para rotas /app/* quando offline
         navigateFallbackAllowlist: [/^\/app\//],
         // Evita interceptar chamadas de API
