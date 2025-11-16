@@ -1,6 +1,9 @@
 import { Router } from 'express';
-import dashboardController from '../controllers/dashboardController';
-import obmController from '../controllers/obmController';
+// Controllers em CommonJS
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const dashboardController = require('../controllers/dashboardController');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const obmController = require('../controllers/obmController');
 
 const router = Router();
 
