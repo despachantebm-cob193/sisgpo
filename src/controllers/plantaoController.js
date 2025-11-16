@@ -125,11 +125,15 @@ const plantaoController = {
     try {
       const { data_inicio, data_fim, obm_id, all } = req.query;
 
-      const [hasViaturaId, hasObmId, hasDataPlantao, hasViaturaPlantao] = await Promise.all([
+      const [hasViaturaId, hasObmId, hasDataPlantao, hasViaturaPlantao, hasHoraInicio, hasHoraFim, hasDataFim, hasObservacoes] = await Promise.all([
         db.schema.hasColumn('plantoes', 'viatura_id').catch(() => false),
         db.schema.hasColumn('plantoes', 'obm_id').catch(() => false),
         db.schema.hasColumn('plantoes', 'data_plantao').catch(() => false),
         db.schema.hasTable('viatura_plantao').catch(() => false),
+        db.schema.hasColumn('plantoes', 'hora_inicio').catch(() => false),
+        db.schema.hasColumn('plantoes', 'hora_fim').catch(() => false),
+        db.schema.hasColumn('plantoes', 'data_fim').catch(() => false),
+        db.schema.hasColumn('plantoes', 'observacoes').catch(() => false),
       ]);
 
       const query = db('plantoes as p');
@@ -154,14 +158,20 @@ const plantaoController = {
       if (data_fim) query.where(dataCol, '<=', data_fim);
       if (obm_id) query.where('o.id', '=', obm_id);
 
-      const baseSelectQuery = query
-        .select(
-          'p.id',
-          hasDataPlantao ? db.raw('p.data_plantao as data_plantao') : db.raw('p.data_inicio as data_plantao'),
-          'p.observacoes', 'p.data_inicio', 'p.data_fim', 'p.hora_inicio', 'p.hora_fim',
-          'v.prefixo as viatura_prefixo',
-          'o.abreviatura as obm_abreviatura'
-        );
+      const selectFields = [
+        'p.id',
+        hasDataPlantao ? db.raw('p.data_plantao as data_plantao') : db.raw('p.data_inicio as data_plantao'),
+        'v.prefixo as viatura_prefixo',
+        'o.abreviatura as obm_abreviatura',
+      ];
+
+      if (hasObservacoes) selectFields.push('p.observacoes');
+      if (!hasDataPlantao) selectFields.push('p.data_inicio');
+      if (hasDataFim) selectFields.push('p.data_fim');
+      if (hasHoraInicio) selectFields.push('p.hora_inicio');
+      if (hasHoraFim) selectFields.push('p.hora_fim');
+
+      const baseSelectQuery = query.select(selectFields);
 
       if (all === 'true') {
         const plantoes = await baseSelectQuery.orderBy(dataCol, 'desc').orderBy('v.prefixo', 'asc');
