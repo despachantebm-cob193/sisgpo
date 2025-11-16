@@ -9,7 +9,7 @@ const dashboardController = require('../controllers/dashboardController');
 // Controlador de estatísticas externas
 const estatisticasExternasController = require('../controllers/estatisticasExternasController');
 
-// Logs de diagnóstico para confirmar carregamento dos controllers
+// Logs de diagnóstico para confirmar carregamento dos controllers (ping leve)
 console.log('[publicRoutes] dashboardController keys:', Object.keys(dashboardController || {}));
 console.log('[publicRoutes] estatisticasExternasController keys:', Object.keys(estatisticasExternasController || {}));
 
