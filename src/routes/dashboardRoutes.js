@@ -4,6 +4,9 @@ const obmController = require('../controllers/obmController');
 
 const router = Router();
 
+// Log de diagnóstico para verificar se o controller carregou corretamente
+console.log('[dashboardRoutes] dashboardController keys:', Object.keys(dashboardController || {}));
+
 // Helper para evitar crash caso algum handler não esteja disponível
 const safeHandler = (controller, methodName) => {
   const fn = controller?.[methodName];

@@ -27,6 +27,8 @@ const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
 // Configuração do CORS (Lendo a variável de ambiente e permitindo localhost)
 const allowedOrigins = [
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
+  // Domínio do frontend publicado (default)
+  'https://sisgpo.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000', 

@@ -7,10 +7,7 @@ const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
 
 // 1. NOVO: Controlador de estatísticas externas
-const estatisticasExternasController = require('../controllers/estatisticasExternasController');
-
-
-// Helper para evitar crashes caso algum handler não seja carregado corretamente
+.log('[publicRoutes] dashboardController keys:', Object.keys(require('../controllers/dashboardController') || {}));\nconsole.log('[publicRoutes] estatisticasExternasController keys:', Object.keys(estatisticasExternasController || {}));\n// Helper para evitar crashes caso algum handler não seja carregado corretamente
 const safeHandler = (controller, methodName) => {
   const fn = controller?.[methodName];
   if (typeof fn === 'function') return fn;
