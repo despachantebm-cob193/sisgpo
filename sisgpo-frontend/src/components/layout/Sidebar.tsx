@@ -351,7 +351,7 @@ export default function Sidebar() {
       {/* Sidebar for Mobile */}
       <aside
         id="logo-sidebar-mobile"
-        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-spamRed transition-transform duration-300 md:hidden ${isMobileMenuopen ? 'translate-x-0' : '-translate-x-full'
+        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-spamRed transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         aria-label="Sidebar"
       >
