@@ -1,7 +1,7 @@
 import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { GoogleLogin, CredentialResponse, useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 import Button from '../components/ui/Button';
