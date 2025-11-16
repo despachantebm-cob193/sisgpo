@@ -11,7 +11,7 @@ export default defineConfig({
     tsconfigPaths(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'login-bg.jpg', 'logo cbmgo.png'],
       manifest: {
         name: 'SISGPO',
         short_name: 'SISGPO',

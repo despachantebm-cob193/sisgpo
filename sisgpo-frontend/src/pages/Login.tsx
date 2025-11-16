@@ -117,7 +117,7 @@ export default function Login() {
             }`}
           >
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">SISGPO</h1>
-            <p className="mt-2 text-sm md:text-base text-gray-200">Sistema de Gestao do Poder Operacional</p>
+            <p className="mt-2 text-sm md:text-base text-gray-200">Sistema de Gestão do Poder Operacional</p>
           </div>
           <div
             className={`bg-cardSlate/90 backdrop-blur p-8 rounded-xl shadow-2xl transform transition-all duration-700 ease-out ${
@@ -160,14 +160,14 @@ export default function Login() {
               }`}
               style={{ transitionDelay: intro ? '1000ms' : '0ms' }}
             >
-              <Label htmlFor="login-field" className="text-textSecondary">Usuario</Label>
+              <Label htmlFor="login-field" className="text-textSecondary">Usuário</Label>
               <Input
                 id="login-field"
                 type="text"
                 value={login}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
-                placeholder="Digite seu usuario"
+                placeholder="Digite seu usuário"
               />
             </div>
             <div
@@ -199,7 +199,6 @@ export default function Login() {
           </form>
         </div>
       </div>
-    </div>
     </div>
   );
 }
