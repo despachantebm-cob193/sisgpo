@@ -1,4 +1,4 @@
-import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+﻿import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -44,7 +44,7 @@ export default function Login() {
     };
   }, []);
 
-  // Dispara a animação de entrada após o fundo estar pronto
+  // Dispara a animaÃ§Ã£o de entrada apÃ³s o fundo estar pronto
   useEffect(() => {
     if (bgLoaded) {
       const id = window.setTimeout(() => setIntro(true), 80);
@@ -99,22 +99,22 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-gradient-to-br from-[#090b13] via-[#0e1121] to-[#0b0f1c]">
       {/* Background image */}
       <div
         className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${bgLoaded ? 'opacity-100' : 'opacity-0'}`}
-        // Usa BASE_URL para funcionar em dev e build com base não raiz
+        // Usa BASE_URL para funcionar em dev e build com base nÃ£o raiz
         style={{ backgroundImage: `url(${import.meta.env.BASE_URL}login-bg.jpg)` }}
       />
       {/* Splash overlay while background loads */}
       <div className={`absolute inset-0 z-30 flex items-center justify-center transition-opacity duration-700 ${bgLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        <div className="flex flex-col items-center gap-4 bg-black/60 rounded-xl px-6 py-5">
+        <div className="flex flex-col items-center gap-4 bg-black/40 backdrop-blur-sm rounded-xl px-6 py-5">
           <h1 className="text-2xl font-semibold text-white tracking-wide">Carregando...</h1>
           <Spinner className="h-10 w-10 text-white" />
         </div>
       </div>
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/60" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
@@ -125,10 +125,10 @@ export default function Login() {
             }`}
           >
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">SISGPO</h1>
-            <p className="mt-2 text-sm md:text-base text-gray-200">Sistema de Gestão do Poder Operacional</p>
+            <p className="mt-2 text-sm md:text-base text-gray-200">Sistema de GestÃ£o do Poder Operacional</p>
           </div>
           <div
-            className={`bg-cardSlate/90 backdrop-blur p-8 rounded-xl shadow-2xl transform transition-all duration-700 ease-out ${
+            className={`bg-white/5 backdrop-blur-lg border border-white/10 p-8 rounded-xl shadow-2xl transform transition-all duration-700 ease-out ${
               intro ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'
             }`}
             style={{ transitionDelay: intro ? '120ms' : '0ms' }}
@@ -195,14 +195,15 @@ export default function Login() {
               }`}
               style={{ transitionDelay: intro ? '1000ms' : '0ms' }}
             >
-              <Label htmlFor="login-field" className="text-textSecondary">Usuário</Label>
+              <Label htmlFor="login-field" className="text-textSecondary">Usuario</Label>
               <Input
                 id="login-field"
                 type="text"
                 value={login}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)}
                 required
-                placeholder="Digite seu usuário"
+                placeholder="Digite seu usuario"
+                className="bg-white/5 backdrop-blur-sm border-white/30 text-white placeholder:text-gray-200 focus:border-white focus-visible:ring-white/60"
               />
             </div>
             <div
@@ -219,6 +220,7 @@ export default function Login() {
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setSenha(e.target.value)}
                 required
                 placeholder="Digite sua senha"
+                className="bg-white/5 backdrop-blur-sm border-white/30 text-white placeholder:text-gray-200 focus:border-white focus-visible:ring-white/60"
               />
             </div>
             <div
@@ -237,10 +239,17 @@ export default function Login() {
             </div>
           </form>
         </div>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
 
 // version bump at 2025-11-16 05:33:19
+
+
+
+
+
+
+
