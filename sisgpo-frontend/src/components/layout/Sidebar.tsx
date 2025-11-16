@@ -78,24 +78,24 @@ export default function Sidebar() {
   };
 
   const navLinkClass =
-    'flex items-center gap-3 rounded-lg px-3 py-2 text-textMain transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+    'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
   const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
   const renderSidebarContent = (isCollapsed: boolean) => (
-    <div className="flex h-full flex-col bg-searchbar text-textMain border-r border-borderDark/60">
+    <div className="flex h-full flex-col bg-spamRed text-white border-r border-borderDark/60">
       <div className="px-3">
         <div
           className={`relative flex h-16 items-center ${isCollapsed ? 'justify-center' : 'justify-center'
             }`}>
           {isCollapsed ? (
-            <TfiJoomla className="text-textMain text-3xl" />
+            <TfiJoomla className="text-white text-3xl" />
           ) : (
             <div className="flex items-center justify-center w-full">
-              <h1 className="text-xl font-bold text-textMain">SISGPO</h1>
+              <h1 className="text-xl font-bold text-white">SISGPO</h1>
             </div>
           )}
           <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
-            <X size={24} className="text-textMain" />
+            <X size={24} className="text-white" />
           </button>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function Sidebar() {
             <>
               <button
                 onClick={() => setIsAdminOpen(!isAdminOpen)}
-                className={`w-full flex justify-between items-center p-2 text-xs text-textMain ${isCollapsed ? 'hidden' : ''
+                className={`w-full flex justify-between items-center p-2 text-xs text-white ${isCollapsed ? 'hidden' : ''
                   }`}
               >
                 ADMINISTRAÇÃO
@@ -288,7 +288,7 @@ export default function Sidebar() {
           )}
 
           <p
-            className={`px-2 pt-2 text-xs text-textMain ${isCollapsed ? 'hidden' : ''
+            className={`px-2 pt-2 text-white ${isCollapsed ? 'hidden' : ''
               }`}
           >
             RELATÓRIOS
@@ -351,7 +351,7 @@ export default function Sidebar() {
       {/* Sidebar for Mobile */}
       <aside
         id="logo-sidebar-mobile"
-        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-searchbar transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-spamRed transition-transform duration-300 md:hidden ${isMobileMenuopen ? 'translate-x-0' : '-translate-x-full'
           }`}
         aria-label="Sidebar"
       >
@@ -362,7 +362,7 @@ export default function Sidebar() {
       <aside
         id="logo-sidebar-desktop"
         className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
-          } border-r border-borderDark/60 bg-searchbar`}
+          } border-r border-borderDark/60 bg-spamRed`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
