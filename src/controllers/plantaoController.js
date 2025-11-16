@@ -128,19 +128,20 @@ const plantaoController = {
       .join('viaturas as v', 'p.viatura_id', 'v.id')
       .join('obms as o', 'p.obm_id', 'o.id');
 
-    if (data_inicio) query.where('p.data_plantao', '>=', data_inicio);
-    if (data_fim) query.where('p.data_plantao', '<=', data_fim);
+    const dataCol = db.raw('COALESCE(p.data_plantao, p.data_inicio)');
+    if (data_inicio) query.where(dataCol, '>=', data_inicio);
+    if (data_fim) query.where(dataCol, '<=', data_fim);
     if (obm_id) query.where('p.obm_id', '=', obm_id);
 
     const baseSelectQuery = query
       .select(
-        'p.id', 'p.data_plantao', 'p.observacoes', 'p.data_inicio', 'p.data_fim', 'p.hora_inicio', 'p.hora_fim', // Added data_inicio and data_fim
+        'p.id', db.raw('COALESCE(p.data_plantao, p.data_inicio) as data_plantao'), 'p.observacoes', 'p.data_inicio', 'p.data_fim', 'p.hora_inicio', 'p.hora_fim',
         'v.prefixo as viatura_prefixo',
         'o.abreviatura as obm_abreviatura'
       );
 
     if (all === 'true') {
-        const plantoes = await baseSelectQuery.orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc');
+        const plantoes = await baseSelectQuery.orderBy(dataCol, 'desc').orderBy('v.prefixo', 'asc');
         const plantaoIds = plantoes.map(p => p.id);
                 const guarnicoes = await db('plantoes_militares as pm')
                   .join('militares as m', 'pm.militar_id', 'm.id')
@@ -177,7 +178,7 @@ const plantaoController = {
             const offset = (page - 1) * limit;
         
             const countQuery = query.clone().clearSelect().clearOrder().count({ count: 'p.id' }).first();
-            const dataQuery = baseSelectQuery.clone().orderBy('p.data_plantao', 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
+            const dataQuery = baseSelectQuery.clone().orderBy(dataCol, 'desc').orderBy('v.prefixo', 'asc').limit(limit).offset(offset);
         
             const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
         

@@ -358,6 +358,29 @@ exports.getDistinctObms = async (req, res, next) => {
   }
 };
 
+// Preview de impacto da limpeza de viaturas
+exports.previewClearAll = async (req, res, next) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const [viaturas, plantoesFuturos, vinculos] = await Promise.all([
+      db('viaturas').count({ count: 'id' }).first(),
+      db('plantoes')
+        .whereRaw("COALESCE(data_plantao, data_inicio) >= ?", [today])
+        .count({ count: 'id' })
+        .first(),
+      db('plantoes_militares').count({ count: 'id' }).first().catch(() => ({ count: 0 })),
+    ]);
+
+    return res.status(200).json({
+      viaturas: Number(viaturas?.count ?? 0),
+      plantoesFuturos: Number(plantoesFuturos?.count ?? 0),
+      vinculos: Number(vinculos?.count ?? 0),
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 exports.clearAll = async (req, res, next) => {
   try {
     // 1. Check for confirm=1 query parameter
@@ -425,57 +448,4 @@ exports.toggleActive = async (req, res, next) => {
   }
 };
 
-exports.previewClearAll = async (req, res, next) => {
-  try {
-    // 1. Count total viaturas
-    const totalViaturasResult = await db('viaturas').count('id as count').first();
-    const totalViaturas = parseInt(totalViaturasResult.count, 10);
-
-    // 2. Count plantoes related to these viaturas (present/future)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const relatedPlantoesResult = await db('plantoes as p')
-      .join('viatura_plantao as vp', 'p.id', 'vp.plantao_id')
-      .distinct('p.id')
-      .where('p.data_plantao', '>=', today.toISOString().split('T')[0])
-      .count('p.id as count') // Count distinct plantao IDs
-      .first();
-    const totalRelatedPlantoes = parseInt(relatedPlantoesResult.count, 10);
-
-    // 3. Count vinculados (militar_plantao and viatura_plantao entries)
-    // Get IDs of plantoes that will be affected
-    const affectedPlantaoIds = await db('plantoes as p')
-      .join('viatura_plantao as vp', 'p.id', 'vp.viatura_id') // Corrected join condition
-      .distinct('p.id')
-      .where('p.data_plantao', '>=', today.toISOString().split('T')[0])
-      .pluck('p.id');
-
-    let totalViaturaVinculos = 0;
-    let totalMilitarVinculos = 0;
-
-    if (affectedPlantaoIds.length > 0) {
-      const viaturaVinculosResult = await db('viatura_plantao')
-        .whereIn('plantao_id', affectedPlantaoIds)
-        .count('id as count')
-        .first();
-      totalViaturaVinculos = parseInt(viaturaVinculosResult.count, 10);
-
-      const militarVinculosResult = await db('militar_plantao')
-        .whereIn('plantao_id', affectedPlantaoIds)
-        .count('id as count')
-        .first();
-      totalMilitarVinculos = parseInt(militarVinculosResult.count, 10);
-    }
-
-    res.status(200).json({
-      totalViaturas,
-      totalRelatedPlantoes,
-      totalViaturaVinculos,
-      totalMilitarVinculos,
-    });
-  } catch (error) {
-    console.error('Erro ao gerar preview de limpeza de viaturas:', error);
-    return next(new AppError('Não foi possível gerar o preview de limpeza de viaturas.', 500));
-  }
 };
