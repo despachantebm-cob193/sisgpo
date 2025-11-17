@@ -94,7 +94,7 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading, em
                 .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
                 .map((obm) => (
                   <div
-                    key={obm.id}
+                    key={obm.id ?? obm.nome}
                     className="border border-borderDark/60 rounded-lg p-4 bg-cardSlate shadow-sm flex flex-col"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -109,12 +109,12 @@ const ViaturaByObmCard: React.FC<ViaturaByObmCardProps> = ({ data, isLoading, em
                         {obm.prefixos
                           .slice()
                           .sort((a, b) => a.localeCompare(b))
-                          .map((prefixo) => {
+                          .map((prefixo, index) => {
                             const isEmpenhada = empenhadasViaturas.has(prefixo.toUpperCase());
                             console.log(`ViaturaByObmCard: Checking prefixo '${prefixo}', isEmpenhada: ${isEmpenhada}`); // Debug log
                             return (
                               <span
-                                key={prefixo}
+                                key={`${prefixo}-${index}`}
                                 className={`px-2 py-1 rounded text-xs font-medium ${isEmpenhada ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-background text-textMain'}`}
                               >
                                 {prefixo}

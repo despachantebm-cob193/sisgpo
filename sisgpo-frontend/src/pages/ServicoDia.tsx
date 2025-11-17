@@ -204,7 +204,7 @@ export default function ServicoDia() {
       {isLoading ? (
         <div className="flex justify-center items-center h-64"><Spinner className="h-12 w-12" /></div>
       ) : (
-        <div className="bg-cardSlate p-6 rounded-lg shadow-md">
+        <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 p-6 rounded-lg shadow-md">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {servicos.map(({ funcao, pessoas }) => {
               const isCivil = FUNCOES_CIVIS.includes(funcao);

@@ -6,7 +6,7 @@ interface StatCardProps {
   value: string | number;
   description?: string;
   isLoading?: boolean;
-  variant?: 'default' | 'highlight' | 'highlight-secondary';
+  variant?: 'default' | 'highlight' | 'highlight-secondary' | 'transparent';
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoading, variant = 'default' }) => {
@@ -25,7 +25,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoadin
     titleClasses += ' text-white';
     valueClasses += ' text-white';
     spinnerClasses += ' text-white';
-  } else { // default
+  } else if (variant === 'transparent') {
+    cardClasses += ' bg-white/10 backdrop-blur-[2px] border border-white/20 text-white';
+  }
+  else { // default
     cardClasses += ' bg-cardSlate border border-borderDark/60';
     titleClasses += ' text-textSecondary';
     valueClasses += ' text-textMain';

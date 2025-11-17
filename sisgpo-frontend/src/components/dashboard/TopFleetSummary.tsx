@@ -4,10 +4,9 @@ import { Car, ShieldCheck } from 'lucide-react';
 interface TopFleetSummaryProps {
   ativas: number | null;
   empenhadas: number | null;
-  atualizadoEm: string | null;
 }
 
-const TopFleetSummary: React.FC<TopFleetSummaryProps> = ({ ativas, empenhadas, atualizadoEm }) => {
+const TopFleetSummary: React.FC<TopFleetSummaryProps> = ({ ativas, empenhadas }) => {
   const totalViaturas = ativas !== null ? ativas : 0;
   const totalEmpenhadas = empenhadas !== null ? empenhadas : 0;
   const percentualEmpenhadas = totalViaturas > 0 ? (totalEmpenhadas / totalViaturas) * 100 : 0;
@@ -18,7 +17,7 @@ const TopFleetSummary: React.FC<TopFleetSummaryProps> = ({ ativas, empenhadas, a
     <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-cardSlate border border-borderDark/60 rounded-lg p-6">
       {/* Card Viaturas Ativas */}
       <section
-        className="p-6 bg-background rounded-lg flex items-start gap-4"
+        className="p-6 bg-background rounded-lg flex flex-col items-center gap-4 md:flex-row md:items-start"
         title="Clique para ver detalhes"
         aria-live="polite"
       >
@@ -29,20 +28,17 @@ const TopFleetSummary: React.FC<TopFleetSummaryProps> = ({ ativas, empenhadas, a
             <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500/50 ring-2 ring-emerald-400/60"></span>
           </span>
         </div>
-        <div className="flex-1">
+        <div className="flex-1 text-center md:text-left">
           <h3 className="text-sm font-semibold uppercase text-textSecondary tracking-wider">Viaturas Ativas</h3>
           <p className="text-6xl font-bold text-textMain" aria-live="polite">
             {isLoading ? '--' : ativas}
-          </p>
-          <p className="text-xs text-textSecondary mt-1">
-            {atualizadoEm ? `Atualizado ${atualizadoEm}` : 'Carregando...'}
           </p>
         </div>
       </section>
 
       {/* Card Viaturas Empenhadas */}
       <section
-        className="p-6 bg-background rounded-lg flex items-start gap-4"
+        className="p-6 bg-background rounded-lg flex flex-col items-center gap-4 md:flex-row md:items-start"
         title="Clique para ver detalhes"
         aria-live="polite"
       >
@@ -52,7 +48,7 @@ const TopFleetSummary: React.FC<TopFleetSummaryProps> = ({ ativas, empenhadas, a
             <span className="relative inline-flex rounded-full h-4 w-4 bg-purple-500/50 ring-2 ring-purple-400/60"></span>
           </span>
         </div>
-        <div className="flex-1">
+        <div className="flex-1 text-center md:text-left">
           <h3 className="text-sm font-semibold uppercase text-textSecondary tracking-wider">Viaturas Empenhadas</h3>
           <p className="text-6xl font-bold text-textMain" aria-live="polite">
             {isLoading ? '--' : empenhadas}

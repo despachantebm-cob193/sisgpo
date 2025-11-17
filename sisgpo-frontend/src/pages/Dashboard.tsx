@@ -42,13 +42,13 @@ interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: num
 export default function Dashboard() {
   const location = useLocation();
   const isLoggedInArea = location.pathname.startsWith('/app');
-  const { setPageTitle } = useUiStore();
+  const { setPageTitle, setLastUpdate: setUiLastUpdate } = useUiStore();
 
   // States for the new TopFleetSummary component
   const [totalViaturasAtivas, setTotalViaturasAtivas] = useState<number | null>(null);
   const [totalViaturasEmpenhadas, setTotalViaturasEmpenhadas] = useState<number | null>(null);
   const [empenhadasViaturasSet, setEmpenhadasViaturasSet] = useState<Set<string>>(new Set());
-  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+  // const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   // New state for militares escalados
   const [militaresEscaladosCount, setMilitaresEscaladosCount] = useState<number | null>(null);
@@ -109,11 +109,11 @@ export default function Dashboard() {
             setTotalViaturasEmpenhadas(engaged.size);
             setEmpenhadasViaturasSet(engaged); // Store the set
             console.log('Dashboard: engaged set populated:', engaged); // Debug log
-            setLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
+            setUiLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
           } catch (err) {
             toast.error('Não foi possível carregar o resumo da frota.');
           }
-        }, []);
+        }, [setUiLastUpdate]);
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
@@ -192,7 +192,7 @@ export default function Dashboard() {
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <p className="text-gray-600 mt-2">Visão geral do poder operacional em tempo real.</p>
+            <p className="text-white mt-2">Visão geral do poder operacional em tempo real.</p>
           </div>
           {isLoggedInArea && (
             <div className="flex items-center gap-4 w-full md:w-auto">
@@ -209,31 +209,31 @@ export default function Dashboard() {
         </div>
         
         {/* Render the new component here */}
-        <TopFleetSummary 
-          ativas={totalViaturasAtivas}
-          empenhadas={totalViaturasEmpenhadas}
-          atualizadoEm={lastUpdate}
-        />
-
-        {console.log('Dashboard: empenhadasViaturasSet passed to ViaturaByObmCard:', empenhadasViaturasSet)}
+                                <TopFleetSummary
+                                  ativas={totalViaturasAtivas}
+                                  empenhadas={totalViaturasEmpenhadas}
+                                />        {console.log('Dashboard: empenhadasViaturasSet passed to ViaturaByObmCard:', empenhadasViaturasSet)}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Militares Ativos"
             value={stats?.total_militares_ativos ?? 0}
             description="Total de militares na ativa."
             isLoading={isLoading}
+            variant="transparent"
           />
           <StatCard
             title="Militares Escalados"
             value={militaresEscaladosCount ?? 0}
             description="Total de militares em escala hoje/futuro."
             isLoading={isLoadingMilitaresEscalados}
+            variant="transparent"
           />
           <StatCard
             title="OBMs Cadastradas"
             value={stats?.total_obms ?? 0}
             description="Total de unidades operacionais."
             isLoading={isLoading}
+            variant="transparent"
           />
         </div>
       </div>

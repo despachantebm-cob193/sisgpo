@@ -249,7 +249,7 @@ export default function Plantoes() {
     setIsSavingEscalaMedico(true);
     try {
       await api.post('/api/admin/escala-medicos', data);
-      toast.success('Registro de escala médica salvo com sucesso!');
+      toast.success('Registro de escala mdica salvo com sucesso!');
       setIsEscalaMedicoModalOpen(false);
       fetchEscalaMedicos();
     } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao salvar escala.'); }
@@ -323,7 +323,7 @@ export default function Plantoes() {
       else if (itemToDelete.type === 'escalaCodec') url = `/api/admin/escala-codec/${itemToDelete.id}`;
       
       await api.delete(url);
-      toast.success('Registro excluído com sucesso!');
+      toast.success('Registro excluÃ­do com sucesso!');
       
       switch (itemToDelete.type) {
         case 'plantoes': fetchPlantoes(); break;
@@ -374,9 +374,9 @@ export default function Plantoes() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-searchbar rounded-lg border">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg">
         <div>
-          <Label htmlFor="data_inicio">Data Início</Label>
+          <Label htmlFor="data_inicio">Data InÃ­cio</Label>
           <Input id="data_inicio" type="date" value={filters.data_inicio} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({...prev, data_inicio: e.target.value}))} />
         </div>
         <div>
@@ -390,7 +390,7 @@ export default function Plantoes() {
 
       <div>
         {/* --- NAVEGA??O DE ABAS COM BOT?ES --- */}
-        <div className="p-2 bg-background rounded-lg mb-4">
+        <div className="p-2 bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg mb-4">
           <div className="flex flex-col sm:flex-row gap-2">
             <TabButton active={activeTab === 'plantoes'} onClick={() => setActiveTab('plantoes')} icon={Car} label="Viaturas" />
             <TabButton active={activeTab === 'escalaMedicos'} onClick={() => setActiveTab('escalaMedicos')} icon={Stethoscope} label="MÃ©dicos" />
@@ -401,7 +401,7 @@ export default function Plantoes() {
 
         {/* --- CONTE?DO DAS ABAS COM TABELAS RESPONSIVAS --- */}
         {activeTab === 'plantoes' && (
-          <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
+          <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
             {isLoadingPlantoes ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -438,7 +438,13 @@ export default function Plantoes() {
                                   >
                                     <span className="font-semibold text-textMain">{nome}</span>
                                     {m.funcao && (
-                                      <span className="rounded-full bg-tagBlue/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-tagBlue">
+                                      <span
+                                        className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
+                                          /combatente/i.test(m.funcao)
+                                            ? 'bg-amber-400/20 text-amber-300'
+                                            : 'bg-tagBlue/20 text-tagBlue'
+                                        }`}
+                                      >
                                         {m.funcao}
                                       </span>
                                     )}
@@ -481,7 +487,7 @@ export default function Plantoes() {
         )}
 
         {activeTab === 'escalaMedicos' && (
-          <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
+          <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
             {isLoadingEscalaMedicos ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -489,7 +495,7 @@ export default function Plantoes() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Nome</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Entrada</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Saída</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">SaÃ­da</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">AÃ§Ãµes</th>
                     </tr>
@@ -499,8 +505,8 @@ export default function Plantoes() {
                       <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_completo}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Entrada:">{formatDateTime(e.entrada_servico)}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Saída:">{formatDateTime(e.saida_servico)}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-cardGreen/20 text-cardGreen' : 'bg-premiumOrange/20 text-premiumOrange'}`}>{e.status_servico}</span></td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="SaÃ­da:">{formatDateTime(e.saida_servico)}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-cardGreen/20 text-cardGreen' : 'bg-premiumOrange/20 text-premiumOrange'} bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-400/40`}>{e.status_servico}</span></td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
                           {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
                         </td>
@@ -514,7 +520,7 @@ export default function Plantoes() {
         )}
 
         {activeTab === 'escalaAeronaves' && (
-          <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
+          <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
             {isLoadingAeronaves ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -522,8 +528,8 @@ export default function Plantoes() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Data</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Aeronave</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">1º Piloto</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">2º Piloto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">1Âº Piloto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">2Âº Piloto</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">AÃ§Ãµes</th>
                     </tr>
@@ -533,9 +539,13 @@ export default function Plantoes() {
                       <tr key={e.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Data:">{formatDate(e.data)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Aeronave:">{e.aeronave_prefixo}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="1º Piloto:">{e.primeiro_piloto}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="2º Piloto:">{e.segundo_piloto}</td>
-                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:">{e.status}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="1Âº Piloto:">{e.primeiro_piloto}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="2Âº Piloto:">{e.segundo_piloto}</td>
+                        <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-400/40">
+                            {e.status}
+                          </span>
+                        </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
                           {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
                         </td>
@@ -549,7 +559,7 @@ export default function Plantoes() {
         )}
 
         {activeTab === 'escalaCodec' && (
-          <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
+          <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
             {isLoadingCodec ? <div className="text-center py-10"><Spinner /></div> : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -606,14 +616,3 @@ export default function Plantoes() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

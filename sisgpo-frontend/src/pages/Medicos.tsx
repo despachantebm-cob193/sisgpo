@@ -93,7 +93,7 @@ export default function Medicos() {
       </div>
       <Input type="text" placeholder="Filtrar por nome..." value={filters.nome_completo} onChange={handleFilterChange} className="max-w-xs mb-4" />
 
-      <div className="bg-cardSlate shadow-md rounded-lg overflow-hidden">
+      <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-searchbar hidden md:table-header-group">
             <tr>

@@ -623,11 +623,11 @@ const DashboardOcorrencias: React.FC = () => {
     <div className="oc-dashboard-wrapper">
 
       <section className="oc-card-grid">
-        <div className="oc-card">
+        <div className="oc-card oc-card-blur">
           <h2>Total de Ocorrências</h2>
           <div className="oc-value">{stats.totalOcorrencias ?? 0}</div>
         </div>
-        <div className="oc-card">
+        <div className="oc-card oc-card-blur">
           <h2>Total de Óbitos</h2>
           <div className="oc-value">{stats.totalObitos ?? 0}</div>
         </div>

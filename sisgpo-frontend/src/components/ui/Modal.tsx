@@ -17,7 +17,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
   return (
     // Fundo semi-transparente que cobre a tela inteira
-    <div className="fixed inset-0 bg-searchbar bg-opacity-50 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-searchbar bg-opacity-50 z-[9999] flex items-center justify-center">
       {/* Contêiner do modal */}
       <div className="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-cardSlate">
         <div className="flex justify-between items-center pb-3 border-b">

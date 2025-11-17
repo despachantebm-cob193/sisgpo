@@ -365,7 +365,7 @@ export default function Obms() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-end gap-4 mb-4">
+      <div className="flex flex-wrap items-end gap-4 mb-4 bg-white/10 backdrop-blur-[2px] border border-white/20 p-4 rounded-lg">
         <Input
           type="text"
           placeholder="Filtrar por nome, sigla, cidade ou CRBM..."
@@ -416,13 +416,13 @@ export default function Obms() {
               title="Total de OBMs"
               value={isLoading ? '' : pagination?.totalRecords ?? 0}
               isLoading={isLoading}
-              variant="highlight"
+              variant="transparent"
           />
         </div>
       </div>
 
       <div className="space-y-6">
-        <section className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-4 shadow-sm md:p-6 md:hidden">
+        <section className="rounded-lg bg-white/10 backdrop-blur-[2px] border border-white/20 p-4 shadow-sm md:p-6 md:hidden">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-2xl font-semibold text-textMain">Visao hierarquica das OBMs</h3>
@@ -567,7 +567,7 @@ export default function Obms() {
         </section>
 
 
-        <div className="hidden md:block bg-cardSlate shadow-md rounded-lg overflow-hidden">
+        <div className="hidden md:block bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
           <table
             className="min-w-full table-fixed"
             style={scrollbarWidth > 0 ? { width: `calc(100% - ${scrollbarWidth}px)` } : undefined}

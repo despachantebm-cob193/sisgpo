@@ -328,7 +328,7 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
           </NavLink>
           <button
             onClick={handleLogout}
-            className={`w-full rounded-lg bg-[#23306b] text-white font-semibold shadow-sm transition hover:bg-[#2d3a82] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d3a82] ${isCollapsed ? 'px-0 py-2.5 flex justify-center' : 'px-3 py-2.5 flex items-center justify-center'}`}
+            className={`w-full rounded-lg bg-red-600 text-white font-semibold shadow-sm transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 ${isCollapsed ? 'px-0 py-2.5 flex justify-center' : 'px-3 py-2.5 flex items-center justify-center'}`}
           >
             <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-6 w-6`} />
             {!isCollapsed && "Sair"}

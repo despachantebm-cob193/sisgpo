@@ -64,7 +64,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
   const customStyles = {
     control: (provided: any) => ({
       ...provided,
-      backgroundColor: '#1E1E1E', // bg-searchbar
+      backgroundColor: '#1b222c', // bg-inputField
       borderColor: '#1F1F1F', // border-borderDark/60
       color: '#D3D3D3', // text-textMain
       boxShadow: 'none',
@@ -74,7 +74,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
     }),
     menu: (provided: any) => ({
       ...provided,
-      backgroundColor: '#1E1E1E', // bg-searchbar
+      backgroundColor: '#1b222c', // bg-inputField
       borderColor: '#1F1F1F', // border-borderDark/60
     }),
     option: (provided: any, state: { isSelected: any; isFocused: any; }) => ({
@@ -83,7 +83,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         ? '#39436F' // bg-cardBlue
         : state.isFocused
         ? '#39436F' // hover:bg-cardBlue
-        : '#1E1E1E', // bg-searchbar
+        : '#1b222c', // bg-inputField
       color: '#D3D3D3', // text-textMain
       '&:active': {
         backgroundColor: '#39436F', // bg-cardBlue

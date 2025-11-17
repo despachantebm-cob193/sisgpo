@@ -362,19 +362,19 @@ export default function Viaturas() {
           title="Total de Viaturas"
           value={isLoading ? '' : pagination?.totalRecords ?? 0}
           isLoading={isLoading}
-          variant="highlight"
+          variant="transparent"
         />
         <StatCard
           title="Viaturas Empenhadas"
           value={isLoading ? '' : empenhadasCount}
           isLoading={isLoading}
           description="Viaturas atualmente empenhadas em plantões futuros ou presentes."
-          variant="highlight-secondary"
+          variant="transparent"
         />
       </div>
 
       {/* Barra de filtros posicionada abaixo dos cards */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
+      <div className="flex flex-wrap items-center gap-4 mb-6 bg-white/10 backdrop-blur-[2px] border border-white/20 p-4 rounded-lg">
         <Input
           type="text"
           placeholder="Filtrar por prefixo, cidade, obm..."
@@ -445,9 +445,7 @@ export default function Viaturas() {
               return (
                 <div
                   key={viatura.id}
-                  className={`rounded-lg border border-borderDark/60 p-4 shadow-sm transition ${
-                    hasSigla ? 'bg-cardSlate' : 'bg-[#1f2433]'
-                  }`}
+                  className={`rounded-lg border border-white/20 p-4 shadow-sm transition bg-white/10 backdrop-blur-[2px]`}
                 >
                   <button
                     type="button"
@@ -511,7 +509,7 @@ export default function Viaturas() {
         </div>
 
         {/* Table View for Desktop */}
-        <div className="hidden md:block bg-cardSlate border border-borderDark/60 rounded-lg shadow-sm">
+        <div className="hidden md:block bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg shadow-sm">
           {isLoading ? (
             <div className="flex justify-center py-10">
               <Spinner className="h-10 w-10" />
