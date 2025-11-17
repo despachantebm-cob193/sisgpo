@@ -37,6 +37,26 @@ interface ApiErrorDetail {
   message: string;
 }
 
+const normalizeCrbm = (crbm: string | null | undefined): string => {
+  if (!crbm) return 'CRBM nao informado';
+  return crbm
+    .replace(/°/g, 'º') // Replace degree symbol with masculine ordinal indicator
+    .replace(/CRMB/gi, 'CRBM') // Ensure consistent casing for "CRBM"
+    .replace(/[\s\u00A0]+/g, ' ') // Replace multiple spaces/nbsp with single space
+    .trim()
+    .toUpperCase();
+};
+
+const normalizeCidade = (cidade: string | null | undefined): string => {
+  if (!cidade) return 'Cidade nao informada';
+  return cidade
+    .normalize("NFD") // Normalize to NFD (Normalization Form Canonical Decomposition)
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .replace(/[\s\u00A0]+/g, ' ') // Replace multiple spaces/nbsp with single space
+    .trim()
+    .toUpperCase();
+};
+
 export default function Obms() {
   const { setPageTitle } = useUiStore();
   const user = useAuthStore(state => state.user);
@@ -61,6 +81,7 @@ export default function Obms() {
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [openCrbmKeys, setOpenCrbmKeys] = useState<Set<string>>(() => new Set());
   const [openCitiesByCrbm, setOpenCitiesByCrbm] = useState<Record<string, Set<string>>>(() => ({}));
+  const [openSiglasByCity, setOpenSiglasByCity] = useState<Record<string, Set<string>>>(() => ({}));
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [allObmsForFilters, setAllObmsForFilters] = useState<Obm[]>([]);
   const [cidadeFilter, setCidadeFilter] = useState('');
@@ -123,12 +144,12 @@ export default function Obms() {
   }, []);
 
   const cidades = useMemo(() => {
-    const allCidades = allObmsForFilters.map(o => o.cidade).filter(Boolean);
+    const allCidades = allObmsForFilters.map(o => normalizeCidade(o.cidade)).filter(Boolean);
     return [...new Set(allCidades)].sort();
   }, [allObmsForFilters]);
 
   const crbms = useMemo(() => {
-    const allCrbms = allObmsForFilters.map(o => o.crbm).filter(Boolean);
+    const allCrbms = allObmsForFilters.map(o => normalizeCrbm(o.crbm)).filter(Boolean);
     return [...new Set(allCrbms)].sort();
   }, [allObmsForFilters]);
 
@@ -178,7 +199,7 @@ export default function Obms() {
 
   const groupedObms = useMemo(() => {
     return obms.reduce<Record<string, Record<string, Obm[]>>>((acc, obm) => {
-      const crbmKey = obm.crbm?.trim() || 'CRBM nao informado';
+      const crbmKey = normalizeCrbm(obm.crbm);
       const cidadeKey = obm.cidade?.trim() || 'Cidade nao informada';
 
       if (!acc[crbmKey]) {
@@ -250,6 +271,20 @@ export default function Obms() {
         nextSet.add(cidade);
       }
       return { ...prev, [crbm]: nextSet };
+    });
+  };
+
+  const toggleSigla = (crbm: string, cidade: string, sigla: string) => {
+    const key = `${crbm}-${cidade}`;
+    setOpenSiglasByCity((prev) => {
+      const currentSet = prev[key] ?? new Set<string>();
+      const nextSet = new Set(currentSet);
+      if (nextSet.has(sigla)) {
+        nextSet.delete(sigla);
+      } else {
+        nextSet.add(sigla);
+      }
+      return { ...prev, [key]: nextSet };
     });
   };
 
@@ -340,11 +375,12 @@ export default function Obms() {
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar OBMs</h2>
-          <p className="text-textSecondary mt-2">Adicione, edite ou remova organizacoes militares.</p>
+          <p className="text-textSecondary mt-2 text-center md:text-left text-[18px] md:text-base">
+            Adicione, edite ou remova organizacoes militares.
+          </p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2 w-full md:w-auto">
+          <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
             <Button onClick={() => setIsUploadModalOpen(true)} variant="warning">
               <Upload className="w-4 h-4 mr-2" />
               Upload / Atualizar
@@ -444,12 +480,12 @@ export default function Obms() {
               {crbmEntries.map(({ crbm, total, cityEntries }) => {
                 const isCrbmOpen = openCrbmKeys.has(crbm);
                 return (
-                  <div key={crbm} className="rounded-lg border border-borderDark/50 bg-background/70 p-4 shadow-inner">
+                  <div key={crbm} className="rounded-lg border border-borderDark/50 bg-background/70 py-4 shadow-inner">
                     <button
                       type="button"
                       onClick={() => toggleCrbm(crbm)}
                       aria-expanded={isCrbmOpen}
-                      className="flex w-full items-center justify-between gap-3 text-left"
+                      className="flex w-full items-center justify-between gap-3 text-left px-4"
                     >
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-textSecondary">CRBM</p>
@@ -465,20 +501,30 @@ export default function Obms() {
                       </div>
                     </button>
 
-                    {isCrbmOpen && (
-                      <div className="mt-4 space-y-4">
+                    <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isCrbmOpen ? 'max-h-screen' : 'max-h-0'}`}>
+                      <div className="pt-4 space-y-4">
                         {cityEntries.map(([cidade, lista]) => {
                           const isCityOpen = openCitiesByCrbm[crbm]?.has(cidade) ?? false;
+                          const obmsBySigla = lista.reduce<Record<string, Obm[]>>((acc, obm) => {
+                            const siglaKey = obm.abreviatura || 'Sem Sigla';
+                            if (!acc[siglaKey]) {
+                              acc[siglaKey] = [];
+                            }
+                            acc[siglaKey].push(obm);
+                            return acc;
+                          }, {});
+                          const siglaEntries = Object.entries(obmsBySigla);
+
                           return (
                             <div
                               key={`${crbm}-${cidade}`}
-                              className="rounded-lg border border-tagBlue/40 bg-tagBlue/5 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
+                              className="rounded-lg border border-tagBlue/40 bg-tagBlue/5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
                             >
                               <button
                                 type="button"
                                 onClick={() => toggleCity(crbm, cidade)}
                                 aria-expanded={isCityOpen}
-                                className="flex w-full items-center justify-between gap-3 text-left"
+                                className="flex w-full items-center justify-between gap-3 text-left px-4"
                               >
                                 <div>
                                   <p className="text-[10px] font-semibold uppercase tracking-wide text-textSecondary">
@@ -493,72 +539,104 @@ export default function Obms() {
                                 />
                               </button>
 
-                              {isCityOpen && (
-                                <div className="mt-3 space-y-3">
-                                  {lista.map((obm) => (
-                                    <article
-                                      key={obm.id ?? `${obm.nome}-${cidade}`}
-                                      className="rounded-md border border-borderDark/40 bg-cardSlate p-3 shadow-sm"
-                                    >
-                                      <div className="flex flex-col gap-1">
-                                        <h4 className="text-base font-semibold text-textMain">{obm.nome}</h4>
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
-                                          <span className="font-semibold uppercase tracking-wide">
-                                            {obm.abreviatura || 'Sigla nao informada'}
-                                          </span>
-                                          <span className="text-[10px] uppercase text-textSecondary/80">-</span>
-                                          <span>{obm.crbm || 'CRBM nao informado'}</span>
+                              <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isCityOpen ? 'max-h-screen' : 'max-h-0'}`}>
+                                <div className="pt-3 space-y-3">
+                                  {siglaEntries.map(([sigla, obmList]) => {
+                                    const siglaKey = `${crbm}-${cidade}`;
+                                    const isSiglaOpen = openSiglasByCity[siglaKey]?.has(sigla) ?? false;
+                                    return (
+                                      <div key={`${siglaKey}-${sigla}`} className="rounded-md border border-borderDark/40 bg-cardSlate py-3 shadow-sm">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleSigla(crbm, cidade, sigla)}
+                                          aria-expanded={isSiglaOpen}
+                                          className="flex w-full items-center justify-between gap-3 text-left px-3"
+                                        >
+                                          <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-wide text-textSecondary">
+                                              Sigla
+                                            </p>
+                                            <p className="text-base font-semibold text-textMain">{sigla}</p>
+                                          </div>
+                                          <ChevronDown
+                                            className={`h-5 w-5 text-textSecondary transition-transform ${
+                                              isSiglaOpen ? 'rotate-180' : ''
+                                            }`}
+                                          />
+                                        </button>
+                                        <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isSiglaOpen ? 'max-h-screen' : 'max-h-0'}`}>
+                                          <div className="pt-3 space-y-3">
+                                            {obmList.map((obm) => (
+                                              <article
+                                                key={obm.id ?? `${obm.nome}-${cidade}`}
+                                                className="rounded-md border border-borderDark/40 bg-background/50 py-3 shadow-sm"
+                                              >
+                                                <div className="px-3">
+                                                  <div className="flex flex-col gap-1">
+                                                    <h4 className="text-base font-semibold text-textMain">{obm.nome}</h4>
+                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
+                                                      <span className="font-semibold uppercase tracking-wide">
+                                                        {obm.abreviatura || 'Sigla nao informada'}
+                                                      </span>
+                                                      <span className="text-[10px] uppercase text-textSecondary/80">-</span>
+                                                      <span>{obm.crbm || 'CRBM nao informado'}</span>
+                                                    </div>
+                                                  </div>
+
+                                                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-textSecondary">
+                                                    <div>
+                                                      <dt className="font-semibold uppercase text-[10px]">Telefone</dt>
+                                                      <dd className="text-sm text-textMain">{obm.telefone || 'N/A'}</dd>
+                                                    </div>
+                                                    <div>
+                                                      <dt className="font-semibold uppercase text-[10px]">Identificador</dt>
+                                                      <dd className="text-sm text-textMain">{obm.obm_id ?? obm.id ?? 'N/A'}</dd>
+                                                    </div>
+                                                    <div>
+                                                      <dt className="font-semibold uppercase text-[10px]">Cidade</dt>
+                                                      <dd className="text-sm text-textMain">{obm.cidade || 'N/A'}</dd>
+                                                    </div>
+                                                    <div>
+                                                      <dt className="font-semibold uppercase text-[10px]">Sincronizado</dt>
+                                                      <dd className="text-sm text-textMain">{obm.synced ? 'Sim' : 'Nao'}</dd>
+                                                    </div>
+                                                  </dl>
+
+                                                  {isAdmin && (
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                      <button
+                                                        onClick={() => handleOpenFormModal(obm)}
+                                                        className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-tagBlue/50 bg-tagBlue/10 px-3 py-1.5 text-sm font-medium text-tagBlue transition hover:bg-tagBlue/20"
+                                                      >
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Editar
+                                                      </button>
+                                                      {obm.id && (
+                                                        <button
+                                                          onClick={() => handleDeleteClick(obm.id!)}
+                                                          className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-rose-500 bg-spamRed/10 px-3 py-1.5 text-sm font-medium text-rose-400 transition hover:text-rose-300"
+                                                        >
+                                                          <Trash2 className="mr-2 h-4 w-4" />
+                                                          Excluir
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </article>
+                                            ))}
+                                          </div>
                                         </div>
                                       </div>
-
-                                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-textSecondary">
-                                        <div>
-                                          <dt className="font-semibold uppercase text-[10px]">Telefone</dt>
-                                          <dd className="text-sm text-textMain">{obm.telefone || 'N/A'}</dd>
-                                        </div>
-                                        <div>
-                                          <dt className="font-semibold uppercase text-[10px]">Identificador</dt>
-                                          <dd className="text-sm text-textMain">{obm.obm_id ?? obm.id ?? 'N/A'}</dd>
-                                        </div>
-                                        <div>
-                                          <dt className="font-semibold uppercase text-[10px]">Cidade</dt>
-                                          <dd className="text-sm text-textMain">{obm.cidade || 'N/A'}</dd>
-                                        </div>
-                                        <div>
-                                          <dt className="font-semibold uppercase text-[10px]">Sincronizado</dt>
-                                          <dd className="text-sm text-textMain">{obm.synced ? 'Sim' : 'Nao'}</dd>
-                                        </div>
-                                      </dl>
-
-                                      {isAdmin && (
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                          <button
-                                            onClick={() => handleOpenFormModal(obm)}
-                                            className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-tagBlue/50 bg-tagBlue/10 px-3 py-1.5 text-sm font-medium text-tagBlue transition hover:bg-tagBlue/20"
-                                          >
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Editar
-                                          </button>
-                                          {obm.id && (
-                                            <button
-                                              onClick={() => handleDeleteClick(obm.id!)}
-                                              className="inline-flex min-w-[120px] flex-1 items-center justify-center rounded border border-rose-500 bg-spamRed/10 px-3 py-1.5 text-sm font-medium text-rose-400 transition hover:text-rose-300"
-                                            >
-                                              <Trash2 className="mr-2 h-4 w-4" />
-                                              Excluir
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </article>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
-                              )}
+                              </div>
                             </div>
                           );
                         })}
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
