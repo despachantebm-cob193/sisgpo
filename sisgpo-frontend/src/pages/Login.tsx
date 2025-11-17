@@ -52,10 +52,6 @@ export default function Login() {
     }
   }, [bgLoaded]);
 
-  if (authToken) {
-    return <Navigate to="/app/dashboard" replace />;
-  }
-
   const handleGoogleSuccess = async (tokenResponse: { code: string }) => {
     setIsLoading(true);
     try {
@@ -97,6 +93,10 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  if (authToken) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-[#090b13] via-[#0e1121] to-[#0b0f1c]">

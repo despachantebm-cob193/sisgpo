@@ -7,10 +7,12 @@ const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
 const AppError = require('../utils/AppError');
 
+const DEFAULT_GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'postmessage';
+
 const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.FRONTEND_URL // Redirect URI
+  DEFAULT_GOOGLE_REDIRECT_URI,
 );
 
 const authController = {
@@ -117,15 +119,33 @@ const authController = {
   },
 
   googleLogin: async (req, res) => {
-    const { code } = req.body;
+    const {
+      code,
+      codeVerifier,
+      redirectUri,
+      redirect_uri: redirectUriSnake,
+    } = req.body;
 
     if (!code) {
       throw new AppError('Código de autorização do Google não fornecido.', 400);
     }
 
+    const requestedRedirectUri =
+      (typeof redirectUri === 'string' && redirectUri) ||
+      (typeof redirectUriSnake === 'string' && redirectUriSnake) ||
+      DEFAULT_GOOGLE_REDIRECT_URI;
+    const resolvedRedirectUri = requestedRedirectUri.trim() || DEFAULT_GOOGLE_REDIRECT_URI;
+
     let idToken;
     try {
-      const { tokens } = await client.getToken(code);
+      const tokenRequest = {
+        code,
+        redirect_uri: resolvedRedirectUri,
+      };
+      if (codeVerifier) {
+        tokenRequest.codeVerifier = codeVerifier;
+      }
+      const { tokens } = await client.getToken(tokenRequest);
       idToken = tokens.id_token;
     } catch (error) {
       console.error('Erro ao trocar código por tokens do Google:', error.message);
