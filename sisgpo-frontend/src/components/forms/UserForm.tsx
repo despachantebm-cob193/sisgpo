@@ -278,7 +278,7 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
           >
             Cancelar
           </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="!bg-emerald-500 hover:!bg-emerald-600 text-white">
           {isSubmitting ? 'Salvando...' : editingUser ? 'Salvar alteracoes' : 'Criar usuario'}
         </Button>
       </div>

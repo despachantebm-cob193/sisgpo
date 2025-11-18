@@ -186,7 +186,6 @@ export default function ServicoDia() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciar Serviço de Dia</h2>
       <p className="text-textSecondary mt-2">Defina os militares e civis para as funções especiais do dia.</p>
 
       {/* Campos de Data de Início e Fim */}

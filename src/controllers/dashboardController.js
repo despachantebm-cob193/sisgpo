@@ -108,21 +108,37 @@ const dashboardController = {
     try {
       const rows = await db('viaturas as v')
         .leftJoin('obms as o', 'v.obm', 'o.nome')
-        .select('o.id as obm_id', db.raw('COALESCE(o.abreviatura, v.obm) as obm'), 'v.prefixo')
+        .select(
+          'o.id as obm_id',
+          'o.crbm as obm_crbm',
+          'o.abreviatura as obm_abreviatura',
+          db.raw('COALESCE(o.abreviatura, v.obm) as obm'),
+          'v.prefixo'
+        )
         .where('v.ativa', true)
         .orderBy('obm', 'asc')
         .catch(() => []);
       const acc = {};
       rows.forEach((r) => {
         const key = r.obm || 'Sem OBM';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(r.prefixo);
+        if (!acc[key]) {
+          acc[key] = {
+            id: r.obm_id ?? null,
+            nome: key,
+            prefixos: [],
+            crbm: r.obm_crbm ?? null,
+            abreviatura: r.obm_abreviatura ?? null,
+          };
+        }
+        acc[key].prefixos.push(r.prefixo);
       });
-      const result = Object.entries(acc).map(([nome, prefixos]) => ({
-        id: null,
-        nome,
-        quantidade: prefixos.length,
-        prefixos: prefixos,
+      const result = Object.values(acc).map((entry) => ({
+        id: entry.id,
+        nome: entry.nome,
+        quantidade: entry.prefixos.length,
+        prefixos: entry.prefixos,
+        crbm: entry.crbm,
+        abreviatura: entry.abreviatura,
       }));
       res.status(200).json(result);
     } catch (error) {

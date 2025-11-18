@@ -1,6 +1,7 @@
 ﻿import React, { useState, ChangeEvent, useEffect, useCallback, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Upload, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -95,7 +96,14 @@ export default function Viaturas() {
   const empenhadasCount = useMemo(() => {
     return viaturas.filter(v => v.prefixo && empenhadasViaturas.has(v.prefixo.toUpperCase())).length;
   }, [viaturas, empenhadasViaturas]);
-  // Virtualização removida: listagem usa mapeamento direto
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredViaturas.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 65, // Adjust this based on your average row height
+    overscan: 5,
+  });
 
   useEffect(() => {
     setPageTitle("Viaturas");
@@ -145,7 +153,7 @@ export default function Viaturas() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '1000', ...filters });
+      const params = new URLSearchParams({ page: String(currentPage), limit: '50', ...filters });
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
       setPagination(response.data.pagination);
@@ -342,7 +350,6 @@ export default function Viaturas() {
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-3xl font-bold tracking-tight text-textMain">Viaturas</h2>
         {isAdmin && (
           <div className="flex gap-2 w-full md:w-auto">
             <Button onClick={() => setIsUploadModalOpen(true)} variant="warning" className="w-full md:w-auto">
@@ -509,36 +516,50 @@ export default function Viaturas() {
         </div>
 
         {/* Table View for Desktop */}
-        <div className="hidden md:block bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg shadow-sm">
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <Spinner className="h-10 w-10" />
-            </div>
-          ) : filteredViaturas.length > 0 ? (
-            <table className="min-w-full divide-y divide-borderDark/60">
-              <thead className="bg-background/40">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Prefixo</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">OBM</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Cidade</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
-                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-borderDark/60">
-                {filteredViaturas.map((viatura) => {
+        <div className="hidden md:block bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg shadow-sm overflow-hidden">
+          <table className="min-w-full table-fixed">
+            <thead className="bg-background/40">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Prefixo</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>OBM</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Cidade</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Status</th>
+                <th scope="col" className="relative px-6 py-3" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>
+              </tr>
+            </thead>
+          </table>
+          <div ref={parentRef} className="overflow-auto" style={{ height: '600px' }}>
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
+              ) : rowVirtualizer.getVirtualItems().length > 0 ? (
+                rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const viatura = filteredViaturas[virtualRow.index];
                   const status = getViaturaStatus(viatura);
                   return (
-                    <tr key={viatura.id} className="hover:bg-background/40 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-textMain">{viatura.prefixo}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{viatura.obm_abreviatura || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{viatura.cidade || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div
+                      key={virtualRow.key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                      className={`border-b border-borderDark/60 ${(!viatura.obm_abreviatura || !viatura.cidade) ? 'bg-red-500/10 border-l-4 border-red-500' : ''}`}
+                    >
+                      <div className="px-6 py-2 text-sm font-medium text-textMain" style={{ width: '20%' }}>{viatura.prefixo}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '20%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '20%' }}>{viatura.cidade || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm" style={{ width: '20%' }}>
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}>
                           {status.label}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      </div>
+                      <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2" style={{ width: '20%' }}>
                         {isAdmin && (
                           <>
                             <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
@@ -549,19 +570,19 @@ export default function Viaturas() {
                             </Button>
                           </>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <p className="py-10 text-center text-textSecondary">Nenhuma viatura encontrada.</p>
-          )}
+                })
+              ) : (
+                <div className="flex justify-center items-center h-full"><p className="text-textSecondary">Nenhuma viatura encontrada.</p></div>
+              )}
+            </div>
+          </div>
         </div>
 
 
-        {pagination && (
+        {pagination && pagination.totalPages > 1 && (
           <div className="mt-4">
             <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
           </div>

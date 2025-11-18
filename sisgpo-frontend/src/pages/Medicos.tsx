@@ -87,11 +87,10 @@ export default function Medicos() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold tracking-tight text-textMain">Cadastro de Médicos</h2>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <Input type="text" placeholder="Filtrar por nome..." value={filters.nome_completo} onChange={handleFilterChange} className="max-w-xs w-full md:w-auto" />
         {isAdmin && <Button onClick={() => handleOpenFormModal()} variant="primary">Adicionar Médico</Button>}
       </div>
-      <Input type="text" placeholder="Filtrar por nome..." value={filters.nome_completo} onChange={handleFilterChange} className="max-w-xs mb-4" />
 
       <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
         <table className="min-w-full">

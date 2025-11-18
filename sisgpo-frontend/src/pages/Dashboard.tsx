@@ -18,7 +18,7 @@ import { Share2 } from 'lucide-react';
 import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
 import ViaturaDetailTable from '@/components/dashboard/ViaturaDetailTable';
-import ViaturaByObmCard from '@/components/dashboard/ViaturaByObmCard';
+import ViaturaByObmTable from '@/components/dashboard/ViaturaByObmTable';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import AeronavesCard from '@/components/dashboard/AeronavesCard';
 import CodecCard from '@/components/dashboard/CodecCard';
@@ -34,7 +34,14 @@ interface ChartStat { name: string; value: number; }
 interface Obm { id: number; abreviatura: string; nome: string; }
 interface ObmGrupo { nome: string; prefixos: string[]; }
 interface ViaturaStatAgrupada { tipo: string; quantidade: number; obms: ObmGrupo[]; }
-interface ViaturaPorObmStat { id: number; nome: string; quantidade: number; prefixos: string[]; crbm: string | null; }
+interface ViaturaPorObmStat {
+  id: number;
+  nome: string;
+  quantidade: number;
+  prefixos: string[];
+  crbm: string | null;
+  abreviatura?: string | null;
+}
 interface ServicoInfo {funcao: string; nome_guerra: string | null; posto_graduacao: string | null; telefone: string | null; }
 interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: string; primeiro_piloto: string; segundo_piloto: string; }
 interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
@@ -245,7 +252,7 @@ export default function Dashboard() {
         <CodecCard data={escalaCodec} isLoading={isLoading} />
       </div>
 
-      <ViaturaByObmCard data={viaturaPorObmStats} isLoading={isLoading} empenhadasViaturas={empenhadasViaturasSet} />
+      <ViaturaByObmTable data={viaturaPorObmStats} isLoading={isLoading} empenhadasViaturas={empenhadasViaturasSet} />
       <ViaturaDetailTable data={viaturaDetailStats} isLoading={isLoading} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ViaturaTypeChart data={viaturaTipoStats} isLoading={isLoading} lastUpdated={lastUpload} />

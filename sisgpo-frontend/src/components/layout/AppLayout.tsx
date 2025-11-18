@@ -18,6 +18,7 @@ const AppLayout: React.FC = () => {
       <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:block`}>
         <Sidebar />
       </div>
+      <Header />
 
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30">
@@ -30,8 +31,8 @@ const AppLayout: React.FC = () => {
       </div>
 
       <div
-        className={`flex min-h-screen flex-col transition-all duration-300 pt-16 md:pt-0 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
-        <Header />
+        className={`flex min-h-screen flex-col transition-all duration-300 pt-16 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} ${isMobileMenuOpen ? 'backdrop-blur-5' : ''}`}
+      >
         <main className="relative z-10 flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
           <Outlet />
         </main>

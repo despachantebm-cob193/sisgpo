@@ -361,7 +361,6 @@ export default function Plantoes() {
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-textMain">Gerenciamento de Escalas</h2>
           <p className="text-textSecondary mt-2">Gerencie as escalas de viaturas, médicos, pilotos e plantonistas.</p>
         </div>
         {isAdmin && (

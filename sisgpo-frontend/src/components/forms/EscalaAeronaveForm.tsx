@@ -246,7 +246,7 @@ const EscalaAeronaveForm = ({
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="!bg-blue-500 hover:!bg-blue-600 text-white">
           {isLoading ? 'Salvando...' : initialData ? 'Atualizar' : 'Adicionar'}
         </Button>
       </div>

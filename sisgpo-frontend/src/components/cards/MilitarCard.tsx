@@ -23,7 +23,7 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
 }) => {
   const status = getMilitarStatus(militar);
   return (
-    <div className="surface-card transition-all">
+    <div className="surface-card transition-all border-tagBlue border-2">
       <div className="flex cursor-pointer items-center justify-between p-4" onClick={onToggle}>
         <div className="flex-1">
           <p className="font-semibold text-textMain">{militar.nome_completo}</p>
@@ -64,7 +64,7 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
       </div>
 
       {isExpanded && (
-        <div className="border-t border-borderDark/60 p-4">
+        <div className="border-t border-borderDark/60 p-4 bg-black">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase text-textSecondary">Nome de Guerra</p>

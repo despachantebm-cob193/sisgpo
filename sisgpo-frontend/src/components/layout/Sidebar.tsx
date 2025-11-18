@@ -6,12 +6,9 @@ import {
   LogOut,
   Settings,
   Shield,
-  Truck,
   UserCheck,
   Users,
   ChevronDown,
-  ChevronsLeft,
-  ChevronsRight,
   BellElectric,
   X,
 } from 'lucide-react';
@@ -54,7 +51,7 @@ export default function Sidebar() {
   const handleMouseLeave = () => {
     timerRef.current = window.setTimeout(() => {
       setSidebarCollapsed(true); // Collapse
-    }, 5000);
+    }, 20000);
   };
 
   useEffect(() => {
@@ -82,7 +79,7 @@ const navLinkClass =
 const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
   const renderSidebarContent = (isCollapsed: boolean) => (
-    <div className="flex h-full flex-col bg-[#1f2658] text-white border-r border-borderDark/60">
+    <div className="flex h-full flex-col bg-transparent text-white border-r border-borderDark/60 backdrop-filter backdrop-blur-sm">
       <div className="px-3">
         <div
           className={`relative flex h-16 items-center ${isCollapsed ? 'justify-center' : 'justify-center'
@@ -351,7 +348,7 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
       {/* Sidebar for Mobile */}
       <aside
         id="logo-sidebar-mobile"
-        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-[#1f2658] transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         aria-label="Sidebar"
       >
@@ -362,7 +359,7 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
       <aside
         id="logo-sidebar-desktop"
         className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
-          } border-r border-borderDark/60 bg-[#1f2658]`}
+          } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

@@ -143,14 +143,14 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
           )}
         </div>
       ))}
-      <Button type="button" onClick={() => adicionarPlantonista(turno)} variant="primary" className="!w-auto !py-1 !px-2 text-xs">
+      <Button type="button" onClick={() => adicionarPlantonista(turno)} variant="primary" className="!w-auto !py-1 !px-2 text-xs !bg-emerald-500 hover:!bg-emerald-600 text-white">
         <PlusCircle size={16} className="mr-1" /> Adicionar
       </Button>
     </div>
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 backdrop-blur-5 bg-cardSlate/50 p-4 rounded-lg">
       <div>
         <Label htmlFor="data">Data da Escala</Label>
         <Input id="data" type="date" value={formData.data} onChange={e => setFormData(p => ({ ...p, data: e.target.value }))} required />
@@ -161,7 +161,7 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
 
       <div className="flex justify-end gap-4 pt-4">
         <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
-        <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : 'Salvar Escala'}</Button>
+        <Button type="submit" disabled={isLoading} className="!bg-blue-500 hover:!bg-blue-600 text-white">{isLoading ? 'Salvando...' : 'Salvar Escala'}</Button>
       </div>
     </form>
   );

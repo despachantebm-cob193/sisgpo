@@ -163,7 +163,6 @@ export default function Users() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-textMain">Usuarios</h2>
         <p className="mt-2 text-textSecondary">
           Cadastre novos acessos, ajuste perfis e bloqueie ou remova contas.
         </p>
@@ -178,7 +177,7 @@ export default function Users() {
                 type="button"
                 onClick={fetchUsers}
                 disabled={isLoading}
-                className="inline-flex items-center justify-center rounded-md border border-borderDark/60 bg-cardSlate px-4 py-2 text-sm font-medium text-textSecondary shadow-sm transition hover:bg-searchbar focus:outline-none focus:ring-2 focus-visible:ring-tagBlue disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-md border border-transparent bg-emerald-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
               >
                 {isLoading ? 'Atualizando...' : 'Atualizar'}
               </button>
