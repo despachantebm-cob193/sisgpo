@@ -3,9 +3,10 @@ import React from 'react';
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'danger' | 'default' | 'success' | 'primary' | 'warning' | 'secondary' | 'icon';
   size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
 };
 
-const Button: React.FC<ButtonProps> = ({ children, className, variant = 'default', size = 'md', ...props }) => {
+const Button: React.FC<ButtonProps> = ({ children, className, variant = 'default', size = 'md', isLoading, ...props }) => {
   const baseClasses =
     'inline-flex items-center justify-center rounded-md font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
@@ -36,7 +37,7 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'default
   } ${variantClasses[variant]} ${className || ''}`;
 
   return (
-    <button className={combinedClasses.trim()} {...props}>
+    <button className={combinedClasses.trim()} disabled={isLoading || props.disabled} {...props}>
       {children}
     </button>
   );

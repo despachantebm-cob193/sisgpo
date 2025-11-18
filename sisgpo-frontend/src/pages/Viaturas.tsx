@@ -1,6 +1,6 @@
 ﻿import React, { useState, ChangeEvent, useEffect, useCallback, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { Upload, Edit, Trash2, ChevronDown, AlertTriangle } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
@@ -29,6 +29,14 @@ interface Viatura {
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
 
+interface ValidationError {
+  linha: number;
+  campo: string;
+  tipo: string;
+  descricao: string;
+  sugestao: string;
+}
+
 export default function Viaturas() {
   const { setPageTitle } = useUiStore();
   const user = useAuthStore(state => state.user);
@@ -39,7 +47,7 @@ export default function Viaturas() {
   const [filters, setFilters] = useState({ q: '', obm: '', cidade: '' });
   const [pagination, setPagination] = useState<PaginationState | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [validationErrors, setValidationErrors] = useState<any[]>([]);
+  const [validationErrors, setValidationErrors] = useState<any[]>([]); // For form validation
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<Viatura | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,6 +67,12 @@ export default function Viaturas() {
   const [obmFilter, setObmFilter] = useState('');
   const [cidadeFilter, setCidadeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // New states for AI validation
+  const [uploadValidationErrors, setUploadValidationErrors] = useState<ValidationError[]>([]);
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+
 
   const [previewData, setPreviewData] = useState<{
     totalViaturas: number;
@@ -148,6 +162,11 @@ export default function Viaturas() {
     const allCidades = allViaturasForFilters.map(v => v.cidade).filter(Boolean);
     return [...new Set(allCidades)].sort();
   }, [allViaturasForFilters]);
+
+  const delimiterWarnings = useMemo(
+    () => uploadValidationErrors.filter(error => error.tipo === 'prefixo_unico_sem_delimitador'),
+    [uploadValidationErrors],
+  );
 
 
   const fetchData = useCallback(async () => {
@@ -317,6 +336,30 @@ export default function Viaturas() {
 
   const handleUpload = async (file: File) => {
     setIsUploading(true);
+    setFileToUpload(file); // Store file temporarily
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const validationResponse = await api.post('/api/admin/viaturas/upload-validate', formData);
+      
+      if (validationResponse.data.status === 'erro' && validationResponse.data.erros.length > 0) {
+        setUploadValidationErrors(validationResponse.data.erros);
+        setIsValidationModalOpen(true);
+        toast.error('Erros de validação encontrados. Revise antes de importar.');
+      } else {
+        // No validation errors, proceed with actual upload
+        await performActualUpload(file);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro durante a validação do arquivo.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const performActualUpload = async (file: File) => {
+    setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -325,8 +368,20 @@ export default function Viaturas() {
       await refreshData();
       fetchLastUpload();
       setIsUploadModalOpen(false);
-    } catch (err: any) { toast.error(err.response?.data?.message || 'Erro ao enviar arquivo.'); }
-    finally { setIsUploading(false); }
+      setUploadValidationErrors([]); // Clear errors after successful upload
+      setIsValidationModalOpen(false); // Close validation modal
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Erro ao enviar arquivo.');
+    } finally {
+      setIsUploading(false);
+      setFileToUpload(null); // Clear temporary file
+    }
+  };
+
+  const handleConfirmUpload = () => {
+    if (fileToUpload) {
+      performActualUpload(fileToUpload);
+    }
   };
 
   const handleClearAllViaturas = async () => {
@@ -381,7 +436,7 @@ export default function Viaturas() {
       </div>
 
       {/* Barra de filtros posicionada abaixo dos cards */}
-      <div className="flex flex-wrap items-center gap-4 mb-6 bg-white/10 backdrop-blur-[2px] border border-white/20 p-4 rounded-lg">
+      <div className="flex flex-wrap items-center gap-4 mb-6 bg-gray-800 shadow-lg p-4 rounded-lg">
         <Input
           type="text"
           placeholder="Filtrar por prefixo, cidade, obm..."
@@ -529,11 +584,11 @@ export default function Viaturas() {
             </thead>
           </table>
           <div ref={parentRef} className="overflow-auto" style={{ height: '600px' }}>
-            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
-              {isLoading ? (
-                <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
-              ) : rowVirtualizer.getVirtualItems().length > 0 ? (
-                rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            {isLoading ? (
+              <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
+            ) : filteredViaturas.length > 0 ? (
+              <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const viatura = filteredViaturas[virtualRow.index];
                   const status = getViaturaStatus(viatura);
                   return (
@@ -573,11 +628,11 @@ export default function Viaturas() {
                       </div>
                     </div>
                   );
-                })
-              ) : (
-                <div className="flex justify-center items-center h-full"><p className="text-textSecondary">Nenhuma viatura encontrada.</p></div>
-              )}
-            </div>
+                })}
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-full"><p className="text-textSecondary">Nenhuma viatura encontrada.</p></div>
+            )}
           </div>
         </div>
 
@@ -661,6 +716,80 @@ export default function Viaturas() {
           <Button onClick={() => setIsUploadModalOpen(false)} variant="secondary">
             Cancelar
           </Button>
+        </div>
+      </Modal>
+
+      {/* Modal de Validação de Upload */}
+      <Modal
+        isOpen={isValidationModalOpen}
+        onClose={() => { setIsValidationModalOpen(false); setUploadValidationErrors([]); setFileToUpload(null); }}
+        title="Erros de Validação na Importação"
+      >
+        <div className="space-y-4">
+          <p className="text-textSecondary flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            Foram encontrados problemas no arquivo. Revise os erros abaixo antes de prosseguir.
+          </p>
+          {uploadValidationErrors.length > 0 && (
+            <div className="max-h-[60vh] w-full overflow-auto rounded-lg border border-white/20">
+              <table className="min-w-full divide-y divide-white/20">
+                <thead className="bg-background/40">
+                  <tr>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-textSecondary uppercase">Linha</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-textSecondary uppercase">Campo</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-textSecondary uppercase">Tipo</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-textSecondary uppercase">Descrição</th>
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-textSecondary uppercase">Sugestão</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {uploadValidationErrors.map((error, index) => {
+                    const isDelimiterError = error.tipo === 'prefixo_unico_sem_delimitador';
+                    return (
+                      <tr
+                        key={index}
+                        className={`hover:bg-white/5 ${isDelimiterError ? 'bg-amber-500/10 hover:bg-amber-500/20' : ''}`}
+                      >
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-textMain">{error.linha}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-textMain">{error.campo}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-textMain">{error.tipo}</td>
+                        <td className="px-4 py-2 text-sm text-textSecondary">{error.descricao}</td>
+                        <td className="px-4 py-2 text-sm text-textSecondary">{error.sugestao}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {delimiterWarnings.length > 0 && (
+            <div className="mt-4 rounded-lg border border-amber-500/60 bg-amber-500/10 p-4 text-sm text-textSecondary space-y-2">
+              <p className="text-amber-200 font-semibold">
+                Linhas afetadas: {delimiterWarnings.map(w => w.linha).join(', ')}
+              </p>
+              <p>
+                Esses valores parecem conter múltiplos prefixos sem delimitador. Abra o arquivo, insira vírgula, ponto e vírgula, barra ou espaços duplos entre os prefixos e envie novamente.
+              </p>
+              <p className="text-amber-100">
+                Detalhe: {delimiterWarnings[0].descricao}
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => { setIsValidationModalOpen(false); setUploadValidationErrors([]); setFileToUpload(null); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmUpload}
+              isLoading={isUploading}
+            >
+              Prosseguir com a Importação
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

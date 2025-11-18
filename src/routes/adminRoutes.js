@@ -51,6 +51,7 @@ router.use(fileUpload({
 
 // --- ROTAS DE UPLOAD DE ARQUIVOS ---
 router.post('/militares/upload-csv', ensureAdmin, militarFileController.upload);
+router.post('/viaturas/upload-validate', ensureAdmin, viaturaFileController.validateUpload);
 router.post('/viaturas/upload-csv', ensureAdmin, viaturaFileController.upload);  
 router.post('/obms/upload-csv', ensureAdmin, obmController.uploadCsv);
 // --- FIM DA CORREÇÃO ---

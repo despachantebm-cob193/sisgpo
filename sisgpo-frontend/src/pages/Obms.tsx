@@ -144,19 +144,8 @@ export default function Obms() {
   }, []);
 
   const cidades = useMemo(() => {
-    const seen = new Set<string>();
-    const lista: string[] = [];
-    allObmsForFilters.forEach((o) => {
-      const rawCidade = o.cidade?.trim() || 'Cidade nao informada';
-      const normalizada = normalizeCidade(rawCidade);
-      if (!seen.has(normalizada)) {
-        seen.add(normalizada);
-        lista.push(rawCidade);
-      }
-    });
-    return lista.sort((a, b) =>
-      normalizeCidade(a).localeCompare(normalizeCidade(b), 'pt-BR', { sensitivity: 'accent' }),
-    );
+    const allCidades = allObmsForFilters.map(o => normalizeCidade(o.cidade)).filter(Boolean);
+    return [...new Set(allCidades)].sort();
   }, [allObmsForFilters]);
 
   const crbms = useMemo(() => {
