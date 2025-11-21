@@ -94,3 +94,5 @@ const MilitarCard: React.FC<MilitarCardProps> = ({
 };
 
 export default MilitarCard;
+
+// .
