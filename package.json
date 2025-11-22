@@ -6,7 +6,7 @@
     "start": "node src/server.js",
     "start:prod": "node dist/server.js",
     "knex": "knex --knexfile knexfile.js",
-    "migrate:dev": "knex migrate:latest --env development",
+    "migrate:dev": "cross-env NODE_ENV=development knex migrate:latest --env development",
     "migrate:prod": "knex migrate:latest --env production",
     "seed:prod": "knex seed:run --env production",
     "build": "tsc && cd sisgpo-frontend && npm install && npm run build",

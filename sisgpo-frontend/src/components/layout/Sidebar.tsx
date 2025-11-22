@@ -37,11 +37,19 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { isSidebarCollapsed, setSidebarCollapsed, isMobileMenuOpen, toggleMobileMenu } = useUiStore();
+  const {
+    isSidebarCollapsed,
+    sidebarMode,
+    setSidebarCollapsed,
+    setSidebarMode,
+    isMobileMenuOpen,
+    toggleMobileMenu,
+  } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const timerRef = useRef<number | null>(null);
 
   const handleMouseEnter = () => {
+    if (sidebarMode !== 'hover') return;
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -49,6 +57,7 @@ export default function Sidebar() {
   };
 
   const handleMouseLeave = () => {
+    if (sidebarMode !== 'hover') return;
     timerRef.current = window.setTimeout(() => {
       setSidebarCollapsed(true); // Collapse
     }, 20000);
@@ -78,6 +87,29 @@ const navLinkClass =
   'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
+  const resolvedCollapsed =
+    sidebarMode === 'expanded'
+      ? false
+      : sidebarMode === 'collapsed'
+        ? true
+        : isSidebarCollapsed;
+
+  const modeOptions: { value: 'expanded' | 'collapsed' | 'hover'; label: string }[] = [
+    { value: 'expanded', label: 'Expandido' },
+    { value: 'collapsed', label: 'Recolhido' },
+    { value: 'hover', label: 'Expandir ao passar' },
+  ];
+
+  const handleModeChange = (mode: 'expanded' | 'collapsed' | 'hover') => {
+    setSidebarMode(mode);
+    // setSidebarMode já sincroniza isSidebarCollapsed, mas garantimos o estado imediato.
+    if (mode === 'expanded') {
+      setSidebarCollapsed(false);
+    } else {
+      setSidebarCollapsed(true);
+    }
+  };
+
   const renderSidebarContent = (isCollapsed: boolean) => (
     <div className="flex h-full flex-col bg-transparent text-white border-r border-borderDark/60 backdrop-filter backdrop-blur-sm">
       <div className="px-3">
@@ -94,6 +126,38 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
           <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
             <X size={24} className="text-white" />
           </button>
+        </div>
+      </div>
+
+      <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3`}>
+        <div className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-3 shadow-sm">
+          <p className={`text-xs font-semibold text-gray-300 ${isCollapsed ? 'text-center' : ''}`}>
+            Controle do menu
+          </p>
+          <div className="mt-2 space-y-1">
+            {modeOptions.map((option) => {
+              const isActive = sidebarMode === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleModeChange(option.value)}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs transition ${
+                    isActive
+                      ? 'bg-tagBlue/20 text-tagBlue border border-tagBlue/30'
+                      : 'text-gray-300 hover:bg-borderDark/40'
+                  }`}
+                >
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full border ${
+                      isActive ? 'border-tagBlue bg-tagBlue' : 'border-gray-500'
+                    }`}
+                  />
+                  {!isCollapsed && <span className="truncate">{option.label}</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -358,13 +422,13 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
       {/* Sidebar for Desktop */}
       <aside
         id="logo-sidebar-desktop"
-        className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
+        className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
           } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {renderSidebarContent(isSidebarCollapsed)}
+        {renderSidebarContent(resolvedCollapsed)}
       </aside>
     </>
   );
