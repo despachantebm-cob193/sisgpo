@@ -1,4 +1,5 @@
 const axios = require('axios');
+const axios = require('axios');
 const AppError = require('../utils/AppError');
 const { buildSsoAuthHeaders } = require('../utils/signSsoJwt');
 const OCORRENCIAS_API_URL = process.env.OCORRENCIAS_API_URL || 'http://localhost:3001';
@@ -36,33 +37,51 @@ const estatisticasExternasController = {
         timeout: 5000, // 5 seconds timeout
       };
 
-      const [statsRes, plantaoRes, relatorioRes, espelhoRes, espelhoBaseRes] = await Promise.all([
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/dashboard/stats`, axiosConfig),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/plantao`, { ...axiosConfig }),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/relatorio-completo`, {
-          ...axiosConfig,
-          params: {
-            data_inicio: targetDate,
-            data_fim: targetDate,
-          },
-        }),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/estatisticas-por-intervalo`, {
-          ...axiosConfig,
-          params: {
-            data: targetDate,
-          },
-        }),
-        axios.get(`${OCORRENCIAS_API_URL}/api/external/espelho-base`, { ...axiosConfig }),
-      ]);
-
-      return response.json({
+      const defaultPayload = {
         data: targetDate,
-        stats: statsRes.data,
-        plantao: plantaoRes.data,
-        relatorio: relatorioRes.data,
-        espelho: espelhoRes.data,
-        espelhoBase: espelhoBaseRes.data,
+        stats: { totalOcorrencias: 0, totalObitos: 0, ocorrenciasPorNatureza: [], ocorrenciasPorCrbm: [] },
+        plantao: null,
+        relatorio: { estatisticas: [], obitos: [] },
+        espelho: [],
+        espelhoBase: [],
+        warning: null,
+      };
+
+      const endpoints = [
+        { key: 'stats', url: `${OCORRENCIAS_API_URL}/api/external/dashboard/stats`, params: null, fallback: defaultPayload.stats },
+        { key: 'plantao', url: `${OCORRENCIAS_API_URL}/api/external/plantao`, params: null, fallback: defaultPayload.plantao },
+        { key: 'relatorio', url: `${OCORRENCIAS_API_URL}/api/external/relatorio-completo`, params: { data_inicio: targetDate, data_fim: targetDate }, fallback: defaultPayload.relatorio },
+        { key: 'espelho', url: `${OCORRENCIAS_API_URL}/api/external/estatisticas-por-intervalo`, params: { data: targetDate }, fallback: defaultPayload.espelho },
+        { key: 'espelhoBase', url: `${OCORRENCIAS_API_URL}/api/external/espelho-base`, params: null, fallback: defaultPayload.espelhoBase },
+      ];
+
+      const settled = await Promise.allSettled(
+        endpoints.map(({ url, params }) =>
+          axios.get(url, params ? { ...axiosConfig, params } : axiosConfig)
+        )
+      );
+
+      const payload = { ...defaultPayload };
+      const errors = [];
+
+      settled.forEach((result, index) => {
+        const { key, fallback } = endpoints[index];
+        if (result.status === 'fulfilled') {
+          payload[key] = result.value?.data ?? fallback;
+        } else {
+          errors.push(key);
+          payload[key] = fallback;
+          console.error(`[dashboard-ocorrencias] Falha ao carregar ${key}:`, result.reason?.message || result.reason);
+        }
       });
+
+      if (errors.length === endpoints.length) {
+        payload.warning = 'Sistema de ocorrencias indisponivel; exibindo dados vazios.';
+      } else if (errors.length > 0) {
+        payload.warning = `Alguns dados nao foram carregados: ${errors.join(', ')}.`;
+      }
+
+      return response.status(200).json(payload);
     } catch (error) {
       console.error('--- ERRO DETALHADO AO BUSCAR DADOS DO SISTEMA DE OCORRENCIAS ---');
       console.error('Mensagem do erro:', error.message);
