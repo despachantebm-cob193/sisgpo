@@ -1,5 +1,4 @@
 const axios = require('axios');
-const axios = require('axios');
 const AppError = require('../utils/AppError');
 const { buildSsoAuthHeaders } = require('../utils/signSsoJwt');
 const OCORRENCIAS_API_URL = process.env.OCORRENCIAS_API_URL || 'http://localhost:3001';
