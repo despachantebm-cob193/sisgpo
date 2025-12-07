@@ -159,6 +159,11 @@ const plantaoController = {
     try {
       const { data_inicio, data_fim, obm_id, all } = req.query;
 
+      const hasPlantoesTable = await db.schema.hasTable('plantoes').catch(() => false);
+      if (!hasPlantoesTable) {
+        return res.status(200).json({ data: [], pagination: null });
+      }
+
       const [hasViaturaId, hasObmId, hasDataPlantao, hasViaturaPlantao, hasHoraInicio, hasHoraFim, hasDataFim, hasObservacoes] = await Promise.all([
         db.schema.hasColumn('plantoes', 'viatura_id').catch(() => false),
         db.schema.hasColumn('plantoes', 'obm_id').catch(() => false),
@@ -187,14 +192,20 @@ const plantaoController = {
         });
       }
 
-      const dataCol = hasDataPlantao ? 'p.data_plantao' : 'p.data_inicio';
-      if (data_inicio) query.where(dataCol, '>=', data_inicio);
-      if (data_fim) query.where(dataCol, '<=', data_fim);
+      // Coluna de data pode variar entre ambientes; se nao existir, usa ID como fallback para ordenar.
+      const hasDataInicio = await db.schema.hasColumn('plantoes', 'data_inicio').catch(() => false);
+      const dataCol = hasDataPlantao ? 'p.data_plantao' : (hasDataInicio ? 'p.data_inicio' : 'p.id');
+      if (data_inicio && dataCol !== 'p.id') query.where(dataCol, '>=', data_inicio);
+      if (data_fim && dataCol !== 'p.id') query.where(dataCol, '<=', data_fim);
       if (obm_id) query.where('o.id', '=', obm_id);
 
       const selectFields = [
         'p.id',
-        hasDataPlantao ? db.raw('p.data_plantao as data_plantao') : db.raw('p.data_inicio as data_plantao'),
+        hasDataPlantao
+          ? db.raw('p.data_plantao as data_plantao')
+          : hasDataInicio
+            ? db.raw('p.data_inicio as data_plantao')
+            : db.raw('NULL as data_plantao'),
         'v.prefixo as viatura_prefixo',
         'o.abreviatura as obm_abreviatura',
       ];
@@ -258,19 +269,22 @@ const plantaoController = {
       const plantaoIds = data.map(p => p.id);
       let guarnicoes = [];
       if (plantaoIds.length > 0) {
-        guarnicoes = await db('plantoes_militares as pm')
-          .join('militares as m', 'pm.militar_id', 'm.id')
-          .select(
-            'pm.plantao_id',
-            'pm.militar_id',
-            'pm.funcao',
-            'm.posto_graduacao',
-            'm.nome_guerra',
-            'm.nome_completo',
-            db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"),
-            'm.telefone'
-          )
-          .whereIn('pm.plantao_id', plantaoIds);
+        const { table: pmTableList, hasFuncao: hasFuncaoList } = await resolvePlantaoVinculoMeta(db);
+        if (pmTableList) {
+          guarnicoes = await db(`${pmTableList} as pm`)
+            .join('militares as m', 'pm.militar_id', 'm.id')
+            .select(
+              'pm.plantao_id',
+              'pm.militar_id',
+              hasFuncaoList ? 'pm.funcao' : db.raw('NULL as funcao'),
+              'm.posto_graduacao',
+              'm.nome_guerra',
+              'm.nome_completo',
+              db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), m.nome_completo) as nome_exibicao"),
+              'm.telefone'
+            )
+            .whereIn('pm.plantao_id', plantaoIds);
+        }
       }
 
       const guarnicaoMap = guarnicoes.reduce((acc, militar) => {
@@ -293,7 +307,7 @@ const plantaoController = {
       });
     } catch (error) {
       console.error('Erro em plantaoController.getAll:', error);
-      throw new AppError('Não foi possível carregar os plantões.', 500);
+      return res.status(200).json({ data: [], pagination: null, message: 'Plantoes indisponiveis no momento.' });
     }
   },
 
