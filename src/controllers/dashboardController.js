@@ -151,6 +151,11 @@ const dashboardController = {
     try {
       const hasTable = await db.schema.hasTable('servico_dia').catch(() => false);
       if (!hasTable) return res.status(200).json([]);
+
+      const hasDataInicio = await db.schema.hasColumn('servico_dia', 'data_inicio').catch(() => false);
+      const hasDataFim = await db.schema.hasColumn('servico_dia', 'data_fim').catch(() => false);
+      if (!hasDataInicio || !hasDataFim) return res.status(200).json([]);
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);

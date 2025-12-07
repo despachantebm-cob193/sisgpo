@@ -24,11 +24,20 @@ const applyAccentInsensitiveFilter = (queryBuilder, column, value) => {
 
 const obmController = {
   getAllSimple: async (_req, res) => {
+    const hasTable = await db.schema.hasTable('obms').catch(() => false);
+    if (!hasTable) {
+      return res.status(200).json({ data: [] });
+    }
     const data = await db('obms').select('*').orderBy('crbm', 'asc').orderBy('cidade', 'asc').orderBy('nome', 'asc');
     res.status(200).json({ data });
   },
 
   getAll: async (req, res) => {
+    const hasTable = await db.schema.hasTable('obms').catch(() => false);
+    if (!hasTable) {
+      return res.status(200).json({ data: [], pagination: { currentPage: 1, perPage: 15, totalPages: 0, totalRecords: 0 } });
+    }
+
     const { q, cidade, crbm } = req.query;
     const query = db('obms').select('*');
 
