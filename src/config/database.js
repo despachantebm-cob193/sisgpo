@@ -43,6 +43,9 @@ const createDbInstance = (connectionConfig, options = {}) => {
 
   const sslConfig = useSsl ? { rejectUnauthorized: false } : false;
 
+  const poolMin = parseInt(process.env.DB_POOL_MIN, 10);
+  const poolMax = parseInt(process.env.DB_POOL_MAX, 10);
+
   const baseConfig = {
     client: 'pg',
     connection: {
@@ -51,8 +54,9 @@ const createDbInstance = (connectionConfig, options = {}) => {
     },
     searchPath: ['public'],
     pool: {
-      min: isExternal ? 0 : 2,
-      max: isExternal ? 5 : 10,
+      // Use defaults conservadores e ajustáveis por ambiente (ajuda em limites de pool, ex: Supabase pgbouncer)
+      min: Number.isFinite(poolMin) ? poolMin : (isExternal ? 0 : 0),
+      max: Number.isFinite(poolMax) ? poolMax : (isExternal ? 4 : 4),
       idleTimeoutMillis: 5000,
     },
   };

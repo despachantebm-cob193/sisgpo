@@ -15,6 +15,17 @@ const client = new OAuth2Client(
   DEFAULT_GOOGLE_REDIRECT_URI,
 );
 
+const isConnectionLimitError = (error) => {
+  const msg = (error && error.message) ? error.message.toLowerCase() : '';
+  return (
+    msg.includes('max clients in sessionmode') ||
+    msg.includes('too many clients') ||
+    msg.includes('remaining connection slots are reserved') ||
+    msg.includes('connection pool') ||
+    msg.includes('pool_size')
+  );
+};
+
 const authController = {
   login: async (req, res) => {
     const { login, senha } = req.body;
@@ -28,11 +39,19 @@ const authController = {
 
     const normalizedLogin = rawLogin.toLowerCase();
 
-    const user = await db('usuarios')
-      .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome')
-      .whereRaw('LOWER(login) = ?', [normalizedLogin])
-      .orWhereRaw('LOWER(email) = ?', [normalizedLogin])
-      .first();
+    let user;
+    try {
+      user = await db('usuarios')
+        .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome')
+        .whereRaw('LOWER(login) = ?', [normalizedLogin])
+        .orWhereRaw('LOWER(email) = ?', [normalizedLogin])
+        .first();
+    } catch (err) {
+      if (isConnectionLimitError(err)) {
+        throw new AppError('Banco indisponivel no momento (limite de conexoes). Tente novamente em instantes.', 503);
+      }
+      throw err;
+    }
 
     if (!user) {
       console.log(`[AuthController] Usuário '${rawLogin}' não encontrado.`);
@@ -47,10 +66,17 @@ const authController = {
       user.perfil &&
       !user.perfil_desejado
     ) {
-      await db('usuarios')
-        .where({ id: user.id })
-        .update({ status: 'approved', updated_at: db.fn.now() });
-      user.status = 'approved';
+      try {
+        await db('usuarios')
+          .where({ id: user.id })
+          .update({ status: 'approved', updated_at: db.fn.now() });
+        user.status = 'approved';
+      } catch (err) {
+        if (isConnectionLimitError(err)) {
+          throw new AppError('Banco indisponivel no momento (limite de conexoes). Tente novamente em instantes.', 503);
+        }
+        throw err;
+      }
     }
 
     if (user.status === 'pending') {
@@ -164,13 +190,21 @@ const authController = {
       throw new AppError('Não foi possível obter o e-mail da conta Google.', 400);
     }
 
-    let user = await db('usuarios').select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome').where({ google_id }).first();
+    let user;
+    try {
+      user = await db('usuarios').select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome').where({ google_id }).first();
 
-    if (!user) {
-      user = await db('usuarios').select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome').where({ email }).first();
-      if (user) {
-        await db('usuarios').where({ id: user.id }).update({ google_id });
+      if (!user) {
+        user = await db('usuarios').select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome').where({ email }).first();
+        if (user) {
+          await db('usuarios').where({ id: user.id }).update({ google_id });
+        }
       }
+    } catch (err) {
+      if (isConnectionLimitError(err)) {
+        throw new AppError('Banco indisponivel no momento (limite de conexoes). Tente novamente em instantes.', 503);
+      }
+      throw err;
     }
 
     if (!user) {
@@ -190,12 +224,19 @@ const authController = {
         perfil_desejado: 'user',
       };
 
-      const [insertedUser] = await db('usuarios').insert(newUser).returning('*');
-      user = insertedUser;
+      try {
+        const [insertedUser] = await db('usuarios').insert(newUser).returning('*');
+        user = insertedUser;
 
-      await db('notificacoes').insert({
-        mensagem: `Novo usuário cadastrado: ${user.nome_completo} (${user.email})`,
-      });
+        await db('notificacoes').insert({
+          mensagem: `Novo usuario cadastrado: ${user.nome_completo} (${user.email})`,
+        });
+      } catch (err) {
+        if (isConnectionLimitError(err)) {
+          throw new AppError('Banco indisponivel no momento (limite de conexoes). Tente novamente em instantes.', 503);
+        }
+        throw err;
+      }
     }
 
     if (!user.ativo) {
