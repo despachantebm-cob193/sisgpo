@@ -9,8 +9,8 @@ import {
   UserCheck,
   Users,
   ChevronDown,
+  ChevronsLeftRight,
   BellElectric,
-  X,
 } from 'lucide-react';
 import { TfiJoomla } from 'react-icons/tfi';
 import { GiSiren } from 'react-icons/gi';
@@ -42,35 +42,10 @@ export default function Sidebar() {
     sidebarMode,
     setSidebarCollapsed,
     setSidebarMode,
-    isMobileMenuOpen,
-    toggleMobileMenu,
   } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
+  const [isControlOpen, setIsControlOpen] = useState(false);
   const timerRef = useRef<number | null>(null);
-
-  const handleMouseEnter = () => {
-    if (sidebarMode !== 'hover') return;
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    setSidebarCollapsed(false); // Expand
-  };
-
-  const handleMouseLeave = () => {
-    if (sidebarMode !== 'hover') return;
-    timerRef.current = window.setTimeout(() => {
-      setSidebarCollapsed(true); // Collapse
-    }, 20000);
-  };
-
-  useEffect(() => {
-    // Limpa o timer quando o componente é desmontado
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -78,14 +53,35 @@ export default function Sidebar() {
   };
 
   const handleLinkClick = () => {
-    if (isMobileMenuOpen) {
-      toggleMobileMenu();
+    // fechar popover de controle ao navegar
+    setIsControlOpen(false);
+  };
+  const handleMouseEnter = () => {
+    if (sidebarMode !== 'hover') return;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
     }
+    setSidebarCollapsed(false);
   };
 
-const navLinkClass =
-  'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
-const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
+  const handleMouseLeave = () => {
+    if (sidebarMode !== 'hover') return;
+    timerRef.current = window.setTimeout(() => {
+      setSidebarCollapsed(true);
+    }, 20000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const navLinkClass =
+    'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
   const resolvedCollapsed =
     sidebarMode === 'expanded'
@@ -123,41 +119,6 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
               <h1 className="text-xl font-bold text-white">SISGPO</h1>
             </div>
           )}
-          <button onClick={toggleMobileMenu} className="absolute top-4 right-4 md:hidden p-2">
-            <X size={24} className="text-white" />
-          </button>
-        </div>
-      </div>
-
-      <div className={`${isCollapsed ? 'px-2' : 'px-3'} pt-3`}>
-        <div className="rounded-lg border border-borderDark/60 bg-cardSlate/80 p-3 shadow-sm">
-          <p className={`text-xs font-semibold text-gray-300 ${isCollapsed ? 'text-center' : ''}`}>
-            Controle do menu
-          </p>
-          <div className="mt-2 space-y-1">
-            {modeOptions.map((option) => {
-              const isActive = sidebarMode === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleModeChange(option.value)}
-                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs transition ${
-                    isActive
-                      ? 'bg-tagBlue/20 text-tagBlue border border-tagBlue/30'
-                      : 'text-gray-300 hover:bg-borderDark/40'
-                  }`}
-                >
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full border ${
-                      isActive ? 'border-tagBlue bg-tagBlue' : 'border-gray-500'
-                    }`}
-                  />
-                  {!isCollapsed && <span className="truncate">{option.label}</span>}
-                </button>
-              );
-            })}
-          </div>
         </div>
       </div>
 
@@ -372,7 +333,64 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
         </ul>
       </div>
 
-      <div className="w-full px-3 pb-4 space-y-2 border-t border-borderDark/60 bg-cardSlate">
+      <div className="relative w-full px-3 pb-4 space-y-2 border-t border-borderDark/60 bg-cardSlate">
+        <div className="relative rounded-lg border border-borderDark/60 bg-cardSlate/80 p-2 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setIsControlOpen((open) => !open)}
+            className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-xs text-gray-200 hover:bg-borderDark/40 transition ${
+              isCollapsed ? 'justify-center' : ''
+            }`}
+            aria-expanded={isControlOpen}
+            aria-controls="sidebar-control-panel"
+            title="Controle do menu"
+          >
+            <div className="flex items-center gap-2">
+              <ChevronsLeftRight size={16} className="text-tagBlue" />
+              {!isCollapsed && <span className="font-semibold">Controle do menu</span>}
+            </div>
+            {!isCollapsed && (
+              <ChevronDown
+                size={16}
+                className={`transition-transform ${isControlOpen ? 'rotate-180' : ''}`}
+              />
+            )}
+          </button>
+
+          {isControlOpen && (
+            <div
+              id="sidebar-control-panel"
+              className="absolute bottom-full left-0 mb-2 w-full rounded-lg border border-borderDark/60 bg-cardSlate/95 p-2 shadow-2xl z-20"
+            >
+              {modeOptions.map((option) => {
+                const isActive = sidebarMode === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      handleModeChange(option.value);
+                      setIsControlOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs transition ${
+                      isActive
+                        ? 'bg-tagBlue/20 text-tagBlue border border-tagBlue/30'
+                        : 'text-gray-300 hover:bg-borderDark/40'
+                    }`}
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full border ${
+                        isActive ? 'border-tagBlue bg-tagBlue' : 'border-gray-500'
+                      }`}
+                    />
+                    {!isCollapsed && <span className="truncate">{option.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-col space-y-2 pt-2">
           <NavLink
             to="/app/perfil"
@@ -401,27 +419,7 @@ const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden"
-          onClick={toggleMobileMenu}
-        ></div>
-      )}
-
-      {/* Sidebar for Mobile */}
       <aside
-        id="logo-sidebar-mobile"
-        className={`flex flex-col fixed top-0 left-0 z-40 h-screen w-64 border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        aria-label="Sidebar"
-      >
-        {renderSidebarContent(false)}
-      </aside>
-
-      {/* Sidebar for Desktop */}
-      <aside
-        id="logo-sidebar-desktop"
         className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
           } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong`}
         aria-label="Sidebar"
