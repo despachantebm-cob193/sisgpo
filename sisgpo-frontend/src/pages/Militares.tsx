@@ -275,11 +275,28 @@ export default function Militares() {
     formData.append('file', file);
 
     try {
-      await api.post('/api/admin/militares/upload-csv', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      toast.success('Arquivo enviado com sucesso! A atualizacao sera processada em segundo plano.');
-      fetchData();
+      const response = await api.post('/api/admin/militares/upload-csv', formData);
+      const { message, failures, inserted, updated } = response.data || {};
+
+      const summaryMessage = message || `Importação concluída. Inseridos: ${inserted ?? 0}, Atualizados: ${updated ?? 0}.`;
+      toast.success(summaryMessage);
+
+      if (Array.isArray(failures) && failures.length > 0) {
+        const preview = failures
+          .slice(0, 3)
+          .map((failure: any) => {
+            if (typeof failure === 'string') return failure;
+            const linha = failure?.linha ? `Linha ${failure.linha}` : 'Linha desconhecida';
+            const motivo = failure?.motivo || '';
+            return motivo ? `${linha}: ${motivo}` : linha;
+          })
+          .join(' | ');
+        const remaining = failures.length > 3 ? ` ... (+${failures.length - 3} linhas)` : '';
+        toast.error(`Algumas linhas foram ignoradas: ${preview}${remaining}`);
+        console.warn('Falhas ao importar militares:', failures);
+      }
+
+      await fetchData();
       setIsUploadModalOpen(false);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Falha no upload do arquivo.');
@@ -513,6 +530,7 @@ export default function Militares() {
         onClose={() => setIsUploadModalOpen(false)}
       >
         <FileUpload
+          title="Importar/Atualizar Militares via Planilha"
           onUpload={handleFileUpload}
           isLoading={isUploading}
         />
