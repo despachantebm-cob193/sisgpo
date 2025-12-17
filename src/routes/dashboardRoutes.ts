@@ -1,10 +1,10 @@
 import path from 'path';
 import { Router } from 'express';
-// Controllers em CommonJS (carregando direto da pasta src para evitar artefato vazio em dist)
+// Controllers em CommonJS (resolve via __dirname para funcionar em dist)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const dashboardController = require(path.join(process.cwd(), 'src', 'controllers', 'dashboardController'));
+const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController'));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const obmController = require(path.join(process.cwd(), 'src', 'controllers', 'obmController'));
+const obmController = require(path.join(__dirname, '..', 'controllers', 'obmController'));
 
 const router = Router();
 
