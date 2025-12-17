@@ -427,8 +427,8 @@ export default function Sidebar() {
   return (
     <>
       <aside
-        className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed top-0 left-0 z-50 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
-          } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong`}
+        className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed left-0 z-50 transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
+          } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong top-16 md:top-0 h-[calc(100vh-4rem)] md:h-screen`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

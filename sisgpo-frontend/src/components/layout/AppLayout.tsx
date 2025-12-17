@@ -25,11 +25,13 @@ const AppLayout: React.FC = () => {
       <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:block`}>
         <Sidebar />
       </div>
-      <Header />
+      <div className="hidden md:block">
+        <Header />
+      </div>
 
       {/* Mobile Header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-60">
-        <div className="flex items-center justify-between bg-searchbar px-4 py-3 text-textMain border-b border-borderDark">
+        <div className="flex items-center justify-between bg-searchbar px-4 py-3 text-textMain border-b border-borderDark shadow-md">
           <button onClick={toggleMobileMenu} className="p-2">
             <Menu size={24} />
           </button>
