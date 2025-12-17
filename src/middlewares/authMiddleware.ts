@@ -1,17 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
-type AuthRequest = Request & {
-  userId?: number | string;
-  userPerfil?: string;
-};
-
 interface TokenPayload extends JwtPayload {
   id?: number | string;
   perfil?: string;
 }
 
-const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {

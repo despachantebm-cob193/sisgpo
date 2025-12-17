@@ -1,11 +1,7 @@
 import { Request, RequestHandler } from 'express';
 import AppError from '../utils/AppError';
 
-type AuthenticatedRequest = Request & {
-  userPerfil?: string;
-};
-
-const ensureAdmin: RequestHandler = (req: AuthenticatedRequest, _res, next) => {
+const ensureAdmin: RequestHandler = (req: Request, _res, next) => {
   const perfil = (req.userPerfil || '').toLowerCase();
 
   if (perfil !== 'admin') {
