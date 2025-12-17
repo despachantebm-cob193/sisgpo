@@ -15,13 +15,20 @@ const AppLayout: React.FC = () => {
       {/* Camadas de fundo futuristas */}
       <div className="pointer-events-none absolute inset-0 bg-cyber-grid animate-grid-move opacity-[.22]" />
       <div className="pointer-events-none absolute inset-0 bg-aurora opacity-80" />
+      {/* Overlay para fechar o menu no mobile ao clicar fora */}
+      <div
+        className={`${isMobileMenuOpen ? 'fixed inset-0 z-40 bg-black/50 md:hidden' : 'hidden'}`}
+        onClick={toggleMobileMenu}
+        role="presentation"
+      />
+
       <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:block`}>
         <Sidebar />
       </div>
       <Header />
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-60">
         <div className="flex items-center justify-between bg-searchbar px-4 py-3 text-textMain border-b border-borderDark">
           <button onClick={toggleMobileMenu} className="p-2">
             <Menu size={24} />

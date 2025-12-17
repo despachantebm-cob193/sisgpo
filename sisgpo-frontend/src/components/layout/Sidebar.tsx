@@ -427,7 +427,7 @@ export default function Sidebar() {
   return (
     <>
       <aside
-        className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
+        className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed top-0 left-0 z-50 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
           } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
