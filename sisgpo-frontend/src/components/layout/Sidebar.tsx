@@ -42,6 +42,8 @@ export default function Sidebar() {
     sidebarMode,
     setSidebarCollapsed,
     setSidebarMode,
+    isMobileMenuOpen,
+    toggleMobileMenu,
   } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const [isControlOpen, setIsControlOpen] = useState(false);
@@ -55,6 +57,9 @@ export default function Sidebar() {
   const handleLinkClick = () => {
     // fechar popover de controle ao navegar
     setIsControlOpen(false);
+    if (isMobileMenuOpen) {
+      toggleMobileMenu();
+    }
   };
   const handleMouseEnter = () => {
     if (sidebarMode !== 'hover') return;
@@ -84,11 +89,13 @@ export default function Sidebar() {
   const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
   const resolvedCollapsed =
-    sidebarMode === 'expanded'
+    isMobileMenuOpen
       ? false
-      : sidebarMode === 'collapsed'
-        ? true
-        : isSidebarCollapsed;
+      : sidebarMode === 'expanded'
+        ? false
+        : sidebarMode === 'collapsed'
+          ? true
+          : isSidebarCollapsed;
 
   const modeOptions: { value: 'expanded' | 'collapsed' | 'hover'; label: string }[] = [
     { value: 'expanded', label: 'Expandido' },
@@ -420,7 +427,7 @@ export default function Sidebar() {
   return (
     <>
       <aside
-        className={`hidden md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
+        className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed top-0 left-0 z-40 h-screen transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
           } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
