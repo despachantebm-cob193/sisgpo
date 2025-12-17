@@ -118,6 +118,8 @@ router.post('/users', ensureAdmin, validate(userValidator.create), userControlle
 router.put('/users/:id', ensureAdmin, validate(userValidator.update), userController.update);
 router.delete('/users/:id', ensureAdmin, userController.delete);
 router.post('/users/:id/toggle-active', ensureAdmin, userController.toggleActive);
+// Rota de troca de senha para o usuario autenticado (compatibilidade com frontend /perfil)
+router.put('/user/change-password', userController.changePassword);
 
 // --- ROTAS CRUD (Plantões) ---
 router.get('/plantoes', plantaoController.getAll);
@@ -166,5 +168,7 @@ router.delete('/servico-dia', ensureAdmin, servicoDiaController.deleteServicoDia
 
 // --- ROTA DE RELATÓRIO ---
 router.get('/relatorio/diario', relatorioController.getRelatorioDiario);
+router.get('/relatorio-diario', relatorioController.getRelatorioDiario);
+router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
 module.exports = router;
