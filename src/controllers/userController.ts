@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import db from '../config/database';
 import AppError from '../utils/AppError';
+import {
+  ChangePasswordDTO,
+  CreateUserDTO,
+  UpdateUserDTO,
+  UpdateUserStatusDTO,
+} from '../validators/userValidator';
 
 type UserRecord = {
   id?: number;
@@ -89,7 +95,7 @@ const userController = {
   },
 
   changePassword: async (req: Request, res: Response) => {
-    const { senhaAtual, novaSenha } = req.body as { senhaAtual?: string; novaSenha?: string };
+    const { senhaAtual, novaSenha } = req.body as Partial<ChangePasswordDTO>;
     const userId = (req as any).userId as number | undefined;
 
     if (!userId) {
@@ -128,14 +134,7 @@ const userController = {
   },
 
   create: async (req: Request, res: Response) => {
-    const { login, senha, perfil, nome_completo, nome, email } = req.body as {
-      login: string;
-      senha: string;
-      perfil: string;
-      nome_completo: string;
-      nome: string;
-      email: string;
-    };
+    const { login, senha, perfil, nome_completo, nome, email } = req.body as CreateUserDTO;
     const trimmedLogin = login.trim();
     const trimmedNome = nome.trim();
     const trimmedNomeCompleto = nome_completo.trim();
@@ -179,7 +178,7 @@ const userController = {
 
   update: async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { login, perfil, senha, nome_completo, nome, email } = req.body as Partial<UserRecord> & { senha?: string };
+    const { login, perfil, senha, nome_completo, nome, email } = req.body as UpdateUserDTO;
     const userId = Number(id);
 
     const user = await db<UserRecord>('usuarios').where({ id: userId }).first();
@@ -233,7 +232,8 @@ const userController = {
       updatePayload.senha_hash = await bcrypt.hash(senha, salt);
     }
 
-    const isAtivoBool = typeof (req.body as any).ativo === 'boolean' ? (req.body as any).ativo : undefined;
+    const body = req.body as Partial<UpdateUserStatusDTO>;
+    const isAtivoBool = typeof body.ativo === 'boolean' ? body.ativo : undefined;
     if (typeof isAtivoBool === 'boolean') {
       updatePayload.ativo = isAtivoBool;
     }

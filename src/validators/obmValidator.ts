@@ -1,9 +1,20 @@
 import { Joi } from 'express-validation';
 import db from '../config/database';
 
+export type CreateObmDTO = {
+  nome: string;
+  abreviatura: string;
+  cidade?: string | null;
+  telefone?: string | null;
+  crbm?: string | null;
+  id?: number;
+};
+
+export type UpdateObmDTO = CreateObmDTO;
+
 const obmValidator = {
   create: {
-    body: Joi.object({
+    body: Joi.object<CreateObmDTO>({
       nome: Joi.string().required().messages({
         'string.empty': "O campo 'nome' e obrigatorio.",
         'any.required': "O campo 'nome' e obrigatorio.",
@@ -34,7 +45,7 @@ const obmValidator = {
     params: Joi.object({
       id: Joi.number().integer().required(),
     }),
-    body: Joi.object({
+    body: Joi.object<UpdateObmDTO>({
       nome: Joi.string().required().messages({
         'string.empty': "O campo 'nome' e obrigatorio.",
         'any.required': "O campo 'nome' e obrigatorio.",
@@ -65,4 +76,4 @@ const obmValidator = {
   schemas: {},
 };
 
-export = obmValidator;
+export default obmValidator;

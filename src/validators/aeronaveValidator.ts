@@ -1,6 +1,14 @@
 import { Joi } from 'express-validation';
 
-const createAeronaveSchema = Joi.object({
+export type CreateAeronaveDTO = {
+  prefixo: string;
+  tipo_asa: 'fixa' | 'rotativa';
+  ativa?: boolean;
+};
+
+export type UpdateAeronaveDTO = Partial<CreateAeronaveDTO>;
+
+const createAeronaveSchema = Joi.object<CreateAeronaveDTO>({
   prefixo: Joi.string().trim().min(2).max(50).required().messages({
     'string.empty': 'O prefixo e obrigatorio.',
     'any.required': 'O prefixo e obrigatorio.',
@@ -12,7 +20,7 @@ const createAeronaveSchema = Joi.object({
   ativa: Joi.boolean().optional(),
 }).options({ allowUnknown: true });
 
-const updateAeronaveSchema = Joi.object({
+const updateAeronaveSchema = Joi.object<UpdateAeronaveDTO>({
   prefixo: Joi.string().trim().min(2).max(50),
   tipo_asa: Joi.string().trim().valid('fixa', 'rotativa'),
   ativa: Joi.boolean(),
@@ -36,4 +44,4 @@ const aeronaveValidator = {
   },
 };
 
-export = aeronaveValidator;
+export default aeronaveValidator;

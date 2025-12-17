@@ -1,6 +1,22 @@
 import { Joi } from 'express-validation';
 
-const plantaoSchema = Joi.object({
+export type PlantaoDTO = {
+  nome: string;
+  tipo: string;
+  periodo?: string | null;
+  responsavel?: string | null;
+  data_inicio: Date | string;
+  data_fim: Date | string;
+  data_plantao?: Date | string;
+  ativo?: boolean;
+  observacoes?: string | null;
+  hora_inicio?: string | null;
+  hora_fim?: string | null;
+  viatura_id?: number;
+  obm_id?: number;
+};
+
+const plantaoSchema = Joi.object<PlantaoDTO>({
   nome: Joi.string().required().messages({
     'string.empty': 'O nome do plantao e obrigatorio.',
     'any.required': 'O nome do plantao e obrigatorio.',
@@ -37,4 +53,4 @@ const plantaoValidator = {
   },
 };
 
-export = plantaoValidator;
+export default plantaoValidator;

@@ -1,6 +1,17 @@
 import { Joi } from 'express-validation';
 
-const escalaSchema = Joi.object({
+export type EscalaDTO = {
+  superior_dia?: string | null;
+  superior_noite?: string | null;
+  supervisor_dia?: string | null;
+  supervisor_noite?: string | null;
+  chefe_sad?: string | null;
+  chefe_centro_ctrl?: string | null;
+  chefe_codec?: string | null;
+  comandante_operacional?: string | null;
+};
+
+const escalaSchema = Joi.object<EscalaDTO>({
   superior_dia: Joi.string().allow(null, ''),
   superior_noite: Joi.string().allow(null, ''),
   supervisor_dia: Joi.string().allow(null, ''),
@@ -20,4 +31,4 @@ const escalaValidator = {
   },
 };
 
-export = escalaValidator;
+export default escalaValidator;

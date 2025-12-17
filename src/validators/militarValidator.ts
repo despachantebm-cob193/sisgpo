@@ -2,6 +2,20 @@ import { Joi } from 'express-validation';
 
 const telefoneRegex = /^\(\d{2}\)\s?\d{4,5}-\d{4}$/;
 
+export type MilitarBaseDTO = {
+  matricula: string;
+  posto_graduacao: string;
+  nome_completo: string;
+  obm_id: number;
+  obm_nome?: string | null;
+  telefone?: string | null;
+  ativo: boolean;
+  nome_guerra?: string | null;
+};
+
+export type CreateMilitarDTO = MilitarBaseDTO;
+export type UpdateMilitarDTO = Partial<MilitarBaseDTO>;
+
 const militarFields = {
   matricula: Joi.string().min(1).max(20).required().messages({
     'string.empty': 'A matricula nao pode ser vazia.',
@@ -32,8 +46,8 @@ const militarFields = {
   nome_guerra: Joi.string().max(50).optional().allow(null, ''),
 };
 
-const createMilitarSchema = Joi.object(militarFields);
-const updateMilitarSchema = Joi.object(militarFields).min(1).options({ allowUnknown: true });
+const createMilitarSchema = Joi.object<CreateMilitarDTO>(militarFields);
+const updateMilitarSchema = Joi.object<UpdateMilitarDTO>(militarFields).min(1).options({ allowUnknown: true });
 
 const militarValidator = {
   create: {
@@ -51,4 +65,4 @@ const militarValidator = {
   },
 };
 
-export = militarValidator;
+export default militarValidator;

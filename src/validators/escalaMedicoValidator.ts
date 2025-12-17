@@ -1,5 +1,16 @@
 import { Joi } from 'express-validation';
 
+export type EscalaMedicoDTO = {
+  nome_completo: string;
+  funcao: string;
+  telefone?: string | null;
+  observacoes?: string | null;
+  ativo?: boolean;
+  entrada_servico?: Date | string;
+  saida_servico?: Date | string;
+  status_servico?: string | null;
+};
+
 const baseFields = {
   nome_completo: Joi.string().trim().min(3).max(150).required().messages({
     'string.empty': 'O nome completo e obrigatorio.',
@@ -17,9 +28,9 @@ const baseFields = {
   status_servico: Joi.string().allow(null, ''),
 };
 
-const createEscalaMedicoSchema = Joi.object(baseFields).options({ allowUnknown: true });
+const createEscalaMedicoSchema = Joi.object<EscalaMedicoDTO>(baseFields).options({ allowUnknown: true });
 
-const updateEscalaMedicoSchema = Joi.object(baseFields)
+const updateEscalaMedicoSchema = Joi.object<EscalaMedicoDTO>(baseFields)
   .min(1)
   .options({ allowUnknown: true });
 
@@ -39,4 +50,4 @@ const escalaMedicoValidator = {
   },
 };
 
-export = escalaMedicoValidator;
+export default escalaMedicoValidator;

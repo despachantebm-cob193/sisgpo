@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import db from '../config/database';
 import AppError from '../utils/AppError';
 import { normalizeText } from '../utils/textUtils';
+import { CreateViaturaDTO, UpdateViaturaDTO } from '../validators/viaturaValidator';
 
 type ViaturaRow = {
   id: number;
@@ -260,7 +261,7 @@ const viaturaController = {
 
   create: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { prefixo, tipo, ativa = true, cidade, obm, telefone } = req.body;
+      const { prefixo, tipo, ativa = true, cidade, obm, telefone } = req.body as CreateViaturaDTO & { tipo?: string };
       const normalizedPrefixo = (prefixo || '').trim().toUpperCase();
       if (!normalizedPrefixo) {
         throw new AppError('Prefixo e obrigatorio.', 400);
@@ -290,7 +291,7 @@ const viaturaController = {
   update: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { prefixo, tipo, ativa, cidade, obm, telefone } = req.body;
+      const { prefixo, tipo, ativa, cidade, obm, telefone } = req.body as UpdateViaturaDTO & { tipo?: string };
 
       const viatura = await db('viaturas').where({ id }).first();
       if (!viatura) {

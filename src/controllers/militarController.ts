@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import db from '../config/database';
 import AppError from '../utils/AppError';
+import { CreateMilitarDTO, UpdateMilitarDTO } from '../validators/militarValidator';
 
 const isTruthy = (value: unknown) => {
   if (typeof value !== 'string') return false;
@@ -164,7 +165,8 @@ const militarController = {
   },
 
   create: async (req: Request, res: Response) => {
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } = req.body;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } =
+      req.body as CreateMilitarDTO;
     const matriculaExists = await db('militares').where({ matricula }).first();
     if (matriculaExists) {
       throw new AppError('Matricula ja cadastrada no sistema.', 409);
@@ -177,7 +179,8 @@ const militarController = {
 
   update: async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } = req.body;
+    const { matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone } =
+      req.body as UpdateMilitarDTO;
 
     const militarParaAtualizar = await db('militares').where({ id }).first();
     if (!militarParaAtualizar) {

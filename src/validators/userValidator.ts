@@ -1,6 +1,29 @@
 import { Joi } from 'express-validation';
 
-const createUserSchema = Joi.object({
+export type CreateUserDTO = {
+  login: string;
+  nome: string;
+  nome_completo: string;
+  email: string;
+  senha: string;
+  confirmarSenha: string;
+  perfil: 'admin' | 'user';
+};
+
+export type UpdateUserDTO = Partial<Omit<CreateUserDTO, 'senha' | 'confirmarSenha'>> & {
+  senha?: string;
+  confirmarSenha?: string;
+};
+
+export type UpdateUserStatusDTO = { ativo: boolean };
+
+export type ChangePasswordDTO = {
+  senhaAtual: string;
+  novaSenha: string;
+  confirmarNovaSenha: string;
+};
+
+const createUserSchema = Joi.object<CreateUserDTO>({
   login: Joi.string().trim().min(3).max(50).required().messages({
     'string.base': 'O login precisa ser um texto.',
     'string.min': 'O login deve ter ao menos {#limit} caracteres.',
@@ -44,7 +67,7 @@ const createUserSchema = Joi.object({
   }),
 });
 
-const updateUserSchema = Joi.object({
+const updateUserSchema = Joi.object<UpdateUserDTO>({
   login: Joi.string().trim().min(3).max(50).messages({
     'string.min': 'O login deve ter ao menos {#limit} caracteres.',
     'string.max': 'O login deve ter no maximo {#limit} caracteres.',
@@ -86,13 +109,13 @@ const updateUserSchema = Joi.object({
     'object.min': 'Informe ao menos um campo para atualizar.',
   });
 
-const updateUserStatusSchema = Joi.object({
+const updateUserStatusSchema = Joi.object<UpdateUserStatusDTO>({
   ativo: Joi.boolean().required().messages({
     'any.required': 'O status do usuario e obrigatorio.',
   }),
 });
 
-const changePasswordSchema = Joi.object({
+const changePasswordSchema = Joi.object<ChangePasswordDTO>({
   senhaAtual: Joi.string().required().messages({
     'string.empty': 'A senha atual e obrigatoria.',
     'any.required': 'A senha atual e obrigatoria.',
@@ -136,4 +159,4 @@ const userValidator = {
   },
 };
 
-export = userValidator;
+export default userValidator;

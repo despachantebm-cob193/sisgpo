@@ -1,11 +1,22 @@
 import { Joi } from 'express-validation';
 
-const plantonistaSchema = Joi.object({
+export type EscalaCodecPlantonistaDTO = {
+  militar_id: number;
+  ordem_plantonista?: number;
+};
+
+export type EscalaCodecDTO = {
+  data?: Date | string;
+  diurno?: EscalaCodecPlantonistaDTO[];
+  noturno?: EscalaCodecPlantonistaDTO[];
+};
+
+const plantonistaSchema = Joi.object<EscalaCodecPlantonistaDTO>({
   militar_id: Joi.number().integer().required(),
   ordem_plantonista: Joi.number().integer().min(1).optional(),
 });
 
-const createEscalaCodecSchema = Joi.object({
+const createEscalaCodecSchema = Joi.object<EscalaCodecDTO>({
   data: Joi.date().required().messages({
     'any.required': 'A data e obrigatoria.',
   }),
@@ -13,7 +24,7 @@ const createEscalaCodecSchema = Joi.object({
   noturno: Joi.array().items(plantonistaSchema).optional(),
 }).options({ allowUnknown: true });
 
-const updateEscalaCodecSchema = Joi.object({
+const updateEscalaCodecSchema = Joi.object<EscalaCodecDTO>({
   data: Joi.date().optional(),
   diurno: Joi.array().items(plantonistaSchema).optional(),
   noturno: Joi.array().items(plantonistaSchema).optional(),
@@ -37,4 +48,4 @@ const escalaCodecValidator = {
   },
 };
 
-export = escalaCodecValidator;
+export default escalaCodecValidator;

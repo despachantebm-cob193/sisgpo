@@ -6,15 +6,20 @@ import path from 'path';
 const ensureAdmin = require(path.join(__dirname, '..', 'middlewares', 'ensureAdmin'));
 const validationMiddleware = require(path.join(__dirname, '..', 'middlewares', 'validationMiddleware'));
 
-const obmValidator = require(path.join(__dirname, '..', 'validators', 'obmValidator'));
-const viaturaValidator = require(path.join(__dirname, '..', 'validators', 'viaturaValidator'));
-const militarValidator = require(path.join(__dirname, '..', 'validators', 'militarValidator'));
-const userValidator = require(path.join(__dirname, '..', 'validators', 'userValidator'));
-const escalaValidator = require(path.join(__dirname, '..', 'validators', 'escalaValidator'));
-const aeronaveValidator = require(path.join(__dirname, '..', 'validators', 'aeronaveValidator'));
-const escalaAeronaveValidator = require(path.join(__dirname, '..', 'validators', 'escalaAeronaveValidator'));
-const escalaCodecValidator = require(path.join(__dirname, '..', 'validators', 'escalaCodecValidator'));
-const escalaMedicoValidator = require(path.join(__dirname, '..', 'validators', 'escalaMedicoValidator'));
+const load = (relativePath: string) => {
+  const mod = require(path.join(__dirname, relativePath));
+  return mod?.default || mod;
+};
+
+const obmValidator = load('..\\validators\\obmValidator');
+const viaturaValidator = load('..\\validators\\viaturaValidator');
+const militarValidator = load('..\\validators\\militarValidator');
+const userValidator = load('..\\validators\\userValidator');
+const escalaValidator = load('..\\validators\\escalaValidator');
+const aeronaveValidator = load('..\\validators\\aeronaveValidator');
+const escalaAeronaveValidator = load('..\\validators\\escalaAeronaveValidator');
+const escalaCodecValidator = load('..\\validators\\escalaCodecValidator');
+const escalaMedicoValidator = load('..\\validators\\escalaMedicoValidator');
 
 const obmController = require(path.join(__dirname, '..', 'controllers', 'obmController'));
 const viaturaController = require(path.join(__dirname, '..', 'controllers', 'viaturaController'));
