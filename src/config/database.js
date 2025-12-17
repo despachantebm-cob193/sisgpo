@@ -3,6 +3,7 @@
 require('dotenv').config();
 const knex = require('knex');
 const path = require('path');
+const env = require('./env').default || require('./env');
 
 const parseBoolean = (value, defaultValue = false) => {
   if (value === undefined || value === null) return defaultValue;
@@ -30,8 +31,8 @@ const sanitizeConnectionConfig = (config) => {
 };
 
 const isCloudPrimary =
-  process.env.NODE_ENV === 'production' ||
-  (process.env.DB_HOST || '').includes('neon.tech');
+  env.NODE_ENV === 'production' ||
+  ((env.DB.HOST || env.DB.URL || '').includes('neon.tech'));
 
 const createDbInstance = (connectionConfig, options = {}) => {
   const {
@@ -72,25 +73,22 @@ const createDbInstance = (connectionConfig, options = {}) => {
   return knex(baseConfig);
 };
 
-const primaryDatabaseName = process.env.DB_DATABASE || process.env.DB_NAME;
+const primaryDatabaseName = env.DB.NAME;
 
-const primaryConnectionConfig = process.env.DATABASE_URL
-  ? { connectionString: process.env.DATABASE_URL }
+const primaryConnectionConfig = env.DB.URL
+  ? { connectionString: env.DB.URL }
   : sanitizeConnectionConfig({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
+      host: env.DB.HOST,
+      user: env.DB.USER,
+      password: env.DB.PASSWORD,
       database: primaryDatabaseName,
-      port: parsePort(process.env.DB_PORT) ?? 5432,
+      port: parsePort(env.DB.PORT) ?? 5432,
     });
 
 const db = createDbInstance(
   primaryConnectionConfig,
   {
-    useSsl: parseBoolean(
-      process.env.DB_SSL,
-      isCloudPrimary || Boolean(process.env.DATABASE_URL)
-    ),
+    useSsl: env.DB.SSL,
     migrations: {
       directory: path.join(__dirname, '..', 'database', 'migrations'),
     },
@@ -100,30 +98,23 @@ const db = createDbInstance(
   }
 );
 
-const externalHost = process.env.EXTERNAL_DB_HOST;
+const externalHost = env.EXTERNAL_DB?.HOST;
 let knexExterno = null;
 
 if (externalHost) {
-  const externalDatabaseName =
-    process.env.EXTERNAL_DB_NAME || process.env.EXTERNAL_DB_DATABASE;
-
-  const externalRequiresSsl =
-    parseBoolean(
-      process.env.EXTERNAL_DB_SSL,
-      (externalHost || '').includes('neon.tech')
-    );
+  const externalDatabaseName = env.EXTERNAL_DB?.NAME;
 
   knexExterno = createDbInstance(
     {
       host: externalHost,
-      user: process.env.EXTERNAL_DB_USER,
-      password: process.env.EXTERNAL_DB_PASSWORD,
+      user: env.EXTERNAL_DB?.USER,
+      password: env.EXTERNAL_DB?.PASSWORD,
       database: externalDatabaseName,
-      port: parsePort(process.env.EXTERNAL_DB_PORT) ?? 5432,
+      port: parsePort(env.EXTERNAL_DB?.PORT) ?? 5432,
     },
     {
       isExternal: true,
-      useSsl: externalRequiresSsl,
+      useSsl: env.EXTERNAL_DB?.SSL ?? false,
     }
   );
 } else {

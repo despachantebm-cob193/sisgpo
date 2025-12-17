@@ -1,117 +1,87 @@
-// Arquivo: src/app.ts (CORRIGIDO)
 import 'dotenv/config';
-import express from 'express';
+import express, { ErrorRequestHandler, Request, RequestHandler, Response } from 'express';
 import 'express-async-errors';
 import cors from 'cors';
 import path from 'path';
 
-// --- Importação das Rotas ---
-// (Assumindo que os arquivos de rotas são .js, o import funciona)
+import env from './config/env';
 import authRoutes from './routes/authRoutes';
 import adminRoutes from './routes/adminRoutes';
 import publicRoutes from './routes/publicRoutes';
 import estatisticasExternasRoutes from './routes/estatisticasExternasRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
-
-// --- Importação dos Middlewares ---
 import authMiddleware from './middlewares/authMiddleware';
 import errorMiddleware from './middlewares/errorMiddleware';
 
 const app = express();
 
-// DEFINE O CAMINHO CORRETO DA PASTA DE BUILD DO FRONTEND
-// __dirname não existe por padrão em módulos ES, mas 'tsc' deve lidar com isso.
-// Se der erro, trocaremos esta parte.
 const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
 
-// Configuração do CORS (Lendo a variável de ambiente e permitindo localhost)
 const allowedOrigins = [
-  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : []),
-  // Domínio do frontend publicado (default)
+  ...env.FRONTEND_URLS,
   'https://sisgpo.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
-  'http://localhost:3000', 
-].filter(Boolean); 
+  'http://localhost:3000',
+].filter(Boolean);
 
-// Permitir subdominios do Render via flag para evitar bloqueios nao intencionais
-const allowRenderOrigins = process.env.ALLOW_RENDER_ORIGINS !== 'false';
-const isAllowedOrigin = (origin: string) => {
+const allowRenderOrigins = env.ALLOW_RENDER_ORIGINS;
+
+const isAllowedOrigin = (origin: string): boolean => {
   try {
     const hostname = new URL(origin).hostname;
     if (allowRenderOrigins && (hostname.endsWith('.onrender.com') || hostname === 'localhost')) {
       return true;
     }
-  } catch (e) {
-    // ignora erros de parsing
+  } catch (error) {
+    // ignore parse errors
   }
+
   return allowedOrigins.includes(origin);
 };
 
-app.use(cors({
-  origin: (origin, callback) => {
-
-    // Permite requisições sem 'origin' (ex: Postman, apps mobile)
-    if (!origin) return callback(null, true);
-    
-    // Se a origem da requisição estiver na lista de permitidas, autorize.
-    if (isAllowedOrigin(origin)) {
-      return callback(null, true);
-    }
-    
-    // Caso contrário, rejeite.
-    return callback(new Error('A política de CORS para este site não permite acesso a partir da sua origem.'), false);
-  },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (isAllowedOrigin(origin)) return callback(null, true);
+      return callback(new Error('CORS policy does not allow access from this origin.'), false);
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  }),
+);
 
 app.use(express.json());
 
-// Rota leve para monitoramento de atividade (keep-alive)
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     message: 'API is alive',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
-app.get('/', (req, res) => {
-  res.json({ message: 'API do SISGPO está funcionando!' });
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ message: 'API do SISGPO esta funcionando!' });
 });
 
-// --- REGISTRO DAS ROTAS DA API ---
+const authHandler = authMiddleware as unknown as RequestHandler;
+const errorHandler = errorMiddleware as unknown as ErrorRequestHandler;
 
-// Rotas de Autenticação (PÚBLICAS)
 app.use('/api/auth', authRoutes);
-
-// Rotas do Dashboard (PROTEGIDAS POR AUTENTICAÇÃO)
-app.use('/api/dashboard', authMiddleware, dashboardRoutes);
-
-// Rotas do Dashboard (PÚBLICAS)
+app.use('/api/dashboard', authHandler, dashboardRoutes);
 app.use('/api/public', publicRoutes);
-
-// Nova rota para a integração
 app.use('/api', estatisticasExternasRoutes);
+app.use('/api/admin', authHandler, adminRoutes);
 
-// Rotas de Administração (PROTEGIDAS)
-app.use('/api/admin', authMiddleware, adminRoutes);
-
-// ------------------------------------------------------------------------------------------
-// --- SERVINDO O FRONTEND (SPA HISTORY FALLBACK) ---
-// ------------------------------------------------------------------------------------------
-
-// 1. Serve os arquivos estáticos (CSS, JS, imagens)
 app.use(express.static(frontendPath));
 
-// 2. Rota Catch-All para o SPA (fallback)
-app.get('*', (req, res) => {
+app.get('*', (_req: Request, res: Response) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Middleware de erro deve ser o último
-app.use(errorMiddleware);
+app.use(errorHandler);
 
-export default app; // Alterado de module.exports para export default
+export default app;
