@@ -1,16 +1,6 @@
-// createAdminUser.js
-//
-// Utilidade de linha de comando para garantir a existencia de um usuario administrador.
-// Uso:
-//   node createAdminUser.js
-//
-// E possivel personalizar os dados via variaveis de ambiente:
-//   ADMIN_LOGIN, ADMIN_PASSWORD, ADMIN_EMAIL, ADMIN_FULL_NAME, ADMIN_NOME, ADMIN_PERFIL
-
-require('dotenv').config();
-
-const bcrypt = require('bcryptjs');
-const db = require('./src/config/database');
+import 'dotenv/config';
+import bcrypt from 'bcryptjs';
+import db from '../config/database';
 
 const login = (process.env.ADMIN_LOGIN || 'admin').trim();
 const senhaPlana = process.env.ADMIN_PASSWORD || 'cbmgo@2025';
@@ -20,7 +10,7 @@ const emailConfig = process.env.ADMIN_EMAIL || `${login}@sisgpo.com`;
 const perfilConfig = (process.env.ADMIN_PERFIL || 'admin').toLowerCase();
 
 const nomeCompleto = nomeCompletoConfig.trim();
-const nomeCurto = nomeCurtoEnv ? nomeCurtoEnv.trim() : (nomeCompleto.split(/\s+/)[0] || nomeCompleto);
+const nomeCurto = nomeCurtoEnv ? nomeCurtoEnv.trim() : nomeCompleto.split(/\s+/)[0] || nomeCompleto;
 const email = emailConfig.trim().toLowerCase();
 
 async function ensureAdminUser() {

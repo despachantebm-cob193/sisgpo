@@ -1,63 +1,55 @@
-// Arquivo: src/routes/adminRoutes.js (VERSÃO CORRIGIDA)
+import { Router } from 'express';
+import { validate } from 'express-validation';
+import fileUpload from 'express-fileupload';
+import path from 'path';
 
-const { Router } = require('express');
-const { validate } = require('express-validation');
-const fileUpload = require('express-fileupload');
+const ensureAdmin = require(path.join(__dirname, '..', 'middlewares', 'ensureAdmin'));
+const validationMiddleware = require(path.join(__dirname, '..', 'middlewares', 'validationMiddleware'));
 
-// Middlewares
-const ensureAdmin = require('../middlewares/ensureAdmin');
-const validationMiddleware = require('../middlewares/validationMiddleware');
+const obmValidator = require(path.join(__dirname, '..', 'validators', 'obmValidator'));
+const viaturaValidator = require(path.join(__dirname, '..', 'validators', 'viaturaValidator'));
+const militarValidator = require(path.join(__dirname, '..', 'validators', 'militarValidator'));
+const userValidator = require(path.join(__dirname, '..', 'validators', 'userValidator'));
+const escalaValidator = require(path.join(__dirname, '..', 'validators', 'escalaValidator'));
+const aeronaveValidator = require(path.join(__dirname, '..', 'validators', 'aeronaveValidator'));
+const escalaAeronaveValidator = require(path.join(__dirname, '..', 'validators', 'escalaAeronaveValidator'));
+const escalaCodecValidator = require(path.join(__dirname, '..', 'validators', 'escalaCodecValidator'));
+const escalaMedicoValidator = require(path.join(__dirname, '..', 'validators', 'escalaMedicoValidator'));
 
-// Validadores
-const obmValidator = require('../validators/obmValidator');
-const viaturaValidator = require('../validators/viaturaValidator');
-const militarValidator = require('../validators/militarValidator');
-const userValidator = require('../validators/userValidator');
-const escalaValidator = require('../validators/escalaValidator');
-const aeronaveValidator = require('../validators/aeronaveValidator');
-const escalaAeronaveValidator = require('../validators/escalaAeronaveValidator');
-const escalaCodecValidator = require('../validators/escalaCodecValidator');
-const escalaMedicoValidator = require('../validators/escalaMedicoValidator');
+const obmController = require(path.join(__dirname, '..', 'controllers', 'obmController'));
+const viaturaController = require(path.join(__dirname, '..', 'controllers', 'viaturaController'));
+const militarController = require(path.join(__dirname, '..', 'controllers', 'militarController'));
+const userController = require(path.join(__dirname, '..', 'controllers', 'userController'));
+const plantaoController = require(path.join(__dirname, '..', 'controllers', 'plantaoController'));
+const relatorioController = require(path.join(__dirname, '..', 'controllers', 'relatorioController'));
+const escalaController = require(path.join(__dirname, '..', 'controllers', 'escalaController'));
+const servicoDiaController = require(path.join(__dirname, '..', 'controllers', 'servicoDiaController'));
+const medicoController = require(path.join(__dirname, '..', 'controllers', 'medicoController'));
+const aeronaveController = require(path.join(__dirname, '..', 'controllers', 'aeronaveController'));
+const escalaAeronaveController = require(path.join(__dirname, '..', 'controllers', 'escalaAeronaveController'));
+const escalaCodecController = require(path.join(__dirname, '..', 'controllers', 'escalaCodecController'));
+const escalaMedicoController = require(path.join(__dirname, '..', 'controllers', 'escalaMedicoController'));
+const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController'));
 
-// Controladores
-const obmController = require('../controllers/obmController');
-const viaturaController = require('../controllers/viaturaController');
-const militarController = require('../controllers/militarController');
-const userController = require('../controllers/userController');
-const plantaoController = require('../controllers/plantaoController');
-const relatorioController = require('../controllers/relatorioController');
-const escalaController = require('../controllers/escalaController');
-const servicoDiaController = require('../controllers/servicoDiaController');
-const medicoController = require('../controllers/medicoController');
-const aeronaveController = require('../controllers/aeronaveController');
-const escalaAeronaveController = require('../controllers/escalaAeronaveController');
-const escalaCodecController = require('../controllers/escalaCodecController');
-const escalaMedicoController = require('../controllers/escalaMedicoController');
-const dashboardController = require('../controllers/dashboardController');
-
-// Controladores de Upload (Legados ou específicos)
-const viaturaFileController = require('../controllers/viaturaFileController');
-const militarFileController = require('../controllers/militarFileController');
-const obmFileController = require('../controllers/obmFileController'); 
+const viaturaFileController = require(path.join(__dirname, '..', 'controllers', 'viaturaFileController'));
+const militarFileController = require(path.join(__dirname, '..', 'controllers', 'militarFileController'));
+const obmFileController = require(path.join(__dirname, '..', 'controllers', 'obmFileController'));
 
 const router = Router();
 
-// Middleware para upload de arquivos
-router.use(fileUpload({
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  abortOnLimit: true,
-  responseOnLimit: 'O arquivo é muito grande (limite de 5MB).',
-}));
+router.use(
+  fileUpload({
+    limits: { fileSize: 5 * 1024 * 1024 },
+    abortOnLimit: true,
+    responseOnLimit: 'O arquivo é muito grande (limite de 5MB).',
+  }),
+);
 
-// --- ROTAS DE UPLOAD DE ARQUIVOS ---
 router.post('/militares/upload-csv', ensureAdmin, militarFileController.upload);
 router.post('/viaturas/upload-validate', ensureAdmin, viaturaFileController.validateUpload);
-router.post('/viaturas/upload-csv', ensureAdmin, viaturaFileController.upload);  
+router.post('/viaturas/upload-csv', ensureAdmin, viaturaFileController.upload);
 router.post('/obms/upload-csv', ensureAdmin, obmController.uploadCsv);
-// --- FIM DA CORREÇÃO ---
 
-
-// --- ROTAS CRUD (OBMs) ---\
 router.get('/obms/all', obmController.getAllSimple);
 router.get('/obms', obmController.getAll);
 router.get('/obms/search', obmController.search);
@@ -66,7 +58,6 @@ router.put('/obms/:id', ensureAdmin, validate(obmValidator.update), obmControlle
 router.delete('/obms/:id', ensureAdmin, obmController.delete);
 router.delete('/obms', ensureAdmin, obmController.clearAll);
 
-// --- ROTAS CRUD (Viaturas) ---
 router.get('/viaturas/duplicates/count', viaturaController.countByObm);
 router.get('/viaturas/simple', viaturaController.getAllSimple);
 router.get('/viaturas', viaturaController.getAll);
@@ -74,17 +65,11 @@ router.get('/viaturas/search', viaturaController.search);
 router.get('/viaturas/distinct-obms', viaturaController.getDistinctObms);
 router.post('/viaturas', ensureAdmin, validate(viaturaValidator.create), viaturaController.create);
 router.put('/viaturas/:id', ensureAdmin, validate(viaturaValidator.update), viaturaController.update);
-
-// --- INÍCIO DA CORREÇÃO ---
-// A Rota Específica (clear-all) DEVE vir ANTES da Rota Genérica (:id)
-router.delete('/viaturas/clear-all', ensureAdmin, viaturaController.clearAll); 
-// --- FIM DA CORREÇÃO ---
-
+router.delete('/viaturas/clear-all', ensureAdmin, viaturaController.clearAll);
 router.delete('/viaturas/:id', ensureAdmin, viaturaController.delete);
 router.post('/viaturas/:id/toggle-active', ensureAdmin, viaturaController.toggleActive);
 router.get('/viaturas/clear-all/preview', ensureAdmin, viaturaController.previewClearAll);
 
-// --- ROTAS CRUD (Militares) ---
 router.get('/militares', militarController.getAll);
 router.get('/militares/search', militarController.search);
 router.post('/militares', ensureAdmin, validate(militarValidator.create), militarController.create);
@@ -92,7 +77,6 @@ router.put('/militares/:id', ensureAdmin, validate(militarValidator.update), mil
 router.delete('/militares/:id', ensureAdmin, militarController.delete);
 router.post('/militares/:id/toggle-active', ensureAdmin, militarController.toggleActive);
 
-// --- ROTAS CRUD (Medicos - Antigos Civis) ---
 router.get('/medicos', medicoController.getAll);
 router.get('/medicos/search', medicoController.search);
 router.post('/medicos', ensureAdmin, medicoController.create);
@@ -100,16 +84,13 @@ router.put('/medicos/:id', ensureAdmin, medicoController.update);
 router.delete('/medicos/:id', ensureAdmin, medicoController.delete);
 router.post('/medicos/:id/toggle-active', ensureAdmin, medicoController.toggleActive);
 
-// --- ROTAS LEGADAS PARA CIVIS (SUPORTE AOS FORMULÁRIOS ANTIGOS) ---
 router.get('/civis/search', escalaMedicoController.searchCivis);
 
-// --- ROTAS CRUD (Aeronaves) ---
 router.get('/aeronaves', aeronaveController.getAll);
 router.post('/aeronaves', ensureAdmin, validate(aeronaveValidator.create), aeronaveController.create);
 router.put('/aeronaves/:id', ensureAdmin, validate(aeronaveValidator.update), aeronaveController.update);
 router.delete('/aeronaves/:id', ensureAdmin, aeronaveController.delete);
 
-// --- ROTAS CRUD (Usuários) ---
 router.get('/users', userController.getAll);
 router.get('/users/pending', userController.getPending);
 router.post('/users/:id/approve', ensureAdmin, userController.approve);
@@ -118,10 +99,8 @@ router.post('/users', ensureAdmin, validate(userValidator.create), userControlle
 router.put('/users/:id', ensureAdmin, validate(userValidator.update), userController.update);
 router.delete('/users/:id', ensureAdmin, userController.delete);
 router.post('/users/:id/toggle-active', ensureAdmin, userController.toggleActive);
-// Rota de troca de senha para o usuario autenticado (compatibilidade com frontend /perfil)
 router.put('/user/change-password', userController.changePassword);
 
-// --- ROTAS CRUD (Plantões) ---
 router.get('/plantoes', plantaoController.getAll);
 router.get('/plantoes/:id', plantaoController.getById);
 router.post('/plantoes', ensureAdmin, plantaoController.create);
@@ -133,42 +112,33 @@ router.post('/plantoes/:id/add-militar', ensureAdmin, plantaoController.addMilit
 router.delete('/plantoes/:plantaoId/remove-militar/:militarId', ensureAdmin, plantaoController.removeMilitar);
 router.get('/plantoes/total-militares', plantaoController.getTotalMilitaresPlantao);
 
-// --- ROTAS CRUD (Escala Aeronaves) ---
 router.get('/escala-aeronaves', escalaAeronaveController.getAll);
 router.get('/escala-aeronaves/:id', escalaAeronaveController.getById);
 router.post('/escala-aeronaves', ensureAdmin, validate(escalaAeronaveValidator.create), escalaAeronaveController.create);
 router.put('/escala-aeronaves/:id', ensureAdmin, validate(escalaAeronaveValidator.update), escalaAeronaveController.update);
 router.delete('/escala-aeronaves/:id', ensureAdmin, escalaAeronaveController.delete);
 
-// --- ROTAS CRUD (Escala CODEC) ---
 router.get('/escala-codec', escalaCodecController.getAll);
 router.get('/escala-codec/:id', escalaCodecController.getById);
 router.post('/escala-codec', ensureAdmin, validate(escalaCodecValidator.create), escalaCodecController.create);
 router.put('/escala-codec/:id', ensureAdmin, validate(escalaCodecValidator.update), escalaCodecController.update);
 router.delete('/escala-codec/:id', ensureAdmin, escalaCodecController.delete);
 
-// --- ROTAS CRUD (Escala Médicos) ---
 router.get('/escala-medicos', escalaMedicoController.getAll);
 router.get('/escala-medicos/:id', escalaMedicoController.getById);
 router.post('/escala-medicos', ensureAdmin, validate(escalaMedicoValidator.create), escalaMedicoController.create);
 router.put('/escala-medicos/:id', ensureAdmin, validate(escalaMedicoValidator.update), escalaMedicoController.update);
 router.delete('/escala-medicos/:id', ensureAdmin, escalaMedicoController.delete);
 
-
-
-
-// --- ROTAS LEGADAS (Mantidas por enquanto) ---
 router.get('/escala', escalaController.getEscala);
 router.put('/escala', ensureAdmin, escalaController.updateEscala);
 
 router.get('/servico-dia', servicoDiaController.getServicoDia);
-router.post('/servico-dia', ensureAdmin, servicoDiaController.updateServicoDia); // Corrigido de PUT para POST
-router.delete('/servico-dia', ensureAdmin, servicoDiaController.deleteServicoDia); // Adicionado
+router.post('/servico-dia', ensureAdmin, servicoDiaController.updateServicoDia);
+router.delete('/servico-dia', ensureAdmin, servicoDiaController.deleteServicoDia);
 
-
-// --- ROTA DE RELATÓRIO ---
 router.get('/relatorio/diario', relatorioController.getRelatorioDiario);
 router.get('/relatorio-diario', relatorioController.getRelatorioDiario);
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
 
-module.exports = router;
+export default router;

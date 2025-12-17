@@ -1,21 +1,20 @@
-// src/routes/publicRoutes.js
+import path from 'path';
+import { Router } from 'express';
 
-const express = require('express');
-const router = express.Router();
-const path = require('path');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController') as string);
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const estatisticasExternasController = require(
+  path.join(__dirname, '..', 'controllers', 'estatisticasExternasController') as string,
+);
 
-// Carrega controllers a partir de __dirname (funciona em src e em dist)
-const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController'));
-const estatisticasExternasController = require(path.join(__dirname, '..', 'controllers', 'estatisticasExternasController'));
+const router = Router();
 
-console.log('[publicRoutes] dashboardController keys:', Object.keys(dashboardController || {}));
-console.log('[publicRoutes] estatisticasExternasController keys:', Object.keys(estatisticasExternasController || {}));
-
-const safeHandler = (controller, methodName) => {
+const safeHandler = (controller: any, methodName: string) => {
   const fn = controller?.[methodName];
   if (typeof fn === 'function') return fn;
   console.error(`[publicRoutes] Handler ausente ou invalido: ${methodName}`);
-  return (_req, res) => res.status(500).json({ message: `Handler indisponivel: ${methodName}` });
+  return (_req: any, res: any) => res.status(500).json({ message: `Handler indisponivel: ${methodName}` });
 };
 
 router.get('/dashboard/stats', safeHandler(dashboardController, 'getStats'));
@@ -29,4 +28,4 @@ router.get('/dashboard/escala-codec', safeHandler(dashboardController, 'getEscal
 
 router.get('/estatisticas-externas', safeHandler(estatisticasExternasController, 'getDashboardOcorrencias'));
 
-module.exports = router;
+export default router;

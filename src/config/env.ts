@@ -4,6 +4,10 @@ type Env = {
   FRONTEND_URLS: string[];
   ALLOW_RENDER_ORIGINS: boolean;
   JWT_SECRET: string;
+  SSO_AUDIENCE?: string;
+  SSO_ISSUER?: string;
+  SSO_ALGORITHM?: string;
+  SSO_TOKEN_TTL_SECONDS?: number;
   DB: {
     URL?: string;
     HOST?: string;
@@ -43,6 +47,10 @@ export const env: Env = {
   FRONTEND_URLS: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map((s) => s.trim()).filter(Boolean) : [],
   ALLOW_RENDER_ORIGINS: process.env.ALLOW_RENDER_ORIGINS !== 'false',
   JWT_SECRET: process.env.JWT_SECRET || '',
+  SSO_AUDIENCE: process.env.SSO_AUDIENCE,
+  SSO_ISSUER: process.env.SSO_ISSUER,
+  SSO_ALGORITHM: process.env.SSO_ALGORITHM,
+  SSO_TOKEN_TTL_SECONDS: parseNumber(process.env.SSO_TOKEN_TTL_SECONDS),
   DB: {
     URL: process.env.DATABASE_URL,
     HOST: process.env.DB_HOST,
