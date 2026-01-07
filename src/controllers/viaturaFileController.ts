@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase';
 import AppError from '../utils/AppError';
 import xlsx from 'xlsx';
-import fs from 'fs';
 import AIAssistedValidationService from '../services/aiAssistedValidationService';
 
 type UploadedFile = {
   path?: string;
   tempFilePath?: string;
   data?: Buffer;
+  buffer?: Buffer;
 };
 
 type ViaturaUpload = {
@@ -41,7 +41,7 @@ const getUploadedFile = (req: Request): UploadedFile | null => {
   const uploaded =
     (req as any).file ||
     ((req as any).files &&
-    (req as any).files.file
+      (req as any).files.file
       ? Array.isArray((req as any).files.file)
         ? (req as any).files.file[0]
         : (req as any).files.file
@@ -52,15 +52,21 @@ const getUploadedFile = (req: Request): UploadedFile | null => {
 const viaturaFileController = {
   validateUpload: async (req: Request, res: Response) => {
     const uploaded = getUploadedFile(req);
+    if (!uploaded) throw new AppError('Nenhum arquivo foi enviado.', 400);
 
-    if (!uploaded) {
-      throw new AppError('Nenhum arquivo foi enviado.', 400);
-    }
-
-    const filePath = (uploaded as UploadedFile).path || (uploaded as UploadedFile).tempFilePath || null;
+    const fileBuffer = (uploaded as UploadedFile).buffer || (uploaded as UploadedFile).data;
+    const filePath = (uploaded as UploadedFile).path || (uploaded as UploadedFile).tempFilePath;
 
     try {
-      const workbook = filePath ? xlsx.readFile(filePath) : xlsx.read((uploaded as any).data, { type: 'buffer' });
+      let workbook: xlsx.WorkBook;
+      if (fileBuffer) {
+        workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+      } else if (filePath) {
+        workbook = xlsx.readFile(filePath);
+      } else {
+        throw new AppError('Falha ao ler o arquivo enviado.', 400);
+      }
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[];
@@ -93,6 +99,7 @@ const viaturaFileController = {
           prefixos.length === 1 && looksLikeMergedPrefixesWithoutDelimiter(prefixosRaw);
 
         for (let j = 0; j < prefixos.length; j++) {
+          // ... (mantem logica igual) 
           const viatura: ViaturaUpload = {
             prefixo: prefixos[j],
             placa: null,
@@ -112,24 +119,26 @@ const viaturaFileController = {
     } catch (error: any) {
       console.error('Erro durante a validacao de viaturas:', error);
       throw new AppError(error.message || 'Ocorreu um erro inesperado durante a validacao.', 500);
-    } finally {
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
     }
   },
 
   upload: async (req: Request, res: Response) => {
     const uploaded = getUploadedFile(req);
+    if (!uploaded) throw new AppError('Nenhum arquivo foi enviado.', 400);
 
-    if (!uploaded) {
-      throw new AppError('Nenhum arquivo foi enviado.', 400);
-    }
-
-    const filePath = (uploaded as UploadedFile).path || (uploaded as UploadedFile).tempFilePath || null;
+    const fileBuffer = (uploaded as UploadedFile).buffer || (uploaded as UploadedFile).data;
+    const filePath = (uploaded as UploadedFile).path || (uploaded as UploadedFile).tempFilePath;
 
     try {
-      const workbook = filePath ? xlsx.readFile(filePath) : xlsx.read((uploaded as any).data, { type: 'buffer' });
+      let workbook: xlsx.WorkBook;
+      if (fileBuffer) {
+        workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+      } else if (filePath) {
+        workbook = xlsx.readFile(filePath);
+      } else {
+        throw new AppError('Falha ao ler o arquivo enviado.', 400);
+      }
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[];
@@ -138,9 +147,15 @@ const viaturaFileController = {
         throw new AppError('A planilha esta vazia ou contem apenas o cabecalho.', 400);
       }
 
-      const existingViaturas = await db('viaturas').select('id', 'prefixo');
+      // 1. Carregar viaturas existentes para identificar duplicatas e pegar IDs
+      const { data: existingViaturas, error: fetchError } = await supabaseAdmin
+        .from('viaturas')
+        .select('id, prefixo');
+
+      if (fetchError) throw new Error(fetchError.message);
+
       const viaturaMap = new Map<string, number>(
-        existingViaturas.map((v: any) => [v.prefixo.toUpperCase().trim(), v.id])
+        existingViaturas?.map((v: any) => [v.prefixo.toUpperCase().trim(), v.id]) || []
       );
 
       let insertedCount = 0;
@@ -148,57 +163,76 @@ const viaturaFileController = {
       let ignoredCount = 0;
       const processingErrors: string[] = [];
 
-      await db.transaction(async (trx) => {
-        for (let i = 1; i < rows.length; i++) {
-          const rowData = rows[i];
+      for (let i = 1; i < rows.length; i++) {
+        const rowData = rows[i];
 
-          const tipoEscala = rowData[2] ? String(rowData[2]).trim().toUpperCase() : '';
-          if (!tipoEscala.includes('VIATURA')) {
-            continue;
-          }
+        const tipoEscala = rowData[2] ? String(rowData[2]).trim().toUpperCase() : '';
+        if (!tipoEscala.includes('VIATURA')) {
+          continue;
+        }
 
-          const prefixosRaw = rowData[3] ? String(rowData[3]).trim() : '';
-          const cidade = rowData[5] ? String(rowData[5]).trim() : 'Nao informada';
-          const nomeObm = rowData[6] ? String(rowData[6]).trim() : null;
-          const prefixos = prefixosRaw.split(/[,;/]|\s{2,}/).map((p: string) => p.trim()).filter(Boolean);
+        const prefixosRaw = rowData[3] ? String(rowData[3]).trim() : '';
+        const cidade = rowData[5] ? String(rowData[5]).trim() : 'Nao informada';
+        const nomeObm = rowData[6] ? String(rowData[6]).trim() : null;
+        const prefixos = prefixosRaw.split(/[,;/]|\s{2,}/).map((p: string) => p.trim()).filter(Boolean);
 
-          if (prefixos.length === 0) {
+        if (prefixos.length === 0) {
+          ignoredCount++;
+          continue;
+        }
+
+        if (!nomeObm) {
+          processingErrors.push(`Linha ${i + 1}: Nome da OBM nao preenchido.`);
+          ignoredCount += prefixos.length;
+          continue;
+        }
+
+        for (const prefixo of prefixos) {
+          if (!prefixo) {
+            processingErrors.push(`Linha ${i + 1}: Prefixo invalido ou ausente.`);
             ignoredCount++;
             continue;
           }
 
-          if (!nomeObm) {
-            processingErrors.push(`Linha ${i + 1}: Nome da OBM nao preenchido.`);
-            ignoredCount += prefixos.length;
-            continue;
-          }
+          const viaturaData = {
+            prefixo,
+            ativa: true,
+            cidade,
+            obm: nomeObm,
+            updated_at: new Date()
+          };
+          const existingViaturaId = viaturaMap.get(prefixo.toUpperCase().trim());
 
-          for (const prefixo of prefixos) {
-            if (!prefixo) {
-              processingErrors.push(`Linha ${i + 1}: Prefixo invalido ou ausente.`);
-              ignoredCount++;
-              continue;
-            }
+          if (existingViaturaId) {
+            const { error: updateError } = await supabaseAdmin
+              .from('viaturas')
+              .update(viaturaData)
+              .eq('id', existingViaturaId);
 
-            const viaturaData = { prefixo, ativa: true, cidade, obm: nomeObm };
-            const existingViaturaId = viaturaMap.get(prefixo.toUpperCase().trim());
-
-            if (existingViaturaId) {
-              await trx('viaturas').where({ id: existingViaturaId }).update({ ...viaturaData, updated_at: db.fn.now() });
-              updatedCount++;
+            if (updateError) {
+              processingErrors.push(`Erro atualizando ${prefixo}: ${updateError.message}`);
             } else {
-              await trx('viaturas').insert(viaturaData);
+              updatedCount++;
+            }
+          } else {
+            const { error: insertError } = await supabaseAdmin
+              .from('viaturas')
+              .insert({ ...viaturaData, created_at: new Date() });
+
+            if (insertError) {
+              processingErrors.push(`Erro inserindo ${prefixo}: ${insertError.message}`);
+            } else {
               insertedCount++;
             }
           }
         }
+      }
 
-        const lastUploadTime = new Date().toISOString();
-        await trx('metadata')
-          .insert({ key: 'viaturas_last_upload', value: lastUploadTime })
-          .onConflict('key')
-          .merge();
-      });
+      const lastUploadTime = new Date().toISOString();
+      // Upsert Metadata
+      await supabaseAdmin
+        .from('metadata')
+        .upsert({ key: 'viaturas_last_upload', value: lastUploadTime }, { onConflict: 'key' });
 
       return res.status(200).json({
         message: `Arquivo processado! Inseridas: ${insertedCount}, Atualizadas: ${updatedCount}, Ignoradas: ${ignoredCount}.`,
@@ -209,10 +243,6 @@ const viaturaFileController = {
     } catch (error: any) {
       console.error('Erro durante a importacao de viaturas:', error);
       throw new AppError(error.message || 'Ocorreu um erro inesperado durante a importacao.', 500);
-    } finally {
-      if (filePath && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
     }
   },
 };

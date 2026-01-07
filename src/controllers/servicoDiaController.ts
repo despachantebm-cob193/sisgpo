@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase';
 import AppError from '../utils/AppError';
 
 type PessoaType = 'militar' | 'civil';
@@ -37,45 +37,69 @@ const servicoDiaController = {
     const dataBusca = toIsoDate(data);
 
     try {
-      const ultimoPlantao = await db('servico_dia')
-        .where('data_inicio', '<=', dataBusca)
-        .andWhere('data_fim', '>=', dataBusca)
-        .orderBy('data_inicio', 'desc')
-        .first<{ data_inicio: string }>('data_inicio');
+      // 1. Achar "último plantão" ou "plantão vigente" para a data
+      // O original buscava intervalo: data_inicio <= busca <= data_fim
+      const { data: ultimoPlantao } = await supabaseAdmin
+        .from('servico_dia')
+        .select('data_inicio')
+        .lte('data_inicio', dataBusca)
+        .gte('data_fim', dataBusca)
+        .order('data_inicio', { ascending: false })
+        .limit(1)
+        .single();
 
       if (!ultimoPlantao) {
         return res.status(200).json([]);
       }
 
-      const servicos = await db<ServicoDiaRow>('servico_dia').where({ data_inicio: ultimoPlantao.data_inicio });
+      // 2. Pegar todos os registros desse dia
+      // O original usava ultimoPlantao.data_inicio como chave para buscar todos.
+      // Suponto que 'servico_dia' agrupa escalas por 'data_inicio'.
+      const { data: servicosFetch } = await supabaseAdmin
+        .from('servico_dia')
+        .select('*')
+        .eq('data_inicio', ultimoPlantao.data_inicio);
+
+      const servicos = (servicosFetch || []) as ServicoDiaRow[];
 
       const servicoMilitares = servicos.filter((s) => s.pessoa_type === 'militar');
       const servicoCivis = servicos.filter((s) => s.pessoa_type === 'civil');
 
+      // 3. Hydrate Militares
       let militaresData: Array<{ id: number; posto_graduacao: string | null; nome_guerra: string | null }> = [];
       if (servicoMilitares.length > 0) {
-        militaresData = await db('militares')
-          .select(
-            'id',
-            'posto_graduacao',
-            db.raw("COALESCE(NULLIF(TRIM(nome_guerra), ''), nome_completo) as nome_guerra") as any
-          )
-          .whereIn(
-            'id',
-            servicoMilitares.map((s) => s.pessoa_id)
-          );
+        // Busca IDs
+        const ids = servicoMilitares.map((s) => s.pessoa_id);
+        const { data: mils } = await supabaseAdmin
+          .from('militares')
+          .select('id, posto_graduacao, nome_guerra, nome_completo')
+          .in('id', ids);
+
+        militaresData = (mils || []).map((m: any) => ({
+          id: m.id,
+          posto_graduacao: m.posto_graduacao,
+          // Lógica de fallback nome_guerra
+          nome_guerra: (m.nome_guerra && m.nome_guerra.trim()) ? m.nome_guerra : m.nome_completo
+        }));
       }
 
+      // 4. Hydrate Civis
       let civisData: Array<{ id: number; posto_graduacao: string | null; nome_guerra: string | null }> = [];
       if (servicoCivis.length > 0) {
-        civisData = await db('civis')
-          .select('id', db.raw("'MÉDICO' as posto_graduacao") as any, 'nome_completo as nome_guerra')
-          .whereIn(
-            'id',
-            servicoCivis.map((c) => c.pessoa_id)
-          );
+        const ids = servicoCivis.map((sc) => sc.pessoa_id);
+        const { data: civs } = await supabaseAdmin
+          .from('civis')
+          .select('id, nome_completo')
+          .in('id', ids);
+
+        civisData = (civs || []).map((c: any) => ({
+          id: c.id,
+          posto_graduacao: 'MÉDICO',
+          nome_guerra: c.nome_completo
+        }));
       }
 
+      // 5. Merge
       const resultadoFinal: ServicoDiaResult[] = servicos.map((servico) => {
         const pessoaData =
           servico.pessoa_type === 'militar'
@@ -112,36 +136,39 @@ const servicoDiaController = {
     }
 
     try {
-      await db.transaction(async (trx) => {
-        await trx('servico_dia').where({ data_inicio }).del();
+      // "Transaction" Manual
+      // 1. Delete existentes para data_inicio
+      await supabaseAdmin.from('servico_dia').delete().eq('data_inicio', data_inicio);
 
-        const uniqueServicos: ServicoDiaInput[] = [];
-        const seen = new Set<string>();
+      // 2. Prepare Unique Inserts
+      const uniqueServicos: ServicoDiaInput[] = [];
+      const seen = new Set<string>();
 
-        servicos.forEach((s) => {
-          if (s.funcao && s.pessoa_id && s.pessoa_type) {
-            const key = `${s.pessoa_type}-${s.pessoa_id}-${s.funcao}`;
-            if (!seen.has(key)) {
-              uniqueServicos.push(s);
-              seen.add(key);
-            }
+      servicos.forEach((s) => {
+        if (s.funcao && s.pessoa_id && s.pessoa_type) {
+          const key = `${s.pessoa_type}-${s.pessoa_id}-${s.funcao}`;
+          if (!seen.has(key)) {
+            uniqueServicos.push(s);
+            seen.add(key);
           }
-        });
-
-        const servicosParaInserir = uniqueServicos
-          .filter((s) => s.funcao && s.pessoa_id && s.pessoa_type)
-          .map((s) => ({
-            data_inicio,
-            data_fim,
-            funcao: s.funcao,
-            pessoa_id: Number(s.pessoa_id),
-            pessoa_type: s.pessoa_type,
-          }));
-
-        if (servicosParaInserir.length > 0) {
-          await trx('servico_dia').insert(servicosParaInserir);
         }
       });
+
+      const servicosParaInserir = uniqueServicos
+        .filter((s) => s.funcao && s.pessoa_id && s.pessoa_type)
+        .map((s) => ({
+          data_inicio,
+          data_fim,
+          funcao: s.funcao,
+          pessoa_id: Number(s.pessoa_id),
+          pessoa_type: s.pessoa_type,
+        }));
+
+      // 3. Insert
+      if (servicosParaInserir.length > 0) {
+        const { error } = await supabaseAdmin.from('servico_dia').insert(servicosParaInserir);
+        if (error) throw error;
+      }
 
       return res.status(200).json({ message: 'Servico do dia salvo com sucesso!' });
     } catch (error) {
@@ -152,29 +179,36 @@ const servicoDiaController = {
 
   deleteByDate: async (req: Request, res: Response, next: NextFunction) => {
     const { data } = req.query as { data?: string };
-    if (!data) {
-      return next(new AppError('A data e obrigatoria para excluir a escala.', 400));
-    }
+    if (!data) return next(new AppError('Data obrigatoria.', 400));
 
     const dataBusca = toIsoDate(data);
 
     try {
-      const ultimoPlantao = await db('servico_dia')
-        .where('data_inicio', '<=', dataBusca)
-        .andWhere('data_fim', '>=', dataBusca)
-        .orderBy('data_inicio', 'desc')
-        .first<{ data_inicio: string }>('data_inicio');
+      // Buscar data exata da escala vigente
+      const { data: ultimoPlantao } = await supabaseAdmin
+        .from('servico_dia')
+        .select('data_inicio')
+        .lte('data_inicio', dataBusca)
+        .gte('data_fim', dataBusca)
+        .order('data_inicio', { ascending: false })
+        .limit(1)
+        .single();
 
       if (!ultimoPlantao) {
         return res.status(200).json({ message: 'Nenhuma escala ativa encontrada para esta data.' });
       }
 
-      await db('servico_dia').where({ data_inicio: ultimoPlantao.data_inicio }).del();
+      const { error } = await supabaseAdmin
+        .from('servico_dia')
+        .delete()
+        .eq('data_inicio', ultimoPlantao.data_inicio);
+
+      if (error) throw error;
 
       return res.status(200).json({ message: 'Escala do dia limpa com sucesso!' });
     } catch (error) {
       console.error('ERRO AO DELETAR SERVICO DO DIA:', error);
-      return next(new AppError('Ocorreu um erro ao limpar a escala do dia.', 500));
+      return next(new AppError('Ocorreu um erro ao limpar a escala.', 500));
     }
   },
 };

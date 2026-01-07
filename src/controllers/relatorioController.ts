@@ -1,110 +1,167 @@
 import { Request, Response } from 'express';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase';
 import AppError from '../utils/AppError';
 
 const relatorioController = {
   getRelatorioDiario: async (req: Request, res: Response) => {
-    const { data } = req.query as { data?: string };
-    if (!data) {
+    const { data: dateParam } = req.query as { data?: string };
+    if (!dateParam) {
       throw new AppError('A data é um parâmetro obrigatório (formato AAAA-MM-DD).', 400);
     }
 
     try {
-      const [hasDataColumn, hasDataInicio, hasDataFim] = await Promise.all([
-        db.schema.hasColumn('servico_dia', 'data'),
-        db.schema.hasColumn('servico_dia', 'data_inicio'),
-        db.schema.hasColumn('servico_dia', 'data_fim'),
-      ]);
+      // 1. Serviço do Dia (Pessoas escaladas)
+      // Original usava logica complexa de datas (between ou equals).
+      // Assumindo modelo: servico_dia tem data_inicio e data_fim. Se vigência cobre 'dateParam'.
+      const { data: servicoDiaRaw } = await supabaseAdmin
+        .from('servico_dia')
+        .select('*')
+        .lte('data_inicio', dateParam)
+        .gte('data_fim', dateParam);
 
-      const applyServicoDiaDateFilter = (qb: any) => {
-        if (hasDataColumn) {
-          return qb.where('sd.data', data);
-        }
+      // Hydrate Serviço do Dia
+      const servicoDia = await Promise.all(
+        (servicoDiaRaw || []).map(async (sd: any) => {
+          let nome = 'Não escalado';
+          let posto = '';
 
-        if (hasDataInicio && hasDataFim) {
-          return qb.whereRaw('?::date BETWEEN sd.data_inicio::date AND sd.data_fim::date', [data]);
-        }
+          if (sd.pessoa_type === 'militar') {
+            const { data: m } = await supabaseAdmin
+              .from('militares')
+              .select('nome_guerra, nome_completo, posto_graduacao')
+              .eq('id', sd.pessoa_id)
+              .single();
+            if (m) {
+              nome = (m.nome_guerra && m.nome_guerra.trim()) ? m.nome_guerra : m.nome_completo;
+              posto = m.posto_graduacao || '';
+            }
+          } else if (sd.pessoa_type === 'civil') {
+            const { data: c } = await supabaseAdmin
+              .from('civis')
+              .select('nome_completo')
+              .eq('id', sd.pessoa_id)
+              .single();
+            if (c) {
+              nome = c.nome_completo;
+              posto = '';
+            }
+          }
 
-        if (hasDataInicio) {
-          return qb.whereRaw('sd.data_inicio::date = ?::date', [data]);
-        }
-
-        if (hasDataFim) {
-          return qb.whereRaw('sd.data_fim::date = ?::date', [data]);
-        }
-
-        return qb.whereRaw('?::date = CURRENT_DATE', [data]);
-      };
-
-      const servicoDia = await applyServicoDiaDateFilter(
-        db('servico_dia as sd')
-          .leftJoin('militares as m', function () {
-            this.on('m.id', '=', 'sd.pessoa_id').andOn('sd.pessoa_type', '=', db.raw('?', ['militar']));
-          })
-          .leftJoin('civis as c', function () {
-            this.on('c.id', '=', 'sd.pessoa_id').andOn('sd.pessoa_type', '=', db.raw('?', ['civil']));
-          })
-          .select(
-            'sd.funcao',
-            db.raw("COALESCE(m.posto_graduacao, '') as posto_graduacao") as any,
-            db.raw("COALESCE(NULLIF(TRIM(m.nome_guerra), ''), c.nome_completo, 'Não escalado') as nome") as any
-          )
+          return {
+            funcao: sd.funcao,
+            posto_graduacao: posto,
+            nome,
+          };
+        })
       );
 
-      const plantoesVTR: any[] = await db('plantoes as p')
-        .join('viaturas as v', 'p.viatura_id', 'v.id')
-        .where('p.data_plantao', data)
-        .select('p.id', 'v.prefixo', 'p.observacoes')
-        .orderBy('v.prefixo', 'asc');
+      // 2. Plantões VTR (Viaturas e Guarnições)
+      // Busca Plantões do dia
+      const { data: plantoes } = await supabaseAdmin
+        .from('plantoes')
+        .select(`
+          id,
+          viatura_id,
+          observacoes,
+          viaturas (prefixo)
+        `)
+        .eq('data_plantao', dateParam);
 
-      for (const plantao of plantoesVTR) {
-        plantao.guarnicao = await db('plantoes_militares as pm')
-          .join('militares as m', 'pm.militar_id', 'm.id')
-          .where('pm.plantao_id', plantao.id)
-          .select('pm.funcao', 'm.posto_graduacao', 'm.nome_guerra');
-      }
+      const plantoesVTR = await Promise.all(
+        (plantoes || []).map(async (p: any) => {
+          // Busca Guarnição para cada plantão
+          // militar_plantao -> militares
+          const { data: guarnicaoRaw } = await supabaseAdmin
+            .from('militar_plantao')
+            .select(`
+              funcao,
+              militares (nome_guerra, posto_graduacao)
+            `)
+            .eq('plantao_id', p.id);
 
-      const escalaAeronaves = await db('escala_aeronaves as ea')
-        .join('aeronaves as a', 'ea.aeronave_id', 'a.id')
-        .leftJoin('militares as p1', 'ea.primeiro_piloto_id', 'p1.id')
-        .leftJoin('militares as p2', 'ea.segundo_piloto_id', 'p2.id')
-        .where('ea.data', data)
-        .select(
-          'a.prefixo',
-          'ea.status',
-          db.raw(
-            "CASE WHEN p1.id IS NULL THEN 'N/A' ELSE CONCAT(COALESCE(TRIM(p1.posto_graduacao), ''), ' ', COALESCE(NULLIF(TRIM(p1.nome_guerra), ''), TRIM(p1.nome_completo))) END as primeiro_piloto"
-          ) as any,
-          db.raw(
-            "CASE WHEN p2.id IS NULL THEN 'N/A' ELSE CONCAT(COALESCE(TRIM(p2.posto_graduacao), ''), ' ', COALESCE(NULLIF(TRIM(p2.nome_guerra), ''), SPLIT_PART(TRIM(p2.nome_completo), ' ', 1))) END as segundo_piloto"
-          ) as any
-        );
+          const guarnicao = (guarnicaoRaw || []).map((mr: any) => ({
+            funcao: mr.funcao, // Se a coluna funcao nao existir, virá undefined (conforme migracao PlantaoRepository)
+            posto_graduacao: mr.militares?.posto_graduacao,
+            nome_guerra: mr.militares?.nome_guerra,
+          }));
 
-      const escalaCodec = await db('escala_codec as ec')
-        .join('militares as m', 'ec.militar_id', 'm.id')
-        .where('ec.data', data)
-        .select(
-          'ec.turno',
-          'ec.ordem_plantonista',
-          db.raw("m.posto_graduacao || ' ' || m.nome_guerra as nome_plantonista") as any
-        )
-        .orderBy([
-          { column: 'ec.turno', order: 'asc' as const },
-          { column: 'ec.ordem_plantonista', order: 'asc' as const },
-        ]);
+          return {
+            id: p.id,
+            prefixo: p.viaturas?.prefixo,
+            observacoes: p.observacoes,
+            guarnicao,
+          };
+        })
+      );
 
-      const escalaMedicos = await db('civis')
-        .whereRaw('?::date BETWEEN entrada_servico::date AND saida_servico::date', [data])
-        .select('nome_completo', 'funcao', 'entrada_servico', 'saida_servico', 'status_servico', 'observacoes');
+      // Ordenar por prefixo
+      plantoesVTR.sort((a, b) => (a.prefixo || '').localeCompare(b.prefixo || ''));
+
+      // 3. Escala Aeronaves
+      const { data: escalasAeronavesRaw } = await supabaseAdmin
+        .from('escala_aeronaves')
+        .select(`
+          status,
+          aeronaves (prefixo),
+          p1:primeiro_piloto_id (nome_guerra, nome_completo, posto_graduacao),
+          p2:segundo_piloto_id (nome_guerra, nome_completo, posto_graduacao)
+        `)
+        .eq('data', dateParam);
+
+      const formatPiloto = (p: any) => {
+        if (!p) return 'N/A';
+        const nome = (p.nome_guerra && p.nome_guerra.trim())
+          ? p.nome_guerra
+          : (p.nome_completo ? p.nome_completo.split(' ')[0] : '');
+        return `${p.posto_graduacao || ''} ${nome}`.trim();
+      };
+
+      const escalaAeronaves = (escalasAeronavesRaw || []).map((ea: any) => ({
+        prefixo: ea.aeronaves?.prefixo,
+        status: ea.status,
+        primeiro_piloto: formatPiloto(Array.isArray(ea.p1) ? ea.p1[0] : ea.p1), // Supabase as vezes retorna array em joins
+        segundo_piloto: formatPiloto(Array.isArray(ea.p2) ? ea.p2[0] : ea.p2),
+      }));
+
+      // 4. Escala Codec (Plantonistas)
+      const { data: escalaCodecRaw } = await supabaseAdmin
+        .from('escala_codec')
+        .select(`
+          turno,
+          ordem_plantonista,
+          militares (nome_guerra, posto_graduacao)
+        `)
+        .eq('data', dateParam)
+        .order('turno', { ascending: true })
+        .order('ordem_plantonista', { ascending: true });
+
+      const escalaCodec = (escalaCodecRaw || []).map((ec: any) => {
+        const m = Array.isArray(ec.militares) ? ec.militares[0] : ec.militares;
+        return {
+          turno: ec.turno,
+          ordem_plantonista: ec.ordem_plantonista,
+          nome_plantonista: m ? `${m.posto_graduacao || ''} ${m.nome_guerra || ''}`.trim() : '',
+        };
+      });
+
+      // 5. Escala Médicos Civis
+      const { data: civisEscalados } = await supabaseAdmin
+        .from('civis')
+        .select('nome_completo, funcao, entrada_servico, saida_servico, status_servico, observacoes')
+        .lte('entrada_servico', dateParam) // Vigencia
+        .gte('saida_servico', dateParam);
+
+      const escalaMedicos = civisEscalados || [];
 
       return res.status(200).json({
-        data_relatorio: data,
+        data_relatorio: dateParam,
         servicoDia,
         plantoesVTR,
         escalaAeronaves,
         escalaCodec,
         escalaMedicos,
       });
+
     } catch (error) {
       console.error('Erro ao gerar relatorio diario:', error);
       throw new AppError('Nao foi possivel consolidar os dados para o relatorio.', 500);

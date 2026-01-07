@@ -175,10 +175,13 @@ export default function Viaturas() {
       const params = new URLSearchParams({ page: String(currentPage), limit: '50', ...filters });
       const response = await api.get<ApiResponse<Viatura>>(`/api/admin/viaturas?${params.toString()}`);
       setViaturas(response.data.data);
+      if (allViaturasForFilters.length === 0) {
+        setAllViaturasForFilters(response.data.data); // preenche dropdowns na primeira carga mesmo se a chamada dedicada falhar
+      }
       setPagination(response.data.pagination);
     } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
     finally { setIsLoading(false); }
-  }, [filters, currentPage]);
+  }, [filters, currentPage, allViaturasForFilters.length]);
 
   const fetchEmpenhadas = useCallback(async () => {
     try {
@@ -795,8 +798,5 @@ export default function Viaturas() {
     </div>
   );
 }
-
-
-
 
 

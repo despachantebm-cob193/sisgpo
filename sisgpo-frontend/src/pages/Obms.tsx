@@ -160,7 +160,11 @@ export default function Obms() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(currentPage), limit: '1000', ...filters });
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: '1000',
+        q: filters.q || '',
+      });
 
       const [obmsRes, optionsRes, metadataRes] = await Promise.all([
         api.get<ApiResponse<Obm>>(`/api/admin/obms?${params.toString()}`),
@@ -404,55 +408,27 @@ export default function Obms() {
       <div className="flex flex-wrap items-end gap-4 mb-4 bg-white/10 backdrop-blur-[2px] border border-white/20 p-4 rounded-lg">
         <Input
           type="text"
-          placeholder="Filtrar por nome, sigla, cidade ou CRBM..."
+          placeholder="Filtrar por nome, sigla..."
           value={filters.q}
           onChange={(e) => handleFilterChange('q', e.target.value)}
           className="flex-1 min-w-[200px]"
         />
-        <Select
-          value={cidadeFilter}
-          onChange={(e) => {
-            const value = e.target.value;
-            setCidadeFilter(value);
-            handleFilterChange('cidade', value);
-          }}
-          className="flex-1 min-w-[150px]"
-        >
-          <option value="">Filtrar por Cidade...</option>
-          {cidades.map(cidade => (
-            <option key={cidade} value={cidade}>{cidade}</option>
-          ))}
-        </Select>
-        <Select
-          value={crbmFilter}
-          onChange={(e) => {
-            const value = e.target.value;
-            setCrbmFilter(value);
-            handleFilterChange('crbm', value);
-          }}
-          className="flex-1 min-w-[150px]"
-        >
-          <option value="">Filtrar por CRBM...</option>
-          {crbms.map(crbm => (
-            <option key={crbm} value={crbm}>{crbm}</option>
-          ))}
-        </Select>
-        <Button onClick={() => {
-            setCidadeFilter('');
-            setCrbmFilter('');
-            handleFilterChange('cidade', '');
-            handleFilterChange('crbm', '');
+        <Button
+          onClick={() => {
             handleFilterChange('q', '');
             setFilters({ q: '', cidade: '', crbm: '' });
-        }} variant="secondary" className="w-full md:w-auto">
-            Limpar Filtros
+          }}
+          variant="secondary"
+          className="w-full md:w-auto"
+        >
+          Limpar Filtros
         </Button>
         <div className="w-full md:flex-grow md:max-w-[250px]">
           <StatCard
-              title="Total de OBMs"
-              value={isLoading ? '' : pagination?.totalRecords ?? 0}
-              isLoading={isLoading}
-              variant="transparent"
+            title="Total de OBMs"
+            value={isLoading ? '' : pagination?.totalRecords ?? 0}
+            isLoading={isLoading}
+            variant="transparent"
           />
         </div>
       </div>

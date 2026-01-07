@@ -15,6 +15,7 @@
     "test": "cross-env NODE_ENV=test npm run test:setup && cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-virtual": "^3.13.12",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

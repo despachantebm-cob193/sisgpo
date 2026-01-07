@@ -1,336 +1,90 @@
 import { Request, Response, NextFunction } from 'express';
-import db from '../config/database';
 import AppError from '../utils/AppError';
-import csvParser from 'csv-parser';
-import { Readable } from 'stream';
-import { normalizeText } from '../utils/textUtils';
+import ObmRepository from '../repositories/ObmRepository';
+import ObmService from '../services/ObmService';
 
-const ACCENT_FROM = 'Ç?Ç?ÇŸÇ\'Ç"Ç­ÇÿÇœÇ½ÇÏÇ%Ç^ÇSÇ<Ç¸ÇùÇ¦Ç®Ç?ÇOÇZÇ?ÇðÇªÇ©ÇîÇ"Ç\'ÇÇ"Ç-ÇüÇýÇæÇïÇôÇsÇTÇ>ÇoÇ§ÇûÇ¯Ç¬ÇÎÇõÇ\'Çñ';
-const ACCENT_TO = 'AAAAAaaaaaEEEEeeeeIIIIiiiiOOOOOoooooUUUUuuuuCcNn';
+const repo = new ObmRepository();
+const service = new ObmService(repo);
 
-const FIELD_LIMITS: Record<string, { limit: number; label: string }> = {
-  abreviatura: { limit: 20, label: 'Abreviatura' },
-  nome: { limit: 100, label: 'Nome' },
-  cidade: { limit: 50, label: 'Cidade' },
-  telefone: { limit: 20, label: 'Telefone' },
+const getAllSimple = async (_req: Request, res: Response) => {
+  const data = await service.listSimple();
+  return res.status(200).json({ data });
 };
 
-const applyAccentInsensitiveFilter = (queryBuilder: any, column: string, value: string) => {
-  const normalized = normalizeText(value);
-  queryBuilder.whereRaw(`translate(lower(coalesce(${column}, '')), ?, ?) LIKE ?`, [
-    ACCENT_FROM,
-    ACCENT_TO,
-    `%${normalized}%`,
-  ]);
+const getAll = async (req: Request, res: Response) => {
+  const { q, cidade, crbm } = req.query as { q?: string; cidade?: string; crbm?: string; page?: string; limit?: string };
+  const page = parseInt((req.query.page as string) || '1', 10) || 1;
+  const limit = parseInt((req.query.limit as string) || '15', 10) || 15;
+
+  const result = await service.list({ q, cidade, crbm, page, limit });
+  return res.status(200).json(result);
 };
 
-const obmController = {
-  getAllSimple: async (_req: Request, res: Response) => {
-    const hasTable = await db.schema.hasTable('obms').catch(() => false);
-    if (!hasTable) {
-      return res.status(200).json({ data: [] });
-    }
-    const data = await db('obms').select('*').orderBy('crbm', 'asc').orderBy('cidade', 'asc').orderBy('nome', 'asc');
-    return res.status(200).json({ data });
-  },
+const search = async (req: Request, res: Response) => {
+  const { term } = req.query as { term?: string };
+  const options = await service.searchOptions(term);
+  return res.status(200).json(options);
+};
 
-  getAll: async (req: Request, res: Response) => {
-    const hasTable = await db.schema.hasTable('obms').catch(() => false);
-    if (!hasTable) {
-      return res
-        .status(200)
-        .json({ data: [], pagination: { currentPage: 1, perPage: 15, totalPages: 0, totalRecords: 0 } });
-    }
-
-    const { q, cidade, crbm } = req.query as { q?: string; cidade?: string; crbm?: string; page?: string; limit?: string };
-    const query = db('obms').select('*');
-
-    if (q) {
-      const normalizedQ = normalizeText(q);
-      query.where((builder: any) => {
-        builder
-          .where(db.raw(`translate(lower(coalesce(nome, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`]))
-          .orWhere(
-            db.raw(`translate(lower(coalesce(abreviatura, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`])
-          )
-          .orWhere(
-            db.raw(`translate(lower(coalesce(cidade, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`])
-          )
-          .orWhere(
-            db.raw(`translate(lower(coalesce(crbm, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedQ}%`])
-          );
-      });
-    }
-
-    if (cidade) {
-      query.where('cidade', cidade);
-    }
-
-    if (crbm) {
-      query.where('crbm', crbm);
-    }
-
-    const page = parseInt((req.query.page as string) || '1', 10) || 1;
-    const limit = parseInt((req.query.limit as string) || '15', 10) || 15;
-    const offset = (page - 1) * limit;
-
-    const countQuery = query.clone().clearSelect().clearOrder().count({ count: '*' }).first();
-    const dataQuery = query.clone().orderBy('nome', 'asc').limit(limit).offset(offset);
-
-    const [data, totalResult] = await Promise.all([dataQuery, countQuery]);
-    const totalRecords = parseInt(((totalResult as any).count as any) ?? 0, 10);
-    const totalPages = Math.ceil(totalRecords / limit) || 1;
-
-    return res.status(200).json({
-      data,
-      pagination: { currentPage: page, perPage: limit, totalPages, totalRecords },
-    });
-  },
-
-  search: async (req: Request, res: Response) => {
-    const { term } = req.query as { term?: string };
-    if (!term || term.length < 2) {
-      return res.status(200).json([]);
-    }
-
-    try {
-      const normalizedTerm = normalizeText(term);
-      const obms = await db('obms')
-        .whereRaw(`translate(lower(coalesce(nome, '')), ?, ?) LIKE ?`, [ACCENT_FROM, ACCENT_TO, `%${normalizedTerm}%`])
-        .orWhereRaw(`translate(lower(coalesce(abreviatura, '')), ?, ?) LIKE ?`, [
-          ACCENT_FROM,
-          ACCENT_TO,
-          `%${normalizedTerm}%`,
-        ])
-        .select('id', 'nome', 'abreviatura')
-        .limit(20);
-
-      const options = obms.map((obm: any) => ({
-        value: obm.id,
-        label: `${obm.abreviatura} - ${obm.nome}`,
-      }));
-
-      return res.status(200).json(options);
-    } catch (error) {
-      console.error('Erro ao buscar OBMs:', error);
-      throw new AppError('Nao foi possivel realizar a busca por OBMs.', 500);
-    }
-  },
-
-  create: async (req: Request, res: Response) => {
-    const { nome, abreviatura, cidade, telefone, crbm } = req.body as any;
-
-    const nomeTrim = nome ? nome.trim() : '';
-    const abreviaturaTrim = abreviatura ? abreviatura.trim() : '';
-    const abreviaturaUpper = abreviaturaTrim.toUpperCase();
-
-    if (!nomeTrim) {
-      throw new AppError('O nome da OBM nao pode ser vazio.', 400);
-    }
-    if (!abreviaturaTrim) {
-      throw new AppError('A abreviatura da OBM nao pode ser vazia.', 400);
-    }
-
-    const exists = await db('obms').whereRaw('UPPER(abreviatura) = ?', [abreviaturaUpper]).first();
-    if (exists) {
-      throw new AppError('Abreviatura ja cadastrada no sistema.', 409);
-    }
-
-    const [novaObm] = await db('obms')
-      .insert({
-        nome: nomeTrim,
-        abreviatura: abreviaturaTrim,
-        cidade: cidade || null,
-        telefone: telefone || null,
-        crbm: crbm || null,
-      })
-      .returning('*');
-
+const create = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { nome, abreviatura, cidade, telefone, crbm } = req.body;
+    const novaObm = await service.create({ nome, abreviatura, cidade, telefone, crbm });
     return res.status(201).json(novaObm);
-  },
-
-  update: async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { nome, abreviatura, cidade, telefone, crbm } = req.body as any;
-
-    const obmId = Number(id);
-    const nomeTrim = nome ? nome.trim() : '';
-    const abreviaturaTrim = abreviatura ? abreviatura.trim() : '';
-    const abreviaturaUpper = abreviaturaTrim.toUpperCase();
-
-    if (!nomeTrim) {
-      throw new AppError('O nome da OBM nao pode ser vazio.', 400);
-    }
-    if (!abreviaturaTrim) {
-      throw new AppError('A abreviatura da OBM nao pode ser vazia.', 400);
-    }
-
-    const obmPraAtualizar = await db('obms').where({ id: obmId }).first();
-    if (!obmPraAtualizar) {
-      throw new AppError('OBM nao encontrada.', 404);
-    }
-
-    if (abreviaturaUpper !== obmPraAtualizar.abreviatura?.toUpperCase()) {
-      const conflito = await db('obms')
-        .whereRaw('UPPER(abreviatura) = ?', [abreviaturaUpper])
-        .andWhere('id', '!=', obmId)
-        .first();
-
-      if (conflito) {
-        throw new AppError('A nova abreviatura ja esta em uso por outra OBM.', 409);
-      }
-    }
-
-    const [obmAtualizada] = await db('obms')
-      .where({ id: obmId })
-      .update({
-        nome: nomeTrim,
-        abreviatura: abreviaturaTrim,
-        cidade: cidade || null,
-        telefone: telefone || null,
-        crbm: crbm || null,
-        updated_at: db.fn.now(),
-      })
-      .returning('*');
-
-    return res.status(200).json(obmAtualizada);
-  },
-
-  delete: async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const result = await db('obms').where({ id }).del();
-
-    if (result === 0) {
-      throw new AppError('OBM nao encontrada.', 404);
-    }
-
-    return res.status(204).send();
-  },
-
-  uploadCsv: async (req: Request, res: Response) => {
-    const files = (req as any).files;
-    if (!files || Object.keys(files).length === 0) {
-      throw new AppError('Nenhum arquivo foi enviado.', 400);
-    }
-
-    const obmFile = files.file;
-    const csvContent = obmFile.data.toString('utf8');
-    let createdCount = 0;
-    let updatedCount = 0;
-    let skippedCount = 0;
-
-    try {
-      const records: any[] = await new Promise((resolve, reject) => {
-        const rows: any[] = [];
-
-        (Readable.from([csvContent]) as any)
-          .pipe(
-            csvParser({
-              mapHeaders: ({ header }: any) => header.replace(/\uFEFF/g, '').toLowerCase(),
-              mapValues: ({ value }: any) => (typeof value === 'string' ? value.trim() : value),
-            })
-          )
-          .on('data', (row: any) => {
-            const hasData = Object.values(row).some((value) => {
-              if (value === null || value === undefined) return false;
-              return String(value).trim() !== '';
-            });
-            if (hasData) rows.push(row);
-          })
-          .on('end', () => resolve(rows))
-          .on('error', reject);
-      });
-
-      const errors: string[] = [];
-
-      for (let index = 0; index < records.length; index += 1) {
-        const record = records[index];
-        const lineNumber = index + 2;
-
-        const abreviaturaValor = record.abreviatura ? String(record.abreviatura).trim() : '';
-        const nomeValor = record.nome ? String(record.nome).trim() : '';
-        const cidadeValor = record.cidade ? String(record.cidade).trim() : null;
-        const telefoneValor = record.telefone ? String(record.telefone).trim() : null;
-        const crbmValor = record.crbm ? String(record.crbm).trim() : null;
-
-        if (!abreviaturaValor || !nomeValor) {
-          skippedCount += 1;
-          errors.push(`Linha ${lineNumber}: campos obrigatorios "abreviatura" e "nome" sao necessarios.`);
-          continue;
-        }
-
-        const overflowField = Object.entries({
-          abreviatura: abreviaturaValor,
-          nome: nomeValor,
-          cidade: cidadeValor,
-          telefone: telefoneValor,
-        }).find(([field, value]) => {
-          if (!value) return false;
-          const config = FIELD_LIMITS[field];
-          return config ? (value as string).length > config.limit : false;
-        });
-
-        if (overflowField) {
-          const [field, value] = overflowField as [string, any];
-          const config = FIELD_LIMITS[field];
-          errors.push(
-            `Linha ${lineNumber}: o campo "${config.label}" excede o limite de ${config.limit} caracteres (recebeu ${value.length}).`
-          );
-          skippedCount += 1;
-          continue;
-        }
-
-        const dados = {
-          nome: nomeValor,
-          abreviatura: abreviaturaValor,
-          cidade: cidadeValor || null,
-          telefone: telefoneValor || null,
-          crbm: crbmValor || null,
-        };
-
-        const existente = await db('obms').where({ abreviatura: abreviaturaValor }).first();
-
-        if (existente) {
-          await db('obms').where({ id: existente.id }).update({
-            ...dados,
-            updated_at: db.fn.now(),
-          });
-          updatedCount += 1;
-        } else {
-          await db('obms').insert(dados);
-          createdCount += 1;
-        }
-      }
-
-      return res.status(200).json({
-        message: `Arquivo processado! OBMs Criadas: ${createdCount}. OBMs Atualizadas: ${updatedCount}. Registros ignorados: ${skippedCount}.`,
-        summary: { created: createdCount, updated: updatedCount, skipped: skippedCount },
-        errors,
-      });
-    } catch (error: any) {
-      console.error('ERRO AO PROCESSAR ARQUIVO CSV DE OBMs:', error);
-
-      if (error instanceof AppError) {
-        throw error;
-      }
-
-      if (error && error.code === '22001') {
-        throw new AppError('Um dos campos excedeu o tamanho maximo permitido pela base de dados.', 400);
-      }
-
-      throw new AppError('Erro ao processar o arquivo CSV. Verifique o formato.', 500);
-    }
-  },
-
-  clearAll: async (_req: Request, res: Response) => {
-    const totalRemovidos = await db('obms').del();
-    return res.status(200).json({
-      message:
-        totalRemovidos > 0
-          ? `Todas as OBMs foram removidas (${totalRemovidos} registros excluidos).`
-          : 'Nenhuma OBM encontrada para exclusao.',
-    });
-  },
+  } catch (error) {
+    return next(error);
+  }
 };
 
-export = obmController;
+const update = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { nome, abreviatura, cidade, telefone, crbm } = req.body;
+    const obmAtualizada = await service.update(Number(id), { nome, abreviatura, cidade, telefone, crbm });
+    return res.status(200).json(obmAtualizada);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const remove = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await service.delete(Number(id));
+    return res.status(204).send();
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const uploadCsv = async (req: Request, res: Response) => {
+  const files = (req as any).files;
+  if (!files || Object.keys(files).length === 0) {
+    throw new AppError('Nenhum arquivo foi enviado.', 400);
+  }
+
+  const obmFile = files.file;
+  const result = await service.processCsv(obmFile.data);
+  return res.status(200).json(result);
+};
+
+const clearAll = async (_req: Request, res: Response) => {
+  const totalRemovidos = await service.clearAll();
+  return res.status(200).json({
+    message:
+      totalRemovidos > 0
+        ? `Todas as OBMs foram removidas (${totalRemovidos} registros excluidos).`
+        : 'Nenhuma OBM encontrada para exclusao.',
+  });
+};
+
+export = {
+  getAllSimple,
+  getAll,
+  search,
+  create,
+  update,
+  delete: remove,
+  uploadCsv,
+  clearAll,
+};

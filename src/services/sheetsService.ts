@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import AppError from '../utils/AppError';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase';
 import env from '../config/env';
 
 let sheetsClient: any = null;
@@ -73,52 +73,68 @@ const sheetsService = {
       return { totalRows: 0, inserted: 0, updated: 0, failed: 0 };
     }
 
-    const [obms, existingMilitares] = await Promise.all([
-      db('obms').select('id', 'abreviatura'),
-      db('militares').select('matricula'),
-    ]);
+    // Carregar OBMs e Militares existentes para Map
+    const { data: obms } = await supabaseAdmin.from('obms').select('id, abreviatura');
+    const { data: existingMilitares } = await supabaseAdmin.from('militares').select('matricula');
 
-    const obmMap = new Map(obms.map((obm: any) => [String(obm.abreviatura).toUpperCase(), obm.id]));
-    const existingMatriculas = new Set(existingMilitares.map((m: any) => m.matricula));
+    const obmMap = new Map(obms?.map((obm: any) => [String(obm.abreviatura).toUpperCase(), obm.id]) || []);
+    const existingMatriculas = new Set(existingMilitares?.map((m: any) => m.matricula) || []);
 
     let inserted = 0;
     let updated = 0;
     let failed = 0;
 
-    await db.transaction(async (trx) => {
-      for (const row of rows) {
-        const [matricula, nome_completo, nome_guerra, posto_graduacao, obm_abreviatura, ativo_str] = row;
+    // Processamento sequencial robusto (ou Promise.all com throttle se performance crítica)
+    // Usaremos loop for..of para simplicidade e controle
+    for (const row of rows) {
+      const [matricula, nome_completo, nome_guerra, posto_graduacao, obm_abreviatura, ativo_str] = row;
 
-        if (!matricula || !nome_completo || !obm_abreviatura) {
-          console.warn(`[AVISO] Linha ignorada por falta de dados essenciais: ${row.join(', ')}`);
-          failed++;
-          continue;
-        }
-
-        const obm_id = obmMap.get(String(obm_abreviatura).toUpperCase());
-        if (!obm_id) {
-          console.warn(`[AVISO] OBM "${obm_abreviatura}" não encontrada para o militar ${nome_completo}. Linha ignorada.`);
-          failed++;
-          continue;
-        }
-
-        const ativo = ativo_str ? String(ativo_str).toUpperCase() === 'SIM' : true;
-        const militarData = { matricula, nome_completo, nome_guerra, posto_graduacao, obm_id, ativo };
-
-        try {
-          if (existingMatriculas.has(matricula)) {
-            await trx('militares').where('matricula', matricula).update({ ...militarData, updated_at: db.fn.now() });
-            updated++;
-          } else {
-            await trx('militares').insert(militarData);
-            inserted++;
-          }
-        } catch (error) {
-          console.error(`[ERRO] Falha ao processar militar com matrícula ${matricula}:`, error);
-          failed++;
-        }
+      if (!matricula || !nome_completo || !obm_abreviatura) {
+        console.warn(`[AVISO] Linha ignorada por falta de dados essenciais: ${row.join(', ')}`);
+        failed++;
+        continue;
       }
-    });
+
+      const obm_id = obmMap.get(String(obm_abreviatura).toUpperCase());
+      if (!obm_id) {
+        console.warn(`[AVISO] OBM "${obm_abreviatura}" não encontrada para o militar ${nome_completo}. Linha ignorada.`);
+        failed++;
+        continue;
+      }
+
+      const ativo = ativo_str ? String(ativo_str).toUpperCase() === 'SIM' : true;
+      const militarData = {
+        matricula,
+        nome_completo,
+        nome_guerra,
+        posto_graduacao,
+        obm_id,
+        ativo,
+        updated_at: new Date()
+      };
+
+      try {
+        // Upsert (Insert or Update on conflict matricula)
+        // Se já existe (com base na constraint matricula - que deve ser Unique), atualiza.
+        // Supabase upsert faz exatamente isso.
+        const { error, count } = await supabaseAdmin
+          .from('militares')
+          .upsert(militarData, { onConflict: 'matricula', count: 'exact' }); // 'ignoreDuplicates': false by default which is UPDATE
+
+        if (error) throw error;
+
+        if (existingMatriculas.has(matricula)) {
+          updated++;
+        } else {
+          inserted++;
+          existingMatriculas.add(matricula);
+        }
+
+      } catch (error) {
+        console.error(`[ERRO] Falha ao processar militar com matrícula ${matricula}:`, error);
+        failed++;
+      }
+    }
 
     console.log(`Processamento concluído. Inseridos: ${inserted}, Atualizados: ${updated}, Falhas: ${failed}`);
     return { totalRows: rows.length, inserted, updated, failed };

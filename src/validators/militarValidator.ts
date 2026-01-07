@@ -6,7 +6,7 @@ export type MilitarBaseDTO = {
   matricula: string;
   posto_graduacao: string;
   nome_completo: string;
-  obm_id: number;
+  obm_id?: number | null;
   obm_nome?: string | null;
   telefone?: string | null;
   ativo: boolean;
@@ -29,11 +29,7 @@ const militarFields = {
     'string.empty': 'O nome completo nao pode ser vazio.',
     'any.required': 'O nome completo e obrigatorio.',
   }),
-  obm_id: Joi.number().integer().required().messages({
-    'number.base': 'O ID da OBM deve ser um numero.',
-    'number.integer': 'O ID da OBM deve ser um numero inteiro.',
-    'any.required': 'O ID da OBM e obrigatorio.',
-  }),
+  obm_id: Joi.number().integer().optional().allow(null),
   obm_nome: Joi.string().max(150).optional().allow(null, ''),
   telefone: Joi.string()
     .pattern(telefoneRegex)

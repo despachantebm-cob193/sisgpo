@@ -1,41 +1,20 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
-import crypto from 'crypto';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase'; // Admin Client
+// import { supabaseClient } from ... precisamos de um cliente anon para login de usuario comum?
+// Para login com senha (signInWithPassword), idealmente usa-se a chave anonima pública.
+// Vamos instanciar um cliente ad-hoc ou usar REST API simples, mas o SDK exige Url/Key.
+// Como o backend é "privilegiado", podemos usar o Admin para TUDO exceto login password que exige contexto?
+// Não, o Admin pode fazer tudo, mas signInWithPassword gera sessão para o user.
+import { createClient } from '@supabase/supabase-js';
+
 import AppError from '../utils/AppError';
+import UserRepository from '../repositories/UserRepository';
 
-const DEFAULT_GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'postmessage';
-
-const client = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  DEFAULT_GOOGLE_REDIRECT_URI
-);
-
-const isConnectionLimitError = (error: any) => {
-  const msg = error?.message ? error.message.toLowerCase() : '';
-  return (
-    msg.includes('max clients in sessionmode') ||
-    msg.includes('too many clients') ||
-    msg.includes('remaining connection slots are reserved') ||
-    msg.includes('connection pool') ||
-    msg.includes('pool_size')
-  );
-};
-
-type UserDbRecord = {
-  id: number;
-  login: string;
-  email?: string;
-  senha_hash?: string;
-  perfil?: string;
-  ativo?: boolean;
-  status?: string;
-  nome?: string;
-  perfil_desejado?: string;
-};
+// Cliente "Anon" para login de usuário (simulando frontend)
+// Isso evita que loguemos como admin.
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
 
 const authController = {
   login: async (req: Request, res: Response) => {
@@ -46,220 +25,86 @@ const authController = {
       throw new AppError('Login e senha sao obrigatorios.', 400);
     }
 
-    console.log(`[AuthController] Tentativa de login para o usuario: ${rawLogin}`);
-
-    const normalizedLogin = rawLogin.toLowerCase();
-
-    let user: UserDbRecord | undefined;
-    try {
-      user = await db<UserDbRecord>('usuarios')
-        .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome', 'perfil_desejado')
-        .whereRaw('LOWER(login) = ?', [normalizedLogin])
-        .orWhereRaw('LOWER(email) = ?', [normalizedLogin])
-        .first();
-    } catch (err) {
-      if (isConnectionLimitError(err)) {
-        throw new AppError('Banco indisponivel no momento (limite de conexoes). Tente novamente em instantes.', 503);
-      }
-      throw err;
+    // 1. Achar usuário no DB Local para pegar o Email (se logou com username)
+    // O Supabase Auth exige Email.
+    let user = await UserRepository.findByLogin(rawLogin);
+    if (!user) {
+      user = await UserRepository.findByEmail(rawLogin);
     }
 
     if (!user) {
-      console.log(`[AuthController] Usuario '${rawLogin}' nao encontrado.`);
-    } else if (!user.ativo) {
-      console.log(`[AuthController] Conta desativada para o usuario '${rawLogin}'.`);
-      throw new AppError('Conta desativada. Procure um administrador.', 403);
-    }
-
-    if (user && user.status === 'pending' && user.perfil && !user.perfil_desejado) {
-      try {
-        await db('usuarios').where({ id: user.id }).update({ status: 'approved', updated_at: db.fn.now() });
-        user.status = 'approved';
-      } catch (err) {
-        if (isConnectionLimitError(err)) {
-          throw new AppError('Banco indisponivel no momento (limite de conexoes). Tente novamente em instantes.', 503);
-        }
-        throw err;
-      }
-    }
-
-    if (user?.status === 'pending') {
-      throw new AppError('Sua conta esta pendente de aprovacao.', 401);
-    }
-
-    if (user?.status === 'rejected') {
-      throw new AppError('Sua conta foi rejeitada.', 401);
-    }
-
-    let isPasswordValid = false;
-
-    if (user) {
-      const storedHash = user.senha_hash || '';
-      const isBcryptHash = typeof storedHash === 'string' && /^\$2[aby]\$/.test(storedHash);
-
-      if (isBcryptHash) {
-        isPasswordValid = await bcrypt.compare(senha, storedHash);
-      } else if (senha === storedHash) {
-        isPasswordValid = true;
-        try {
-          const newHash = await bcrypt.hash(senha, 10);
-          await db('usuarios').where({ id: user.id }).update({ senha_hash: newHash });
-          user.senha_hash = newHash;
-          console.log(`[AuthController] Senha de '${rawLogin}' migrada automaticamente para hash bcrypt.`);
-        } catch (rehashError) {
-          console.warn(`[AuthController] Falha ao migrar a senha do usuario '${rawLogin}' para bcrypt:`, rehashError);
-        }
-      }
-    }
-
-    if (!user || !isPasswordValid) {
-      if (user && !isPasswordValid) {
-        console.log(`[AuthController] Senha invalida para o usuario '${rawLogin}'.`);
-      }
       throw new AppError('Credenciais invalidas.', 401);
     }
 
-    console.log(`[AuthController] Login bem-sucedido para '${rawLogin}'.`);
+    if (!user.ativo) {
+      throw new AppError('Conta desativada.', 403);
+    }
 
-    const perfil = (user.perfil || '').toLowerCase();
+    // 2. Tentar Login no Supabase Auth
+    // Precisamos de email
+    const emailLogin = user.email || `${user.login}@sisgpo.temp`; // Fallback arriscado, mas necessário se não tiver email real
 
-    const token = jwt.sign({ id: user.id, login: user.login, perfil }, process.env.JWT_SECRET as string, {
-      expiresIn: '8h',
+    const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
+      email: emailLogin,
+      password: senha
     });
 
-    delete (user as any).senha_hash;
-    user.perfil = perfil;
-    user.ativo = Boolean(user.ativo);
+    if (authError) {
+      console.warn(`[Auth] Falha login Supabase para ${emailLogin}: ${authError.message}`);
+      throw new AppError('Credenciais invalidas ou erro de autenticacao.', 401);
+    }
+
+    const session = authData.session;
+    const userAuth = authData.user;
+
+    // 3. Sync ID se necessário
+    if (user.id && !user.supabase_id && userAuth) {
+      await UserRepository.update(user.id, { supabase_id: userAuth.id });
+    }
+
+    // Retorna Token Supabase + Dados User legado (frontend espera objeto 'user')
+    const userResponse = { ...user };
+    delete (userResponse as any).senha_hash;
 
     return res.status(200).json({
       message: 'Login bem-sucedido!',
-      token,
-      user,
+      token: session?.access_token,
+      refreshToken: session?.refresh_token,
+      user: {
+        ...userResponse,
+        supabase_id: userAuth?.id
+      },
+    });
+  },
+
+  // Endpoint para recuperar dados do user baseado no token (GET /me)
+  me: async (req: Request, res: Response) => {
+    const userId = (req as any).userId as number | undefined;
+
+    if (!userId) {
+      throw new AppError('Usuario nao identificado no contexto.', 401);
+    }
+
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      throw new AppError('Usuario nao encontrado.', 404);
+    }
+
+    const userResponse = { ...user };
+    delete (userResponse as any).senha_hash;
+
+    return res.status(200).json({
+      user: userResponse
     });
   },
 
   googleLogin: async (req: Request, res: Response) => {
-    const { code, codeVerifier, redirectUri, redirect_uri: redirectUriSnake } = req.body as any;
-
-    if (!code) {
-      throw new AppError('Codigo de autorizacao do Google nao fornecido.', 400);
-    }
-
-    const requestedRedirectUri =
-      (typeof redirectUri === 'string' && redirectUri) || (typeof redirectUriSnake === 'string' && redirectUriSnake);
-
-    const oauthToken = await client.getToken({
-      code,
-      codeVerifier,
-      redirect_uri: requestedRedirectUri || DEFAULT_GOOGLE_REDIRECT_URI,
-    });
-
-    const idToken = oauthToken.tokens.id_token;
-    if (!idToken) {
-      throw new AppError('Token de ID nao retornado pelo Google.', 400);
-    }
-
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-
-    if (!payload) {
-      throw new AppError('Nao foi possivel validar o token do Google.', 400);
-    }
-
-    const email = (payload.email || '').toLowerCase();
-
-    const user = await db<UserDbRecord>('usuarios')
-      .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome')
-      .whereRaw('LOWER(email) = ?', [email])
-      .first();
-
-    if (!user) {
-      throw new AppError('Usuario nao cadastrado. Solicite acesso ao administrador.', 403);
-    }
-
-    if (!user.ativo) {
-      throw new AppError('Conta desativada. Procure um administrador.', 403);
-    }
-
-    if (user.status === 'pending') {
-      throw new AppError('Sua conta esta pendente de aprovacao.', 401);
-    }
-
-    if (user.status === 'rejected') {
-      throw new AppError('Sua conta foi rejeitada.', 401);
-    }
-
-    console.log(`[AuthController] Login com Google bem-sucedido para '${user.email}'.`);
-
-    const perfil = (user.perfil || '').toLowerCase();
-    const token = jwt.sign({ id: user.id, login: user.login, perfil }, process.env.JWT_SECRET as string, {
-      expiresIn: '8h',
-    });
-
-    delete (user as any).senha_hash;
-    user.perfil = perfil;
-    user.ativo = Boolean(user.ativo);
-
-    return res.status(200).json({
-      message: 'Login com Google bem-sucedido!',
-      token,
-      user,
-    });
+    throw new AppError('Google Login deve ser feito via Frontend Supabase Client nesta versao.', 501);
   },
 
   ssoLogin: async (req: Request, res: Response) => {
-    const payload = (req as any).ssoPayload as any;
-
-    if (!payload || typeof payload !== 'object') {
-      throw new AppError('Payload SSO ausente ou invalido.', 400);
-    }
-
-    const emailClaim = (payload.email || payload.user_email || '').toString().toLowerCase();
-
-    if (!emailClaim) {
-      throw new AppError('Token SSO nao contem e-mail do usuario.', 400);
-    }
-
-    const user = await db<UserDbRecord>('usuarios')
-      .select('id', 'login', 'email', 'senha_hash', 'perfil', 'ativo', 'status', 'nome')
-      .whereRaw('LOWER(email) = ?', [emailClaim])
-      .first();
-
-    if (!user) {
-      throw new AppError('Usuario nao cadastrado no SISGPO. Solicite acesso ao administrador.', 403);
-    }
-
-    if (!user.ativo) {
-      throw new AppError('Conta desativada. Procure um administrador.', 403);
-    }
-
-    if (user.status === 'pending') {
-      throw new AppError('Sua conta esta pendente de aprovacao.', 401);
-    }
-
-    if (user.status === 'rejected') {
-      throw new AppError('Sua conta foi rejeitada.', 401);
-    }
-
-    const perfil = (user.perfil || '').toLowerCase();
-    const token = jwt.sign({ id: user.id, login: user.login, perfil }, process.env.JWT_SECRET as string, {
-      expiresIn: '8h',
-    });
-
-    delete (user as any).senha_hash;
-    user.perfil = perfil;
-    user.ativo = Boolean(user.ativo);
-
-    return res.status(200).json({
-      message: 'Login SSO bem-sucedido!',
-      token,
-      user,
-    });
-  },
+    throw new AppError('SSO Login deve ser feito via Frontend Supabase Client nesta versao.', 501);
+  }
 };
 
 export = authController;

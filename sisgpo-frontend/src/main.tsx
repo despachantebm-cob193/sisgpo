@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { router } from './router';
+import { SupabaseAuthStateListener } from './components/auth/SupabaseAuthStateListener';
 import './index.css';
 import { palette } from './theme/palette';
 
@@ -27,8 +28,9 @@ root.render(
     <GoogleOAuthProvider clientId="1051946291439-3u8vm6u2ao40nslmf2k0rmgmna932qp5.apps.googleusercontent.com">
       {/* Envolve a aplicação com o Provider */}
       <QueryClientProvider client={queryClient}>
+        <SupabaseAuthStateListener />
         <RouterProvider router={router} />
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 5000,

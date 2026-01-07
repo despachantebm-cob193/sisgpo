@@ -1,5 +1,5 @@
 import { Joi } from 'express-validation';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase';
 
 export type CreateObmDTO = {
   nome: string;
@@ -8,6 +8,8 @@ export type CreateObmDTO = {
   telefone?: string | null;
   crbm?: string | null;
   id?: number;
+  // Supabase often ignores fields not in table during insert/update unless strict, 
+  // but validation ensures shape.
 };
 
 export type UpdateObmDTO = CreateObmDTO;
@@ -27,8 +29,13 @@ const obmValidator = {
         })
         .external(async (abreviatura: string) => {
           if (abreviatura) {
-            const obm = await db('obms').where('abreviatura', abreviatura).first();
-            if (obm) {
+            const { data } = await supabaseAdmin
+              .from('obms')
+              .select('id')
+              .eq('abreviatura', abreviatura)
+              .single();
+
+            if (data) {
               throw new Error('A abreviatura informada ja esta em uso.');
             }
           }
@@ -59,8 +66,15 @@ const obmValidator = {
         .external(async (abreviatura: string, ctx: any) => {
           if (abreviatura && ctx?.req?.params) {
             const { id } = ctx.req.params;
-            const obm = await db('obms').where('abreviatura', abreviatura).whereNot('id', id).first();
-            if (obm) {
+            // .neq('id', id) para excluir o proprio registro
+            const { data } = await supabaseAdmin
+              .from('obms')
+              .select('id')
+              .eq('abreviatura', abreviatura)
+              .neq('id', id)
+              .single();
+
+            if (data) {
               throw new Error('A abreviatura informada ja esta em uso por outra OBM.');
             }
           }

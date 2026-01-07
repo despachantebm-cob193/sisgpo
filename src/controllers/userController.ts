@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import db from '../config/database';
 import AppError from '../utils/AppError';
+import UserRepository, { UserRow } from '../repositories/UserRepository';
 import {
   ChangePasswordDTO,
   CreateUserDTO,
@@ -9,24 +9,7 @@ import {
   UpdateUserStatusDTO,
 } from '../validators/userValidator';
 
-type UserRecord = {
-  id?: number;
-  login: string;
-  senha_hash?: string;
-  perfil?: string;
-  ativo?: boolean;
-  status?: string;
-  nome_completo?: string | null;
-  nome?: string | null;
-  email?: string | null;
-  created_at?: Date;
-  updated_at?: Date;
-  perfil_desejado?: string | null;
-  aprovado_por?: number | null;
-  aprovado_em?: Date | null;
-};
-
-const sanitizeUser = (user: UserRecord) => ({
+const sanitizeUser = (user: UserRow) => ({
   id: user.id,
   login: user.login,
   perfil: user.perfil,
@@ -39,20 +22,9 @@ const sanitizeUser = (user: UserRecord) => ({
   updated_at: user.updated_at,
 });
 
-const getDbClient = () => (db as any).client?.config?.client as string | undefined;
-const isLiteClient = () => {
-  const client = getDbClient();
-  return client && ['sqlite3', 'better-sqlite3', 'sqlite'].includes(client);
-};
-
-const fetchAllUsers = async () => {
-  const users = await db<UserRecord>('usuarios').select('*').orderBy('login', 'asc');
-  return users.map(sanitizeUser);
-};
-
 const userController = {
   getPending: async (_req: Request, res: Response) => {
-    const users = await db<UserRecord>('usuarios').where({ status: 'pending' }).select('*');
+    const users = await UserRepository.findPending();
     return res.status(200).json({ users: users.map(sanitizeUser) });
   },
 
@@ -61,21 +33,19 @@ const userController = {
     const userId = Number(id);
     const adminId = (req as any).userId as number | undefined;
 
-    const user = await db<UserRecord>('usuarios').where({ id: userId }).first();
+    const user = await UserRepository.findById(userId);
     if (!user) {
       throw new AppError('Usuario nao encontrado.', 404);
     }
 
     const perfilAprovado = user.perfil_desejado || user.perfil || 'user';
 
-    await db('usuarios')
-      .where({ id: userId })
-      .update({
-        status: 'approved',
-        perfil: perfilAprovado,
-        aprovado_por: adminId ?? null,
-        aprovado_em: db.fn.now(),
-      });
+    await UserRepository.update(userId, {
+      status: 'approved',
+      perfil: perfilAprovado,
+      aprovado_por: adminId ?? null,
+      aprovado_em: new Date(),
+    });
 
     return res.status(200).json({ message: 'Usuario aprovado com sucesso!' });
   },
@@ -84,13 +54,12 @@ const userController = {
     const { id } = req.params;
     const userId = Number(id);
 
-    const user = await db<UserRecord>('usuarios').where({ id: userId }).first();
+    const user = await UserRepository.findById(userId);
     if (!user) {
       throw new AppError('Usuario nao encontrado.', 404);
     }
 
-    await db('usuarios').where({ id: userId }).update({ status: 'rejected' });
-
+    await UserRepository.update(userId, { status: 'rejected' });
     return res.status(200).json({ message: 'Usuario rejeitado com sucesso!' });
   },
 
@@ -102,7 +71,7 @@ const userController = {
       throw new AppError('Usuario nao autenticado.', 401);
     }
 
-    const user = await db<UserRecord>('usuarios').where({ id: userId }).first();
+    const user = await UserRepository.findById(userId);
     if (!user) {
       throw new AppError('Usuario nao encontrado.', 404);
     }
@@ -115,21 +84,15 @@ const userController = {
     const salt = await bcrypt.genSalt(10);
     const novaSenhaHash = await bcrypt.hash(novaSenha || '', salt);
 
-    await db('usuarios')
-      .where({ id: userId })
-      .update({
-        senha_hash: novaSenhaHash,
-        updated_at: db.fn.now(),
-      });
+    await UserRepository.update(userId, { senha_hash: novaSenhaHash });
 
     return res.status(200).json({ message: 'Senha alterada com sucesso!' });
   },
 
   getAll: async (_req: Request, res: Response) => {
-    const users = await fetchAllUsers();
-
+    const users = await UserRepository.findAll();
     return res.status(200).json({
-      users,
+      users: users.map(sanitizeUser),
     });
   },
 
@@ -141,15 +104,15 @@ const userController = {
     const trimmedEmail = email.trim();
     const normalizedPerfil = perfil.trim().toLowerCase();
 
-    const existingUser = await db<UserRecord>('usuarios').where({ login: trimmedLogin }).first();
-    if (existingUser) {
+    const loginExists = await UserRepository.exists('login', trimmedLogin);
+    if (loginExists) {
       throw new AppError('Login ja esta em uso.', 409);
     }
 
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senha, salt);
 
-    const insertPayload: UserRecord = {
+    const newUser = await UserRepository.create({
       login: trimmedLogin,
       senha_hash: senhaHash,
       perfil: normalizedPerfil,
@@ -157,22 +120,12 @@ const userController = {
       nome_completo: trimmedNomeCompleto,
       nome: trimmedNome,
       email: trimmedEmail.toLowerCase(),
-    };
-
-    let createdUserRecord: UserRecord;
-
-    if (isLiteClient()) {
-      const insertedIds = await db('usuarios').insert(insertPayload as any);
-      const newId = Array.isArray(insertedIds) ? insertedIds[0] : insertedIds;
-      createdUserRecord = (await db<UserRecord>('usuarios').where({ id: newId }).first()) as UserRecord;
-    } else {
-      const insertedRows = await db<UserRecord>('usuarios').insert(insertPayload as any).returning('*');
-      createdUserRecord = Array.isArray(insertedRows) ? insertedRows[0] : insertedRows;
-    }
+      status: 'approved', // Criado por admin já nasce aprovado
+    });
 
     return res.status(201).json({
       message: 'Usuario criado com sucesso!',
-      user: sanitizeUser(createdUserRecord),
+      user: sanitizeUser(newUser),
     });
   },
 
@@ -181,24 +134,19 @@ const userController = {
     const { login, perfil, senha, nome_completo, nome, email } = req.body as UpdateUserDTO;
     const userId = Number(id);
 
-    const user = await db<UserRecord>('usuarios').where({ id: userId }).first();
+    const user = await UserRepository.findById(userId);
     if (!user) {
       throw new AppError('Usuario nao encontrado.', 404);
     }
 
-    const updatePayload: Partial<UserRecord> & { updated_at: any; senha_hash?: string } = {
-      updated_at: db.fn.now() as any,
-    };
+    const updatePayload: Partial<UserRow> = {};
     const trimmedLogin = typeof login === 'string' ? login.trim() : undefined;
     const trimmedNome = typeof nome === 'string' ? nome.trim() : undefined;
     const trimmedNomeCompleto = typeof nome_completo === 'string' ? nome_completo.trim() : undefined;
     const trimmedEmail = typeof email === 'string' ? email.trim() : undefined;
 
     if (trimmedLogin && trimmedLogin !== user.login) {
-      const loginInUse = await db<UserRecord>('usuarios')
-        .where({ login: trimmedLogin })
-        .whereNot({ id: userId })
-        .first();
+      const loginInUse = await UserRepository.exists('login', trimmedLogin, userId);
       if (loginInUse) {
         throw new AppError('Login informado ja esta em uso.', 409);
       }
@@ -210,17 +158,11 @@ const userController = {
       updatePayload.perfil = normalizedPerfil;
     }
 
-    if (trimmedNomeCompleto && trimmedNomeCompleto !== (user.nome_completo ?? '')) {
-      updatePayload.nome_completo = trimmedNomeCompleto;
-    }
-    if (trimmedNome && trimmedNome !== (user.nome ?? '')) {
-      updatePayload.nome = trimmedNome;
-    }
-    if (trimmedEmail && trimmedEmail.toLowerCase() !== (user.email ?? '').toLowerCase()) {
-      const emailInUse = await db<UserRecord>('usuarios')
-        .whereRaw('LOWER(email) = ?', [trimmedEmail.toLowerCase()])
-        .whereNot({ id: userId })
-        .first();
+    if (trimmedNomeCompleto) updatePayload.nome_completo = trimmedNomeCompleto;
+    if (trimmedNome) updatePayload.nome = trimmedNome;
+
+    if (trimmedEmail && trimmedEmail.toLowerCase() !== (user.email || '').toLowerCase()) {
+      const emailInUse = await UserRepository.exists('email', trimmedEmail, userId);
       if (emailInUse) {
         throw new AppError('Email informado ja esta em uso.', 409);
       }
@@ -233,17 +175,18 @@ const userController = {
     }
 
     const body = req.body as Partial<UpdateUserStatusDTO>;
-    const isAtivoBool = typeof body.ativo === 'boolean' ? body.ativo : undefined;
-    if (typeof isAtivoBool === 'boolean') {
-      updatePayload.ativo = isAtivoBool;
+    if (typeof body.ativo === 'boolean') {
+      updatePayload.ativo = body.ativo;
     }
 
-    await db('usuarios').where({ id: userId }).update(updatePayload);
-    const updatedUser = await db<UserRecord>('usuarios').where({ id: userId }).first();
+    let updatedUser = user;
+    if (Object.keys(updatePayload).length > 0) {
+      updatedUser = await UserRepository.update(userId, updatePayload);
+    }
 
     return res.status(200).json({
       message: 'Usuario atualizado com sucesso!',
-      user: sanitizeUser(updatedUser as UserRecord),
+      user: sanitizeUser(updatedUser),
     });
   },
 
@@ -251,15 +194,13 @@ const userController = {
     const { id } = req.params;
     const userId = Number(id);
 
-    const user = await db<UserRecord>('usuarios').where({ id: userId }).first();
+    const user = await UserRepository.findById(userId);
     if (!user) {
       throw new AppError('Usuario nao encontrado.', 404);
     }
 
     const novoStatus = !user.ativo;
-    await db('usuarios')
-      .where({ id: userId })
-      .update({ ativo: novoStatus, updated_at: db.fn.now() });
+    await UserRepository.update(userId, { ativo: novoStatus });
 
     return res.status(200).json({
       message: novoStatus ? 'Usuario ativado com sucesso!' : 'Usuario desativado com sucesso!',
@@ -269,9 +210,9 @@ const userController = {
   delete: async (req: Request, res: Response) => {
     const { id } = req.params;
     const userId = Number(id);
-    const deletado = await db('usuarios').where({ id: userId }).del();
-    if (deletado === 0) {
-      throw new AppError('Usuario nao encontrado.', 404);
+    const success = await UserRepository.delete(userId);
+    if (!success) {
+      throw new AppError('Usuario nao encontrado ou erro ao deletar.', 404);
     }
     return res.status(204).send();
   },

@@ -29,6 +29,11 @@ type Env = {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REDIRECT_URI?: string;
+  SUPABASE?: {
+    URL: string;
+    ANON_KEY?: string;
+    SERVICE_ROLE_KEY?: string;
+  };
 };
 
 const parseNumber = (value?: string) => {
@@ -60,15 +65,22 @@ export const env: Env = {
     PORT: parseNumber(process.env.DB_PORT),
     SSL: parseBoolean(process.env.DB_SSL, (process.env.NODE_ENV === 'production') || Boolean(process.env.DATABASE_URL)),
   },
+  SUPABASE: process.env.SUPABASE_URL
+    ? {
+      URL: process.env.SUPABASE_URL,
+      ANON_KEY: process.env.SUPABASE_ANON_KEY,
+      SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    }
+    : undefined,
   EXTERNAL_DB: process.env.EXTERNAL_DB_HOST
     ? {
-        HOST: process.env.EXTERNAL_DB_HOST,
-        USER: process.env.EXTERNAL_DB_USER,
-        PASSWORD: process.env.EXTERNAL_DB_PASSWORD,
-        NAME: process.env.EXTERNAL_DB_NAME || process.env.EXTERNAL_DB_DATABASE,
-        PORT: parseNumber(process.env.EXTERNAL_DB_PORT),
-        SSL: parseBoolean(process.env.EXTERNAL_DB_SSL, (process.env.EXTERNAL_DB_HOST || '').includes('neon.tech')),
-      }
+      HOST: process.env.EXTERNAL_DB_HOST,
+      USER: process.env.EXTERNAL_DB_USER,
+      PASSWORD: process.env.EXTERNAL_DB_PASSWORD,
+      NAME: process.env.EXTERNAL_DB_NAME || process.env.EXTERNAL_DB_DATABASE,
+      PORT: parseNumber(process.env.EXTERNAL_DB_PORT),
+      SSL: parseBoolean(process.env.EXTERNAL_DB_SSL, (process.env.EXTERNAL_DB_HOST || '').includes('neon.tech')),
+    }
     : undefined,
   OCORRENCIAS_API_URL: process.env.OCORRENCIAS_API_URL,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,

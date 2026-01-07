@@ -57,15 +57,13 @@ const Suspended = ({ children }: { children: React.ReactNode }) => (
 
 // Componente para rotas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  // --- CORREÇÃO APLICADA AQUI ---
-  const isAuthenticated = useAuthStore.getState().isAuthenticated();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 // Componente para rotas de administrador
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuthStore.getState();
-  // --- CORREÇÃO APLICADA AQUI ---
+  const user = useAuthStore((state) => state.user);
   const isAdmin = user?.perfil === 'admin';
   return isAdmin ? <>{children}</> : <Navigate to="/app/dashboard" replace />;
 };
@@ -121,7 +119,7 @@ export const router = createBrowserRouter([
       { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
       { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
       { path: 'usuarios', element: <AdminRoute><Suspended><UsersManagement /></Suspended></AdminRoute> },
-      
+
       // Rotas comuns
       { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> },
       { path: 'perfil', element: <Suspended><Profile /></Suspended> },

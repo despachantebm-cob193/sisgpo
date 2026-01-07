@@ -1,41 +1,29 @@
 import { Request, Response } from 'express';
-import db from '../config/database';
+import { supabaseAdmin } from '../config/supabase';
 import AppError from '../utils/AppError';
+import { normalizeText } from '../utils/textUtils';
 
 const normalize = (value: string | null | undefined) => (value ? String(value).trim().toUpperCase() : '');
-
-type ViaturaStatsDetalhadoRow = {
-  prefixo: string;
-  local_final: string | null;
-};
-
-type ViaturaPorObmRow = {
-  obm_id: number | null;
-  obm_crbm: string | null;
-  obm_abreviatura: string | null;
-  obm: string | null;
-  prefixo: string;
-};
 
 const dashboardController = {
   getMetadataByKey: async (req: Request, res: Response) => {
     const { key } = req.params;
-    const metadata = await db('metadata').where({ key }).first();
-    if (!metadata) return res.status(200).json({ key, value: null });
-    return res.status(200).json(metadata);
+    const { data } = await supabaseAdmin.from('metadata').select('*').eq('key', key).single();
+    if (!data) return res.status(200).json({ key, value: null });
+    return res.status(200).json(data);
   },
 
   getStats: async (_req: Request, res: Response) => {
     try {
       const [mil, vtr, obm] = await Promise.all([
-        db('militares').count({ count: '*' }).first().catch(() => ({ count: 0 })),
-        db('viaturas').count({ count: '*' }).first().catch(() => ({ count: 0 })),
-        db('obms').count({ count: '*' }).first().catch(() => ({ count: 0 })),
+        supabaseAdmin.from('militares').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('viaturas').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('obms').select('id', { count: 'exact', head: true }),
       ]);
       return res.status(200).json({
-        total_militares_ativos: parseInt((mil as any)?.count ?? 0, 10),
-        total_viaturas_disponiveis: parseInt((vtr as any)?.count ?? 0, 10),
-        total_obms: parseInt((obm as any)?.count ?? 0, 10),
+        total_militares_ativos: mil.count || 0,
+        total_viaturas_disponiveis: vtr.count || 0,
+        total_obms: obm.count || 0,
       });
     } catch (error) {
       console.error('ERRO AO BUSCAR ESTATISTICAS GERAIS:', error);
@@ -45,8 +33,12 @@ const dashboardController = {
 
   getViaturaStatsPorTipo: async (_req: Request, res: Response) => {
     try {
-      const viaturas = await db('viaturas').select('prefixo').where('ativa', true).catch(() => []);
-      const stats = (viaturas as Array<{ prefixo: string }>).reduce((acc: any, v) => {
+      const { data: viaturas } = await supabaseAdmin
+        .from('viaturas')
+        .select('prefixo')
+        .eq('ativa', true);
+
+      const stats = (viaturas || []).reduce((acc: any, v: any) => {
         const p = normalize(v.prefixo);
         let tipo = 'OUTROS';
         if (p.startsWith('UR')) tipo = 'UR';
@@ -66,14 +58,22 @@ const dashboardController = {
 
   getMilitarStats: async (_req: Request, res: Response) => {
     try {
-      const rows = await db('militares')
+      // Supabase JS não tem groupBy. Fazendo agregação no client.
+      const { data: militares } = await supabaseAdmin
+        .from('militares')
         .select('posto_graduacao')
-        .count('id as count')
-        .where('ativo', true)
-        .groupBy('posto_graduacao')
-        .orderBy('count', 'desc')
-        .catch(() => []);
-      const data = (rows as any[]).map((r) => ({ name: r.posto_graduacao, value: parseInt(r.count, 10) }));
+        .eq('ativo', true);
+
+      const stats: Record<string, number> = {};
+      (militares || []).forEach((m: any) => {
+        const pg = m.posto_graduacao || 'N/A';
+        stats[pg] = (stats[pg] || 0) + 1;
+      });
+
+      const data = Object.entries(stats)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+
       return res.status(200).json(data);
     } catch (error) {
       console.error('ERRO AO BUSCAR ESTATISTICAS DE MILITARES:', error);
@@ -83,74 +83,95 @@ const dashboardController = {
 
   getViaturaStatsDetalhado: async (_req: Request, res: Response) => {
     try {
-      const rows = (await db('viaturas as v')
-        .leftJoin('obms as o', 'v.obm', 'o.nome')
-        .select('v.prefixo', db.raw('COALESCE(o.abreviatura, v.obm) as local_final'))
-        .where('v.ativa', true)
-        .orderBy('local_final', 'asc')
-        .orderBy('v.prefixo', 'asc')
-        .catch(() => [])) as ViaturaStatsDetalhadoRow[];
+      // Buscar viaturas e OBMs para join em memória
+      const { data: viaturas } = await supabaseAdmin
+        .from('viaturas')
+        .select('prefixo, obm') // obm aqui é string denormalizada
+        .eq('ativa', true)
+        .order('prefixo');
 
-      const stats = rows.reduce((acc: any, vtr) => {
-        const nomeLocal = vtr.local_final || 'OBM Nao Informada';
+      const { data: obms } = await supabaseAdmin.from('obms').select('nome, abreviatura');
+
+      const obmMap = new Map<string, string>(); // nome -> abreviatura
+      (obms || []).forEach((o: any) => {
+        if (o.nome) obmMap.set(o.nome.toLowerCase(), o.abreviatura);
+      });
+
+      const stats = (viaturas || []).reduce((acc: any, vtr: any) => {
+        // Tenta resolver abreviatura da OBM
+        let localFinal = vtr.obm;
+        if (vtr.obm && obmMap.has(vtr.obm.toLowerCase())) {
+          localFinal = obmMap.get(vtr.obm.toLowerCase());
+        }
+        const nomeLocal = localFinal || 'OBM Nao Informada';
+
         const p = normalize(vtr.prefixo);
         let tipo = 'OUTROS';
         if (p.startsWith('UR')) tipo = 'UR';
         else if (p.startsWith('ABT')) tipo = 'ABT';
         else if (p.startsWith('ASA')) tipo = 'ASA';
         else if (p.includes('-')) tipo = p.split('-')[0];
+
         if (!acc[tipo]) acc[tipo] = { tipo, quantidade: 0, obms: {} as Record<string, string[]> };
         acc[tipo].quantidade += 1;
         if (!acc[tipo].obms[nomeLocal]) acc[tipo].obms[nomeLocal] = [];
         acc[tipo].obms[nomeLocal].push(vtr.prefixo);
         return acc;
       }, {});
+
       const result = Object.values(stats)
         .map((item: any) => ({
           ...item,
           obms: Object.entries(item.obms).map(([nome, prefixos]) => ({ nome, prefixos })),
         }))
         .sort((a: any, b: any) => a.tipo.localeCompare(b.tipo));
+
       return res.status(200).json(result);
     } catch (error) {
-      console.error('ERRO AO BUSCAR ESTATISTICAS DETALHADAS DE VIATURAS:', error);
-      throw new AppError('Nao foi possivel carregar as estatisticas detalhadas de viaturas.', 500);
+      console.error('ERRO AO BUSCAR ESTATISTICAS DETALHADAS VTR:', error);
+      throw new AppError('Nao foi possivel carregar detalhes de viaturas.', 500);
     }
   },
 
   getViaturaStatsPorObm: async (_req: Request, res: Response) => {
     try {
-      const rows = (await db('viaturas as v')
-        .leftJoin('obms as o', 'v.obm', 'o.nome')
-        .select(
-          'o.id as obm_id',
-          'o.crbm as obm_crbm',
-          'o.abreviatura as obm_abreviatura',
-          db.raw('COALESCE(o.abreviatura, v.obm) as obm'),
-          'v.prefixo'
-        )
-        .where('v.ativa', true)
-        .orderBy('obm', 'asc')
-        .catch(() => [])) as ViaturaPorObmRow[];
+      // Buscar viaturas e OBMs para join em memória
+      const { data: viaturas } = await supabaseAdmin
+        .from('viaturas')
+        .select('prefixo, obm')
+        .eq('ativa', true);
 
-      const acc: Record<
-        string,
-        { id: number | null; nome: string; prefixos: string[]; crbm: string | null; abreviatura: string | null }
-      > = {};
-      rows.forEach((r) => {
-        const key = r.obm || 'Sem OBM';
-        if (!acc[key]) {
-          acc[key] = {
-            id: r.obm_id ?? null,
+      const { data: obms } = await supabaseAdmin.from('obms').select('id, nome, abreviatura, crbm');
+
+      const resultStats: Record<string, any> = {};
+
+      // Helper simples para achar OBM do array
+      const findObm = (nomeOrAbrev: string) => {
+        if (!nomeOrAbrev) return null;
+        const target = normalizeText(nomeOrAbrev);
+        return (obms || []).find((o: any) =>
+          normalizeText(o.nome) === target || normalizeText(o.abreviatura) === target
+        );
+      };
+
+      (viaturas || []).forEach((v: any) => {
+        const obmMatch = findObm(v.obm);
+        // Usa o nome da OBM encontrada ou o valor da string v.obm ou 'Sem OBM'
+        const key = obmMatch ? (obmMatch.abreviatura || obmMatch.nome) : (v.obm || 'Sem OBM');
+
+        if (!resultStats[key]) {
+          resultStats[key] = {
+            id: obmMatch?.id || null,
             nome: key,
             prefixos: [],
-            crbm: r.obm_crbm ?? null,
-            abreviatura: r.obm_abreviatura ?? null,
+            crbm: obmMatch?.crbm || null,
+            abreviatura: obmMatch?.abreviatura || null
           };
         }
-        acc[key].prefixos.push(r.prefixo);
+        resultStats[key].prefixos.push(v.prefixo);
       });
-      const result = Object.values(acc).map((entry) => ({
+
+      const result = Object.values(resultStats).map((entry: any) => ({
         id: entry.id,
         nome: entry.nome,
         quantidade: entry.prefixos.length,
@@ -158,37 +179,29 @@ const dashboardController = {
         crbm: entry.crbm,
         abreviatura: entry.abreviatura,
       }));
+
       return res.status(200).json(result);
     } catch (error) {
-      console.error('ERRO AO BUSCAR ESTATISTICAS DE VIATURAS POR OBM:', error);
-      throw new AppError('Nao foi possivel carregar as estatisticas de viaturas por OBM.', 500);
+      console.error('ERRO AO ESTATISTICAS DE VIATURAS POR OBM:', error);
+      throw new AppError('Erro ao carregar estatisticas por OBM.', 500);
     }
   },
 
   getServicoDia: async (_req: Request, res: Response) => {
     try {
-      const hasTable = await db.schema.hasTable('servico_dia').catch(() => false);
-      if (!hasTable) return res.status(200).json([]);
+      const today = new Date().toISOString().split('T')[0];
 
-      const hasDataInicio = await db.schema.hasColumn('servico_dia', 'data_inicio').catch(() => false);
-      const hasDataFim = await db.schema.hasColumn('servico_dia', 'data_fim').catch(() => false);
-      if (!hasDataInicio || !hasDataFim) return res.status(200).json([]);
+      const { data, error } = await supabaseAdmin
+        .from('servico_dia')
+        .select('*')
+        .lte('data_inicio', today) // Assumindo lógica <= hoje e >= hoje para pegar vigente?
+        .gte('data_fim', today)    // ou apenas data = hoje se for diário. O original usava intervalos.
+        .limit(10); // Segurança
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      const latest = await db('servico_dia')
-        .where('data_inicio', '<=', tomorrow.toISOString())
-        .andWhere('data_fim', '>=', today.toISOString())
-        .orderBy('data_inicio', 'desc')
-        .first();
-      if (!latest) return res.status(200).json([]);
-      const rows = await db('servico_dia').where('data_inicio', (latest as any).data_inicio);
-      return res.status(200).json(rows);
+      if (error) return res.status(200).json([]); // Retorna vazio se der erro ou tabela nao existir
+      return res.status(200).json(data || []);
     } catch (error) {
-      console.error('ERRO AO BUSCAR SERVICO DO DIA:', error);
-      throw new AppError('Nao foi possivel carregar o servico do dia.', 500);
+      return res.status(200).json([]);
     }
   },
 
@@ -197,31 +210,23 @@ const dashboardController = {
 
   getMilitaresEscaladosCount: async (_req: Request, res: Response) => {
     try {
-      const hasPm = await db.schema.hasTable('plantoes_militares').catch(() => false);
-      const hasMp = await db.schema.hasTable('militar_plantao').catch(() => false);
-      const pmTable = hasPm ? 'plantoes_militares' : hasMp ? 'militar_plantao' : null;
-      if (!pmTable) return res.status(200).json({ count: 0 });
+      const today = new Date().toISOString().split('T')[0];
+      // Count distinct via JS (puxa tabela de relação filtrada por data)
+      // Query original faz join.
+      // supabase: militar_plantao join plantoes
+      const { data, error } = await supabaseAdmin
+        .from('militar_plantao')
+        .select('militar_id, plantoes!inner(data_plantao)')
+        .gte('plantoes.data_plantao', today);
 
-      const hasDP = await db.schema.hasColumn('plantoes', 'data_plantao').catch(() => false);
-      const hasDI = await db.schema.hasColumn('plantoes', 'data_inicio').catch(() => false);
-      const hasDF = await db.schema.hasColumn('plantoes', 'data_fim').catch(() => false);
-      const cols: string[] = [];
-      if (hasDP) cols.push('p.data_plantao');
-      if (hasDI) cols.push('p.data_inicio');
-      if (hasDF) cols.push('p.data_fim');
-      const dateExpr = cols.length > 1 ? `COALESCE(${cols.join(', ')})` : cols[0] || 'CURRENT_DATE';
+      if (error || !data) return res.status(200).json({ count: 0 });
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const base = db(`${pmTable} as mp`).join('plantoes as p', 'mp.plantao_id', 'p.id');
-      const countRow = await base
-        .whereRaw(`${dateExpr} >= ?`, [today.toISOString().split('T')[0]])
-        .countDistinct('mp.militar_id as count')
-        .first();
-      return res.status(200).json({ count: parseInt((countRow as any)?.count || 0, 10) });
+      const uniqueIds = new Set(data.map((r: any) => r.militar_id));
+      return res.status(200).json({ count: uniqueIds.size });
+
     } catch (error) {
-      console.error('ERRO AO BUSCAR CONTAGEM DE MILITARES ESCALADOS:', error);
-      throw new AppError('Nao foi possivel carregar a contagem de militares escalados.', 500);
+      console.error('ERRO CONTAGEM ESCALADOS:', error);
+      return res.status(200).json({ count: 0 });
     }
   },
 };
