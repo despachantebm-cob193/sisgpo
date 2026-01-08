@@ -12,7 +12,7 @@ export const SupabaseAuthStateListener = () => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('[SupabaseAuth] Event:', event);
 
-            if (event === 'SIGNED_IN' && session) {
+            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
                 // Se temos sessão mas o token do store é diferente (ou nulo), vamos hidratar
                 if (!token || token !== session.access_token) {
                     console.log('[SupabaseAuth] Hydrating user store from backend...');
