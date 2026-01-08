@@ -27,7 +27,7 @@ export const SupabaseAuthStateListener = () => {
                         login(session.access_token, data.user);
                         console.log('[SupabaseAuth] Store hydrated successfully.');
                     } catch (e: any) {
-                        console.error('[SupabaseAuth] Failed to hydrate user', e);
+                        console.error('[SupabaseAuth] Failed to hydrate user from backend', e);
 
                         // Check specifically for pending approval error
                         if (e.response && e.response.status === 403 && e.response.data?.message === 'USER_PENDING_APPROVAL') {
@@ -35,9 +35,21 @@ export const SupabaseAuthStateListener = () => {
                             useAuthStore.getState().setPending(true);
                             navigate('/pending-approval', { replace: true });
                         } else {
-                            // Se falhar recuperar o user do backend por outros motivos, faz logout
-                            logout();
-                            await supabase.auth.signOut();
+                            // FALLBACK: If backend is unreachable (e.g. Supabase-only mode), construct user from session
+                            console.warn('[SupabaseAuth] Backend unreachable. Falling back to session data.');
+
+                            const fallbackUser: any = {
+                                id: 0, // Temporary ID since we don't have numeric ID
+                                login: session.user.email || 'user',
+                                nome: session.user.user_metadata?.full_name || session.user.email,
+                                email: session.user.email,
+                                perfil: session.user.user_metadata?.perfil || 'user', // Trust metadata if available
+                                ativo: true,
+                                status: 'approved'
+                            };
+
+                            login(session.access_token, fallbackUser);
+                            console.log('[SupabaseAuth] Logged in with fallback session data.');
                         }
                     } finally {
                         useAuthStore.getState().setLoadingProfile(false);
