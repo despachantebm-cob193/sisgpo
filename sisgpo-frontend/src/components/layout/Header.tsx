@@ -3,13 +3,19 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Menu, X, Settings, LogOut } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import { supabase } from '../../config/supabase';
 
 const Header: React.FC = () => {
   const { pageTitle, isSidebarCollapsed, lastUpdate } = useUiStore();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
     logout();
     navigate('/login');
   };

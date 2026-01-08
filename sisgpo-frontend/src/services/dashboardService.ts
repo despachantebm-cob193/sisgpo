@@ -211,14 +211,19 @@ export const dashboardService = {
             // 1. Fetch servico_dia items
             const { data: servicoData, error: servicoError } = await supabase
                 .from('servico_dia')
-                .select('funcao, militar_id')
+                .select('funcao, pessoa_id, pessoa_type')
                 .eq('data', today);
 
             if (servicoError) throw servicoError;
             if (!servicoData || servicoData.length === 0) return [];
 
-            // 2. Fetch related militares
-            const militarIds = servicoData.map(s => s.militar_id).filter(id => id !== null);
+            // 2. Separate types (militar vs civil) - for now assuming mostly military but handling structure
+            // Note: The Dashboard interface ServicoInfo only supports militar-like fields (nome_guerra, posto).
+            // We'll filter for military only or try to adapt if needed.
+
+            const militarIds = servicoData
+                .filter(s => s.pessoa_type === 'militar' && s.pessoa_id)
+                .map(s => s.pessoa_id);
 
             if (militarIds.length === 0) {
                 return servicoData.map(s => ({
@@ -240,7 +245,10 @@ export const dashboardService = {
 
             // 3. Merge and filter
             let result = servicoData.map(item => {
-                const militar = militaresMap.get(item.militar_id);
+                // Skip if not militar (or handle civils if requirements change)
+                if (item.pessoa_type !== 'militar') return null;
+
+                const militar = militaresMap.get(item.pessoa_id);
                 return {
                     funcao: item.funcao,
                     nome_guerra: militar?.nome_guerra || 'N/A',
@@ -248,7 +256,7 @@ export const dashboardService = {
                     telefone: militar?.telefone || null,
                     obm_nome: militar?.obm_nome
                 };
-            });
+            }).filter(item => item !== null) as any[];
 
             // Filter by OBM if selected
             if (selectedObm) {
