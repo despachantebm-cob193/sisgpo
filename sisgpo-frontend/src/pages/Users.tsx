@@ -243,7 +243,7 @@ export default function Users() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{user.perfil}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {/* Status logic from UserRow */}
-                          {user.status === 'pending' ? (
+                          {user.status === 'pending' || user.status === 'pendente' ? (
                             <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
                               Pendente
                             </span>
@@ -260,7 +260,7 @@ export default function Users() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           {/* Action buttons logic from UserRow */}
                           <div className="flex items-center justify-end gap-2">
-                            {user.status === 'pending' ? (
+                            {user.status === 'pending' || user.status === 'pendente' ? (
                               <>
                                 <button onClick={() => handleApprove(user)} title="Aprovar" className="text-green-400 hover:text-green-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Check className="h-5 w-5" /></button>
                                 <button onClick={() => handleReject(user)} title="Rejeitar" className="text-red-400 hover:text-red-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><X className="h-5 w-5" /></button>

@@ -32,7 +32,7 @@ export interface Obm {
 }
 
 export interface Aeronave {
-  id?: number;
+  id: number;
   prefixo: string;
   tipo_asa: 'fixa' | 'rotativa';
   ativa: boolean;
@@ -68,7 +68,7 @@ export type UserRecord = {
   email?: string | null;
   perfil: 'admin' | 'user';
   ativo: boolean;
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: 'pending' | 'pendente' | 'approved' | 'rejected';
   created_at?: string;
   updated_at?: string;
 };

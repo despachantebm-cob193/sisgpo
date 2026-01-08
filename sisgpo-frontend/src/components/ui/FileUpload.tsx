@@ -39,9 +39,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isLoading, acceptedFi
         )}
       </div>
       <div className="flex flex-col sm:flex-row items-center gap-4">
-        <label htmlFor="file-upload" className="flex-1 w-full">
-          <div className="flex items-center justify-center w-full px-4 py-2 rounded-md border-2 border-borderDark bg-cardSlate/80 hover:bg-cardSlate text-premiumOrange transition-colors shadow-inner cursor-pointer border-dashed">
-            <Upload className="w-5 h-5 text-textSecondary mr-2" />
+        <label htmlFor="file-upload" className="flex-1 min-w-0 w-full cursor-pointer group">
+          <div className="flex items-center justify-center w-full px-4 py-2 rounded-md border-2 border-borderDark bg-cardSlate/80 group-hover:bg-cardSlate/90 group-hover:border-tagBlue/50 text-premiumOrange transition-all shadow-inner border-dashed">
+            <Upload className="w-5 h-5 text-textSecondary mr-2 flex-shrink-0" />
             <span className="text-sm font-semibold text-premiumOrange truncate">
               {selectedFile ? selectedFile.name : 'Clique para selecionar o arquivo'}
             </span>
@@ -55,7 +55,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUpload, isLoading, acceptedFi
             onClick={(e) => (e.currentTarget.value = '')} // Permite selecionar o mesmo arquivo novamente
           />
         </label>
-        <Button variant="warning" onClick={handleUploadClick} disabled={!selectedFile || isLoading} className="w-full sm:w-auto">
+        <Button
+          variant="warning"
+          onClick={handleUploadClick}
+          disabled={!selectedFile || isLoading}
+          className="w-full sm:w-auto whitespace-nowrap"
+        >
           {isLoading ? <Spinner className="h-5 w-5" /> : 'Enviar'}
         </Button>
       </div>

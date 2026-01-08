@@ -22,6 +22,12 @@ interface ViaturaByObmTableProps {
 const normalizarCrbm = (value: string | null | undefined): string => {
   const trimmedValue = value?.trim();
   if (!trimmedValue) return 'OUTRAS OBMS';
+
+  // Se for apenas número ("1", "2"), transforma em "1º CRBM"
+  if (/^\d+$/.test(trimmedValue)) {
+    return `${trimmedValue}º CRBM`;
+  }
+
   return trimmedValue
     .replace(/°/g, 'º')
     .replace(/CRMB/gi, 'CRBM')
@@ -81,55 +87,53 @@ const ViaturaByObmTable: React.FC<ViaturaByObmTableProps> = ({ data, isLoading, 
       subtitle={`Total: ${totalViaturas} viaturas`}
       titleClassName="text-2xl font-bold text-brightBlue uppercase tracking-wide"
     >
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-borderDark/60">
-          <thead className="bg-searchbar">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">CRBM</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">OBM</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Qtd. Viaturas</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Prefixos</th>
-            </tr>
-          </thead>
-          <tbody className="bg-cardSlate divide-y divide-borderDark/60">
-            {sortedGroupKeys.map((crbmKey) => {
-              const obmsInGroup = groupedByCrbm[crbmKey].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-              return (
-                <React.Fragment key={crbmKey}>
-                  {obmsInGroup.map((obm, index) => (
-                    <tr key={obm.id ?? obm.nome}>
-                      {index === 0 && (
-                        <td rowSpan={obmsInGroup.length} className="px-6 py-4 align-top whitespace-nowrap text-sm font-medium text-brightBlue border-r border-borderDark/60">
-                          {crbmKey === 'OUTRAS OBMS' ? 'Outras OBMs' : crbmKey}
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-textMain">{obm.abreviatura || obm.nome}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-brightYellow">{obm.quantidade}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          {obm.prefixos
-                            .slice()
-                            .sort((a, b) => a.localeCompare(b))
-                            .map((prefixo, i) => {
-                              const isEmpenhada = empenhadasViaturas.has(prefixo.toUpperCase());
-                              return (
-                                <span
-                                  key={`${prefixo}-${i}`}
-                                  className={`px-2 py-1 rounded text-xs font-medium ${isEmpenhada ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-background text-textMain'}`}
-                                >
-                                  {prefixo}
-                                </span>
-                              );
-                            })}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="space-y-8 pb-4">
+        {sortedGroupKeys.map((crbmKey) => {
+          const obmsInGroup = groupedByCrbm[crbmKey].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+          return (
+            <div key={crbmKey} className="space-y-3">
+              <h3 className="text-xl md:text-lg font-bold md:font-semibold text-tagBlue bg-cardSlate md:bg-transparent p-3 md:p-0 md:pl-2 rounded-lg md:rounded-none border-b-2 border-tagBlue md:border-b-0 md:border-l-4 md:border-tagBlue/50 text-center md:text-left shadow-sm md:shadow-none">
+                {crbmKey === 'OUTRAS OBMS' ? 'Outras OBMs' : crbmKey}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {obmsInGroup.map((obm) => (
+                  <div
+                    key={obm.id ?? obm.nome}
+                    className="relative flex flex-col rounded-lg border border-borderDark/60 bg-cardSlate/40 p-4 shadow-sm hover:border-tagBlue/30 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="text-base font-semibold text-textMain">{obm.abreviatura || obm.nome}</h4>
+                      <div className="flex flex-col items-end">
+                        <span className="text-2xl font-bold text-brightYellow">{obm.quantidade}</span>
+                        <span className="text-[10px] text-textSecondary uppercase tracking-wider">Viaturas</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto pt-2 border-t border-borderDark/30">
+                      <div className="flex flex-wrap gap-2">
+                        {obm.prefixos
+                          .slice()
+                          .sort((a, b) => a.localeCompare(b))
+                          .map((prefixo, i) => {
+                            const isEmpenhada = empenhadasViaturas.has(prefixo.toUpperCase());
+                            return (
+                              <span
+                                key={`${prefixo}-${i}`}
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${isEmpenhada ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40' : 'bg-background/80 text-textSecondary border border-borderDark/50'}`}
+                              >
+                                {prefixo}
+                              </span>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

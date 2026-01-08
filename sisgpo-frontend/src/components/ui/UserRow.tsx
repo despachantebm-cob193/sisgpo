@@ -40,7 +40,7 @@ export default function UserRow({
   };
 
   const renderStatus = () => {
-    if (user.status === 'pending') {
+    if (user.status === 'pending' || user.status === 'pendente') {
       return (
         <span className="inline-flex items-center rounded-full bg-yellow-500/15 px-2.5 py-0.5 text-xs font-semibold text-yellow-300 ring-1 ring-yellow-500/40">
           Pendente
@@ -77,9 +77,8 @@ export default function UserRow({
         <div className="flex items-center gap-3">
           {renderStatus()}
           <ChevronDown
-            className={`h-5 w-5 text-textSecondary transition-transform ${
-              isExpanded ? 'rotate-180' : ''
-            }`}
+            className={`h-5 w-5 text-textSecondary transition-transform ${isExpanded ? 'rotate-180' : ''
+              }`}
           />
         </div>
       </button>
@@ -110,13 +109,13 @@ export default function UserRow({
             <div>
               <p className="font-semibold text-textSecondary">Status detalhado</p>
               <p className="text-textMain">
-                {user.status === 'pending' ? 'Aguardando aprovacao' : user.ativo ? 'Ativo' : 'Bloqueado'}
+                {user.status === 'pending' || user.status === 'pendente' ? 'Aguardando aprovacao' : user.ativo ? 'Ativo' : 'Bloqueado'}
               </p>
             </div>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            {user.status === 'pending' ? (
+            {user.status === 'pending' || user.status === 'pendente' ? (
               <>
                 <button
                   type="button"

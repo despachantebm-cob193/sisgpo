@@ -36,9 +36,16 @@ interface PlantaoFormData {
   guarnicao: GuarnicaoMembro[];
 }
 
+interface OBM {
+  id: number;
+  nome: string;
+  abreviatura: string;
+}
+
 interface PlantaoFormProps {
   plantaoToEdit?: PlantaoDetalhado | null;
   viaturas: Viatura[];
+  obms: OBM[];
   onSave: (data: any) => void;
   onCancel: () => void;
   isLoading: boolean;
@@ -60,7 +67,7 @@ const formatarHorarioParaInput = (valor?: string | null): string => {
   return `${hora.padStart(2, '0')}:${minuto.padStart(2, '0')}`;
 };
 
-const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSave, onCancel, isLoading }) => {
+const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, obms, onSave, onCancel, isLoading }) => {
   const customStyles = {
     control: (provided: any) => ({
       ...provided,
@@ -82,8 +89,8 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       backgroundColor: state.isSelected
         ? '#39436F' // bg-cardBlue
         : state.isFocused
-        ? '#39436F' // hover:bg-cardBlue
-        : '#1b222c', // bg-inputField
+          ? '#39436F' // hover:bg-cardBlue
+          : '#1b222c', // bg-inputField
       color: '#D3D3D3', // text-textMain
       '&:active': {
         backgroundColor: '#39436F', // bg-cardBlue
@@ -105,6 +112,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 
   const getInitialGuarnicaoMembro = (): GuarnicaoMembro => ({
     militar_id: null,
+    nome_guerra: '',
     nome_completo: '',
     nome_exibicao: 'Selecione um militar...',
     posto_graduacao: '',
@@ -139,6 +147,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
           return {
             militar_id: m.militar_id,
             nome_completo: exibicao,
+            nome_guerra: m.nome_guerra,
             nome_exibicao: exibicao,
             posto_graduacao: m.posto_graduacao ?? '',
             funcao: m.funcao,
@@ -166,6 +175,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         ...novaGuarnicao[index],
         militar_id: selectedOption.value,
         nome_completo: exibicao,
+        nome_guerra: selectedOption.militar.nome_guerra ?? '',
         nome_exibicao: exibicao,
         posto_graduacao: selectedOption.militar.posto_graduacao ?? '',
         funcao: novaGuarnicao[index].funcao, // Manter função existente
@@ -209,22 +219,22 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         const normalizedPrefix = viaturaPrefixo?.trim().toUpperCase() || '';
         return Array.isArray(lista)
           ? lista.some((plantao: any) => {
-              const prefix =
-                plantao.viatura_prefixo ||
-                plantao.prefixo ||
-                plantao.viatura?.prefixo ||
-                '';
-              const normalized = prefix.trim().toUpperCase();
-              const plantaoViaturaId = Number(
-                plantao.viatura_id ??
-                  plantao.viaturaId ??
-                  plantao.viatura?.id
-              );
-              return (
-                (normalizedPrefix && normalized === normalizedPrefix) ||
-                (Number.isFinite(plantaoViaturaId) && plantaoViaturaId === viaturaId)
-              );
-            })
+            const prefix =
+              plantao.viatura_prefixo ||
+              plantao.prefixo ||
+              plantao.viatura?.prefixo ||
+              '';
+            const normalized = prefix.trim().toUpperCase();
+            const plantaoViaturaId = Number(
+              plantao.viatura_id ??
+              plantao.viaturaId ??
+              plantao.viatura?.id
+            );
+            return (
+              (normalizedPrefix && normalized === normalizedPrefix) ||
+              (Number.isFinite(plantaoViaturaId) && plantaoViaturaId === viaturaId)
+            );
+          })
           : false;
       } catch (error) {
         console.error('Erro ao verificar plantão duplicado', error);
@@ -258,10 +268,10 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
     }
 
     const obmIdFromState = typeof formData.obm_id === 'number' ? formData.obm_id : null;
-    const obmId = viaturaSelecionada.obm_id ?? obmIdFromState;
+    const obmId = (typeof viaturaSelecionada.obm_id === 'number' ? viaturaSelecionada.obm_id : null) ?? obmIdFromState;
 
-    if (obmId === null || obmId === undefined) {
-      toast.error('A viatura selecionada não está vinculada a uma OBM. Atualize o cadastro da viatura ou selecione outra antes de lançar o plantão.');
+    if (!obmId) {
+      toast.error('A viatura selecionada não está vinculada a uma OBM. Por favor, selecione uma OBM manualmente no campo "OBM de Vinculação".');
       return;
     }
 
@@ -271,9 +281,9 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       hora_fim: formData.hora_fim || null,
       obm_id: obmId,
       guarnicao: formData.guarnicao.map(({ militar_id, funcao, telefone }) => ({
-        militar_id,
+        militar_id: Number(militar_id),
         funcao,
-        telefone: telefone.replace(/\D/g, ''),
+        telefone: (telefone || '').replace(/\D/g, ''),
       })),
     };
     onSave(payload);
@@ -281,12 +291,29 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Seção de Data e Viatura (permanece no topo) */}
+      {/* Row 1: OBM e Viatura */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {/* Campo OBM */}
         <div>
-          <Label htmlFor="data_plantao">Data do Plantão</Label>
-          <Input id="data_plantao" type="date" value={formData.data_plantao} onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, data_plantao: e.target.value }))} required />
+          <Label htmlFor="obm_id">OBM de Vinculação</Label>
+          <select
+            id="obm_id"
+            value={formData.obm_id ?? ''}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, obm_id: Number(e.target.value) || '' }))}
+            required
+            className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
+          >
+            <option value="">Selecione a OBM...</option>
+            {obms?.map(obm => (
+              <option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>
+            ))}
+          </select>
+          <p className="text-xs text-textSecondary mt-1">
+            *Selecione manualmente se a viatura não tiver OBM vinculada.
+          </p>
         </div>
+
+        {/* Campo Viatura */}
         <div>
           <Label htmlFor="viatura_id">Viatura</Label>
           <select
@@ -305,7 +332,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
               setFormData(prev => ({
                 ...prev,
                 viatura_id: selectedId,
-                obm_id: viatura?.obm_id ?? null,
+                obm_id: viatura?.obm_id ?? '', // Default to linked OBM, or empty if none
               }));
             }}
             required
@@ -317,7 +344,15 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Row 2: Data e Horários */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* Campo Data */}
+        <div>
+          <Label htmlFor="data_plantao">Data do Plantão</Label>
+          <Input id="data_plantao" type="date" value={formData.data_plantao} onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, data_plantao: e.target.value }))} required />
+        </div>
+
+        {/* Campo Horario Inicial */}
         <div>
           <Label htmlFor="hora_inicio">Horario inicial</Label>
           <Input
@@ -327,6 +362,8 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
             onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
           />
         </div>
+
+        {/* Campo Horario Final */}
         <div>
           <Label htmlFor="hora_fim">Horario final</Label>
           <Input
@@ -402,7 +439,7 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, onSa
       {/* Seção de Observações */}
       <div>
         <Label htmlFor="observacoes">Observações</Label>
-        <textarea id="observacoes" value={formData.observacoes} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
+        <textarea id="observacoes" value={formData.observacoes || ''} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
       </div>
 
       {/* Botões de Ação */}

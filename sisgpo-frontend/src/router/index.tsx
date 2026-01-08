@@ -1,11 +1,13 @@
 import React, { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 import AppLayout from '../components/layout/AppLayout';
 import PublicLayout from '../components/layout/PublicLayout';
 import NotFound from '../pages/NotFound';
 import Spinner from '../components/ui/Spinner';
+import { SupabaseAuthStateListener } from '../components/auth/SupabaseAuthStateListener';
+import { SessionTimeoutHandler } from '../components/auth/SessionTimeoutHandler';
 
 // Importações das páginas
 const Login = lazy(() => import('../pages/Login'));
@@ -22,10 +24,34 @@ const Relatorio = lazy(() => import('../pages/Relatorio'));
 const UsersManagement = lazy(() => import('../pages/Users'));
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
 const SsoLogin = lazy(() => import('../pages/SsoLogin'));
+const SubjectPendingPage = lazy(() => import('../pages/SubjectPendingPage'));
+
+const RootLayout = () => (
+  <>
+    <SupabaseAuthStateListener />
+    {/* Monitora inatividade e faz logout automatico */}
+    <SessionTimeoutHandler />
+    <Outlet />
+  </>
+);
 
 const PublicOnlyLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+  const isPending = useAuthStore((state) => state.isPending);
+  const isLoadingProfile = useAuthStore((state) => state.isLoadingProfile);
+
+  if (isLoadingProfile) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Spinner className="h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+
   if (isAuthenticated) {
+    if (isPending) {
+      return <Navigate to="/pending-approval" replace />;
+    }
     return <Navigate to="/app/dashboard" replace />;
   }
   return <PublicLayout />;
@@ -58,7 +84,26 @@ const Suspended = ({ children }: { children: React.ReactNode }) => (
 // Componente para rotas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const isPending = useAuthStore((state) => state.isPending);
+  const isLoadingProfile = useAuthStore((state) => state.isLoadingProfile);
+
+  if (isLoadingProfile) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Spinner className="h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isPending) {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 // Componente para rotas de administrador
@@ -70,63 +115,72 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 export const router = createBrowserRouter([
   {
-    path: '/',
-    element: <PublicOnlyLayout />,
-    errorElement: <NotFound />,
+    element: <RootLayout />,
     children: [
       {
-        index: true,
-        element: <Suspended><Dashboard /></Suspended>,
+        path: '/',
+        element: <PublicOnlyLayout />,
+        errorElement: <NotFound />,
+        children: [
+          {
+            index: true,
+            element: <Suspended><Dashboard /></Suspended>,
+          },
+          {
+            path: 'dashboard-ocorrencias',
+            element: <PublicDashboardOcorrencias />,
+          },
+        ],
       },
       {
-        path: 'dashboard-ocorrencias',
-        element: <PublicDashboardOcorrencias />,
-      },
-    ],
-  },
-  {
-    path: '/login',
-    element: <Suspended><Login /></Suspended>,
-  },
-  {
-    path: '/sso/login',
-    element: <Suspended><SsoLogin /></Suspended>,
-  },
-  {
-    path: '/app',
-    element: <PrivateRoute><AppLayout /></PrivateRoute>,
-    errorElement: <NotFound />,
-    children: [
-      {
-        index: true,
-        element: <Navigate to="/app/dashboard" replace />,
+        path: '/login',
+        element: <Suspended><Login /></Suspended>,
       },
       {
-        path: 'dashboard',
-        element: <Suspended><Dashboard /></Suspended>,
+        path: '/sso/login',
+        element: <Suspended><SsoLogin /></Suspended>,
       },
       {
-        path: 'dashboard-ocorrencias',
-        element: <Suspended><DashboardOcorrencias /></Suspended>,
+        path: '/pending-approval',
+        element: <Suspended><SubjectPendingPage /></Suspended>,
       },
+      {
+        path: '/app',
+        element: <PrivateRoute><AppLayout /></PrivateRoute>,
+        errorElement: <NotFound />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/app/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: <Suspended><Dashboard /></Suspended>,
+          },
+          {
+            path: 'dashboard-ocorrencias',
+            element: <Suspended><DashboardOcorrencias /></Suspended>,
+          },
 
-      // Rotas de Administração protegidas com AdminRoute
-      { path: 'obms', element: <Suspended><Obms /></Suspended> },
-      { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
-      { path: 'aeronaves', element: <Suspended><Aeronaves /></Suspended> },
-      { path: 'militares', element: <Suspended><Militares /></Suspended> },
-      { path: 'medicos', element: <Suspended><Medicos /></Suspended> },
-      { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
-      { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
-      { path: 'usuarios', element: <AdminRoute><Suspended><UsersManagement /></Suspended></AdminRoute> },
+          // Rotas de Administração protegidas com AdminRoute
+          { path: 'obms', element: <Suspended><Obms /></Suspended> },
+          { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
+          { path: 'aeronaves', element: <Suspended><Aeronaves /></Suspended> },
+          { path: 'militares', element: <Suspended><Militares /></Suspended> },
+          { path: 'medicos', element: <Suspended><Medicos /></Suspended> },
+          { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
+          { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
+          { path: 'usuarios', element: <AdminRoute><Suspended><UsersManagement /></Suspended></AdminRoute> },
 
-      // Rotas comuns
-      { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> },
-      { path: 'perfil', element: <Suspended><Profile /></Suspended> },
-    ],
-  },
-  {
-    path: '*',
-    element: <NotFound />,
-  },
+          // Rotas comuns
+          { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> },
+          { path: 'perfil', element: <Suspended><Profile /></Suspended> },
+        ],
+      },
+      {
+        path: '*',
+        element: <NotFound />,
+      },
+    ]
+  }
 ]);

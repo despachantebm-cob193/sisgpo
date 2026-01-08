@@ -33,12 +33,24 @@ const dashboardController = {
 
   getViaturaStatsPorTipo: async (_req: Request, res: Response) => {
     try {
-      const { data: viaturas } = await supabaseAdmin
-        .from('viaturas')
-        .select('prefixo')
-        .eq('ativa', true);
+      let allViaturas: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('viaturas')
+          .select('prefixo')
+          .eq('ativa', true)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      const stats = (viaturas || []).reduce((acc: any, v: any) => {
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allViaturas = allViaturas.concat(data);
+        if (data.length < pageSize) break;
+        page++;
+      }
+
+      const stats = (allViaturas || []).reduce((acc: any, v: any) => {
         const p = normalize(v.prefixo);
         let tipo = 'OUTROS';
         if (p.startsWith('UR')) tipo = 'UR';
@@ -58,14 +70,26 @@ const dashboardController = {
 
   getMilitarStats: async (_req: Request, res: Response) => {
     try {
-      // Supabase JS não tem groupBy. Fazendo agregação no client.
-      const { data: militares } = await supabaseAdmin
-        .from('militares')
-        .select('posto_graduacao')
-        .eq('ativo', true);
+      // Fetch com paginação para garantir todos os registros (>1000)
+      let allMilitares: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('militares')
+          .select('posto_graduacao')
+          .eq('ativo', true)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allMilitares = allMilitares.concat(data);
+        if (data.length < pageSize) break;
+        page++;
+      }
 
       const stats: Record<string, number> = {};
-      (militares || []).forEach((m: any) => {
+      (allMilitares || []).forEach((m: any) => {
         const pg = m.posto_graduacao || 'N/A';
         stats[pg] = (stats[pg] || 0) + 1;
       });
@@ -83,21 +107,33 @@ const dashboardController = {
 
   getViaturaStatsDetalhado: async (_req: Request, res: Response) => {
     try {
-      // Buscar viaturas e OBMs para join em memória
-      const { data: viaturas } = await supabaseAdmin
-        .from('viaturas')
-        .select('prefixo, obm') // obm aqui é string denormalizada
-        .eq('ativa', true)
-        .order('prefixo');
+      // Buscar todas as viaturas com paginação
+      let allViaturas: any[] = [];
+      let pageV = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('viaturas')
+          .select('prefixo, obm') // obm aqui é string denormalizada
+          .eq('ativa', true)
+          .order('prefixo') // Order ajuda na paginação consistente
+          .range(pageV * pageSize, (pageV + 1) * pageSize - 1);
 
-      const { data: obms } = await supabaseAdmin.from('obms').select('nome, abreviatura');
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allViaturas = allViaturas.concat(data);
+        if (data.length < pageSize) break;
+        pageV++;
+      }
+
+      const { data: obms } = await supabaseAdmin.from('obms').select('nome, abreviatura').limit(2000);
 
       const obmMap = new Map<string, string>(); // nome -> abreviatura
       (obms || []).forEach((o: any) => {
         if (o.nome) obmMap.set(o.nome.toLowerCase(), o.abreviatura);
       });
 
-      const stats = (viaturas || []).reduce((acc: any, vtr: any) => {
+      const stats = (allViaturas || []).reduce((acc: any, vtr: any) => {
         // Tenta resolver abreviatura da OBM
         let localFinal = vtr.obm;
         if (vtr.obm && obmMap.has(vtr.obm.toLowerCase())) {
@@ -135,13 +171,25 @@ const dashboardController = {
 
   getViaturaStatsPorObm: async (_req: Request, res: Response) => {
     try {
-      // Buscar viaturas e OBMs para join em memória
-      const { data: viaturas } = await supabaseAdmin
-        .from('viaturas')
-        .select('prefixo, obm')
-        .eq('ativa', true);
+      // Buscar viaturas com paginação
+      let allViaturas: any[] = [];
+      let pageV = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('viaturas')
+          .select('prefixo, obm')
+          .eq('ativa', true)
+          .range(pageV * pageSize, (pageV + 1) * pageSize - 1);
 
-      const { data: obms } = await supabaseAdmin.from('obms').select('id, nome, abreviatura, crbm');
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allViaturas = allViaturas.concat(data);
+        if (data.length < pageSize) break;
+        pageV++;
+      }
+
+      const { data: obms } = await supabaseAdmin.from('obms').select('id, nome, abreviatura, crbm').limit(2000);
 
       const resultStats: Record<string, any> = {};
 
@@ -154,7 +202,7 @@ const dashboardController = {
         );
       };
 
-      (viaturas || []).forEach((v: any) => {
+      (allViaturas || []).forEach((v: any) => {
         const obmMatch = findObm(v.obm);
         // Usa o nome da OBM encontrada ou o valor da string v.obm ou 'Sem OBM'
         const key = obmMatch ? (obmMatch.abreviatura || obmMatch.nome) : (v.obm || 'Sem OBM');

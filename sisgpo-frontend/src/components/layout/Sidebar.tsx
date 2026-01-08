@@ -4,13 +4,12 @@ import {
   FileText,
   Home,
   LogOut,
-  Settings,
+  BellElectric,
+  ChevronDown,
+  ChevronsLeftRight,
   Shield,
   UserCheck,
   Users,
-  ChevronDown,
-  ChevronsLeftRight,
-  BellElectric,
 } from 'lucide-react';
 import { TfiJoomla } from 'react-icons/tfi';
 import { GiSiren } from 'react-icons/gi';
@@ -36,7 +35,7 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const {
     isSidebarCollapsed,
     sidebarMode,
@@ -46,21 +45,25 @@ export default function Sidebar() {
     toggleMobileMenu,
   } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
-  const [isControlOpen, setIsControlOpen] = useState(false);
+  /* Removed useState isControlOpen */
+  /* Removed useState isControlOpen */
   const timerRef = useRef<number | null>(null);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  /* Simple toggle function */
+  const handleToggleMode = () => {
+    if (sidebarMode === 'expanded') {
+      setSidebarMode('hover');
+    } else {
+      setSidebarMode('expanded');
+    }
   };
 
   const handleLinkClick = () => {
-    // fechar popover de controle ao navegar
-    setIsControlOpen(false);
     if (isMobileMenuOpen) {
       toggleMobileMenu();
     }
   };
+
   const handleMouseEnter = () => {
     if (sidebarMode !== 'hover') return;
     if (timerRef.current) {
@@ -73,7 +76,7 @@ export default function Sidebar() {
     if (sidebarMode !== 'hover') return;
     timerRef.current = window.setTimeout(() => {
       setSidebarCollapsed(true);
-    }, 20000);
+    }, 20000); // 20 seconds delay
   };
 
   useEffect(() => {
@@ -96,22 +99,6 @@ export default function Sidebar() {
         : sidebarMode === 'collapsed'
           ? true
           : isSidebarCollapsed;
-
-  const modeOptions: { value: 'expanded' | 'collapsed' | 'hover'; label: string }[] = [
-    { value: 'expanded', label: 'Expandido' },
-    { value: 'collapsed', label: 'Recolhido' },
-    { value: 'hover', label: 'Expandir ao passar' },
-  ];
-
-  const handleModeChange = (mode: 'expanded' | 'collapsed' | 'hover') => {
-    setSidebarMode(mode);
-    // setSidebarMode já sincroniza isSidebarCollapsed, mas garantimos o estado imediato.
-    if (mode === 'expanded') {
-      setSidebarCollapsed(false);
-    } else {
-      setSidebarCollapsed(true);
-    }
-  };
 
   const renderSidebarContent = (isCollapsed: boolean) => (
     <div className="flex h-full flex-col bg-transparent text-white border-r border-borderDark/60 backdrop-filter backdrop-blur-sm">
@@ -181,10 +168,10 @@ export default function Sidebar() {
               </button>
               <div
                 className={`transition-all duration-300 overflow-hidden ${!isCollapsed
-                    ? isAdminOpen
-                      ? 'max-h-screen'
-                      : 'max-h-0'
-                    : 'max-h-screen'
+                  ? isAdminOpen
+                    ? 'max-h-screen'
+                    : 'max-h-0'
+                  : 'max-h-screen'
                   }`}
               >
                 <ul
@@ -344,80 +331,22 @@ export default function Sidebar() {
         <div className="relative rounded-lg border border-borderDark/60 bg-cardSlate/80 p-2 shadow-sm">
           <button
             type="button"
-            onClick={() => setIsControlOpen((open) => !open)}
-            className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-xs text-gray-200 hover:bg-borderDark/40 transition ${
-              isCollapsed ? 'justify-center' : ''
-            }`}
-            aria-expanded={isControlOpen}
-            aria-controls="sidebar-control-panel"
-            title="Controle do menu"
+            onClick={handleToggleMode}
+            className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-xs text-gray-200 hover:bg-borderDark/40 transition ${isCollapsed ? 'justify-center' : ''
+              }`}
+            title={sidebarMode === 'expanded' ? "Recolher menu" : "Fixar menu expandido"}
           >
             <div className="flex items-center gap-2">
-              <ChevronsLeftRight size={16} className="text-tagBlue" />
-              {!isCollapsed && <span className="font-semibold">Controle do menu</span>}
+              {sidebarMode === 'expanded' ? (
+                <ChevronsLeftRight size={16} className="text-tagBlue rotate-180" />
+              ) : (
+                <ChevronsLeftRight size={16} className="text-tagBlue" />
+              )}
+              {!isCollapsed && <span className="font-semibold">{sidebarMode === 'expanded' ? 'Recolher Menu' : 'Fixar Menu'}</span>}
             </div>
             {!isCollapsed && (
-              <ChevronDown
-                size={16}
-                className={`transition-transform ${isControlOpen ? 'rotate-180' : ''}`}
-              />
+              <div className={`h-2 w-2 rounded-full ${sidebarMode === 'expanded' ? 'bg-tagBlue' : 'bg-gray-600'}`}></div>
             )}
-          </button>
-
-          {isControlOpen && (
-            <div
-              id="sidebar-control-panel"
-              className="absolute bottom-full left-0 mb-2 w-full rounded-lg border border-borderDark/60 bg-cardSlate/95 p-2 shadow-2xl z-20"
-            >
-              {modeOptions.map((option) => {
-                const isActive = sidebarMode === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      handleModeChange(option.value);
-                      setIsControlOpen(false);
-                    }}
-                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs transition ${
-                      isActive
-                        ? 'bg-tagBlue/20 text-tagBlue border border-tagBlue/30'
-                        : 'text-gray-300 hover:bg-borderDark/40'
-                    }`}
-                  >
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full border ${
-                        isActive ? 'border-tagBlue bg-tagBlue' : 'border-gray-500'
-                      }`}
-                    />
-                    {!isCollapsed && <span className="truncate">{option.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col space-y-2 pt-2">
-          <NavLink
-            to="/app/perfil"
-            onClick={handleLinkClick}
-            className={({ isActive }) =>
-              `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-            }
-          >
-            <NavLinkContent
-              isCollapsed={isCollapsed}
-              icon={<Settings className="mr-3 h-6 w-6" />}
-              text={user?.nome}
-            />
-          </NavLink>
-          <button
-            onClick={handleLogout}
-            className={`w-full rounded-lg bg-red-600 text-white font-semibold shadow-sm transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 ${isCollapsed ? 'px-0 py-2.5 flex justify-center' : 'px-3 py-2.5 flex items-center justify-center'}`}
-          >
-            <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-6 w-6`} />
-            {!isCollapsed && "Sair"}
           </button>
         </div>
       </div>
@@ -428,7 +357,7 @@ export default function Sidebar() {
     <>
       <aside
         className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed left-0 z-50 transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
-          } border-r border-borderDark/60 bg-transparent backdrop-filter backdrop-blur-strong top-16 md:top-0 h-[calc(100vh-4rem)] md:h-screen`}
+          } border-r border-borderDark/60 bg-[#0b0f1a]/95 backdrop-filter backdrop-blur-strong top-16 md:top-0 bottom-0`}
         aria-label="Sidebar"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

@@ -1,6 +1,8 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '../config/supabase';
+
 import { normalizeText } from '../utils/textUtils';
+import db from '../config/knex';
 
 export type PlantaoRow = {
   id?: number;
@@ -211,81 +213,71 @@ export class PlantaoRepository {
   }
 
   async getGuarnicao(plantaoId: number) {
-    const { data, error } = await this.supabase
-      .from('militar_plantao')
-      .select(`
-        id,
-        militar_id,
-        funcao, -- assumindo que criamos essa coluna na tabela consolidada? Se não, retorna null
-        militares (nome_guerra, posto_graduacao)
-      `)
-      .eq('plantao_id', plantaoId);
+    const data = await db('militar_plantao')
+      .join('militares', 'militar_plantao.militar_id', 'militares.id')
+      .where('militar_plantao.plantao_id', plantaoId)
+      .select(
+        'militar_plantao.id',
+        'militar_plantao.militar_id',
+        'militar_plantao.funcao',
+        'militares.nome_guerra',
+        'militares.posto_graduacao'
+      );
 
-    if (error) return [];
-
-    return (data || []).map((item: any) => ({
+    return data.map((item: any) => ({
       id: item.id,
       militar_id: item.militar_id,
-      funcao: item.funcao, // se não existir no schema, virá undefined
-      nome_guerra: item.militares?.nome_guerra,
-      posto_graduacao: item.militares?.posto_graduacao,
+      funcao: item.funcao,
+      nome_guerra: item.nome_guerra,
+      posto_graduacao: item.posto_graduacao,
     }));
   }
 
   async replaceGuarnicao(plantaoId: number, guarnicao: Array<{ militar_id: number; funcao?: string | null }>) {
-    // 1. Delete existentes
-    await this.supabase.from('militar_plantao').delete().eq('plantao_id', plantaoId);
+    try {
+      await db.transaction(async (trx) => {
+        // 1. Delete existentes
+        await trx('militar_plantao').where('plantao_id', plantaoId).delete();
 
-    // 2. Insert novos
-    const payload = guarnicao
-      .filter((m) => m.militar_id)
-      .map((m) => ({
-        plantao_id: plantaoId,
-        militar_id: m.militar_id,
-        // Preciso verificar se 'funcao' existe no schema de militar_plantao? 
-        // No schema consolidado eu não vi 'funcao'. Deixe-me checar se 'escala_codec' tem.
-        // militar_plantao (id, plantao_id, militar_id, matricula_militar). SEM FUNCAO.
-        // O original verificava 'hasFuncao'. Se não tem, ignora.
-        // Vou assumir que NÃO tem funcao por enquanto ou adicionar se necessário no futuro.
-        // EDIT: O original adicionava 'funcao' dinamicamente se a coluna existisse.
-        // Vou ignorar 'funcao' no payload insert para evitar erro se a coluna não existir.
-      }));
+        // 2. Insert novos
+        const payload = guarnicao
+          .filter((m) => m.militar_id)
+          .map((m) => ({
+            plantao_id: plantaoId,
+            militar_id: m.militar_id,
+            funcao: m.funcao || null
+          }));
 
-    if (payload.length === 0) return;
-
-    // Inserir sem funcao
-    const { error } = await this.supabase.from('militar_plantao').insert(payload);
-    if (error) console.error('Erro ao substituir guarnição', error);
+        if (payload.length > 0) {
+          await trx('militar_plantao').insert(payload);
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao substituir guarnição (Knex):', error);
+      throw error; // Re-throw to ensure caller knows it failed
+    }
   }
 
   async addMilitar(plantaoId: number, militarId: number, funcao?: string | null) {
-    // Upsert / Insert ignore
-    // Supabase .upsert({ ... }, { onConflict: 'plantao_id, militar_id', ignoreDuplicates: true })
-    await this.supabase.from('militar_plantao').upsert(
-      { plantao_id: plantaoId, militar_id: militarId },
-      { onConflict: 'plantao_id, militar_id', ignoreDuplicates: true }
-    );
+    await db('militar_plantao')
+      .insert({ plantao_id: plantaoId, militar_id: militarId, funcao: funcao || null })
+      .onConflict(['plantao_id', 'militar_id'])
+      .ignore();
   }
 
   async removeMilitar(plantaoId: number, militarId: number) {
-    await this.supabase
-      .from('militar_plantao')
-      .delete()
-      .match({ plantao_id: plantaoId, militar_id: militarId });
+    await db('militar_plantao').where({ plantao_id: plantaoId, militar_id: militarId }).delete();
   }
 
   async addViatura(plantaoId: number, viaturaId: number, prefixo: string) {
-    await this.supabase.from('viatura_plantao').upsert(
-      { plantao_id: plantaoId, viatura_id: viaturaId, prefixo_viatura: prefixo },
-      { onConflict: 'plantao_id, viatura_id', ignoreDuplicates: true }
-    );
+    await db('viatura_plantao')
+      .insert({ plantao_id: plantaoId, viatura_id: viaturaId, prefixo_viatura: prefixo })
+      .onConflict(['plantao_id', 'viatura_id'])
+      .ignore();
   }
 
   async removeViatura(plantaoId: number, viaturaId: number) {
-    await this.supabase
-      .from('viatura_plantao')
-      .delete()
-      .match({ plantao_id: plantaoId, viatura_id: viaturaId });
+    await db('viatura_plantao').where({ plantao_id: plantaoId, viatura_id: viaturaId }).delete();
   }
 
   async countDistinctMilitares(): Promise<number> {

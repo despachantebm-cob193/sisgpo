@@ -42,7 +42,7 @@ interface ViaturaPorObmStat {
   crbm: string | null;
   abreviatura?: string | null;
 }
-interface ServicoInfo {funcao: string; nome_guerra: string | null; posto_graduacao: string | null; telefone: string | null; }
+interface ServicoInfo { funcao: string; nome_guerra: string | null; posto_graduacao: string | null; telefone: string | null; }
 interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: string; primeiro_piloto: string; segundo_piloto: string; }
 interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
 
@@ -112,15 +112,15 @@ export default function Dashboard() {
           break;
         }
         page += 1;
-                }
-            setTotalViaturasEmpenhadas(engaged.size);
-            setEmpenhadasViaturasSet(engaged); // Store the set
-            console.log('Dashboard: engaged set populated:', engaged); // Debug log
-            setUiLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
-          } catch (err) {
-            toast.error('Não foi possível carregar o resumo da frota.');
-          }
-        }, [setUiLastUpdate]);
+      }
+      setTotalViaturasEmpenhadas(engaged.size);
+      setEmpenhadasViaturasSet(engaged); // Store the set
+      console.log('Dashboard: engaged set populated:', engaged); // Debug log
+      setUiLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
+    } catch (err) {
+      toast.error('Não foi possível carregar o resumo da frota.');
+    }
+  }, [setUiLastUpdate]);
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
@@ -211,34 +211,39 @@ export default function Dashboard() {
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </Button>
-          </div>
+            </div>
           )}
         </div>
-        
+
         {/* Render the new component here */}
-                                <TopFleetSummary
-                                  ativas={totalViaturasAtivas}
-                                  empenhadas={totalViaturasEmpenhadas}
-                                />        {console.log('Dashboard: empenhadasViaturasSet passed to ViaturaByObmCard:', empenhadasViaturasSet)}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard
+            title="Viaturas Ativas"
+            value={totalViaturasAtivas ?? 0}
+            isLoading={totalViaturasAtivas === null}
+            variant="transparent"
+          />
+          <StatCard
+            title="Viaturas Empenhadas"
+            value={totalViaturasEmpenhadas ?? 0}
+            isLoading={totalViaturasEmpenhadas === null}
+            variant="transparent"
+          />
           <StatCard
             title="Militares Ativos"
             value={stats?.total_militares_ativos ?? 0}
-            description="Total de militares na ativa."
             isLoading={isLoading}
             variant="transparent"
           />
           <StatCard
             title="Militares Escalados"
             value={militaresEscaladosCount ?? 0}
-            description="Total de militares em escala hoje/futuro."
             isLoading={isLoadingMilitaresEscalados}
             variant="transparent"
           />
           <StatCard
             title="OBMs Cadastradas"
             value={stats?.total_obms ?? 0}
-            description="Total de unidades operacionais."
             isLoading={isLoading}
             variant="transparent"
           />
@@ -246,7 +251,7 @@ export default function Dashboard() {
       </div>
 
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
         <CodecCard data={escalaCodec} isLoading={isLoading} />

@@ -24,6 +24,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const [intro, setIntro] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Preload background image and show splash until it loads
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-[#090b13] via-[#0e1121] to-[#0b0f1c]">
+    <div className="min-h-[100dvh] relative bg-gradient-to-br from-[#090b13] via-[#0e1121] to-[#0b0f1c] flex flex-col">
       {/* Background image */}
       <div
         className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${bgLoaded ? 'opacity-100' : 'opacity-0'}`}
@@ -120,7 +121,7 @@ export default function Login() {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] p-4 pb-10 w-full">
         <div className="w-full max-w-md">
           <div
             className={`text-center mb-8 transform transition-all duration-700 ease-out ${intro ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'
@@ -212,13 +213,28 @@ export default function Login() {
                 <Label htmlFor="senha" className="text-textSecondary">Senha</Label>
                 <Input
                   id="senha"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={senha}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setSenha(e.target.value)}
                   required
                   placeholder="Digite sua senha"
                   className="bg-white/5 backdrop-blur-sm border-white/30 text-white placeholder:text-gray-200 focus:border-white focus-visible:ring-white/60"
                 />
+              </div>
+              <div
+                className={`transform transition-all duration-700 ease-out ${intro ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                  }`}
+                style={{ transitionDelay: intro ? '1200ms' : '0ms' }}
+              >
+                <label className="flex items-center gap-2 cursor-pointer text-textSecondary text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(e) => setShowPassword(e.target.checked)}
+                    className="rounded border-white/30 bg-white/5 text-tagBlue focus:ring-offset-0 focus:ring-white/60"
+                  />
+                  Mostrar senha
+                </label>
               </div>
               <div
                 className={`transform transition-all duration-700 ease-out ${intro ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'

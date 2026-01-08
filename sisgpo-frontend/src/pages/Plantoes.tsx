@@ -24,7 +24,7 @@ import { useAuthStore } from '@/store/authStore';
 
 // --- Interfaces ---
 export interface GuarnicaoMembro {
-  militar_id: number;
+  militar_id: number | null;
   funcao: string;
   nome_guerra: string | null;
   nome_completo: string | null;
@@ -68,11 +68,10 @@ type ActiveTab = 'plantoes' | 'escalaMedicos' | 'escalaAeronaves' | 'escalaCodec
 const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: React.ElementType; label: string }) => (
   <button
     onClick={onClick}
-    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-      active
-        ? 'bg-tagBlue text-textMain shadow-md'
-        : 'bg-cardSlate text-textSecondary hover:bg-background'
-    }`}
+    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${active
+      ? 'bg-tagBlue text-textMain shadow-md'
+      : 'bg-cardSlate text-textSecondary hover:bg-background'
+      }`}
   >
     <Icon size={16} />
     <span>{label}</span>
@@ -135,6 +134,23 @@ export default function Plantoes() {
       setViaturas([]);
     }
   }, []);
+
+  const [obms, setObms] = useState<any[]>([]);
+  const fetchObms = useCallback(async () => {
+    try {
+      const response = await api.get('/api/admin/obms');
+      // Handle potential wrapped response object { data: [...] } or direct array
+      const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setObms(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Erro ao buscar OBMs', error);
+      setObms([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchObms();
+  }, [fetchObms]);
 
   const fetchPlantoes = useCallback(async () => {
     setIsLoadingPlantoes(true);
@@ -230,14 +246,14 @@ export default function Plantoes() {
       let errorMessage = 'Erro ao salvar o plantão.';
       if (err.response && err.response.data) {
         const { data } = err.response;
-        
+
         // Se houver um array de 'errors', concatena todas as mensagens
         if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-            errorMessage = data.errors.map((e: { msg: string }) => e.msg).join('; ');
-        } 
+          errorMessage = data.errors.map((e: { msg: string }) => e.msg).join('; ');
+        }
         // Sen?o, usa a mensagem principal se ela existir
         else if (data.message) {
-            errorMessage = data.message;
+          errorMessage = data.message;
         }
       }
       toast.error(errorMessage);
@@ -261,7 +277,7 @@ export default function Plantoes() {
     try {
       // A requisi??o POST ? feita aqui
       await api.post('/api/admin/escala-aeronaves', data);
-      
+
       toast.success('Escala de aeronave salva com sucesso!');
       setIsAeronaveModalOpen(false);
       fetchEscalaAeronaves(); // Atualiza a lista na tela
@@ -280,7 +296,7 @@ export default function Plantoes() {
       let errorMessage = 'Não foi possível salvar a escala.';
       if (error.response && error.response.data) {
         const errorData = error.response.data;
-        
+
         // Concatena m?ltiplos erros de valida??o, se o backend os enviar
         if (errorData.errors && Array.isArray(errorData.errors)) {
           errorMessage = errorData.errors.map((e: { msg: string }) => e.msg).join('; ');
@@ -288,7 +304,7 @@ export default function Plantoes() {
           errorMessage = errorData.message;
         }
       }
-      
+
       // 3. Exibe o erro para o usu?rio usando um toast
       toast.error(errorMessage);
 
@@ -321,10 +337,10 @@ export default function Plantoes() {
       if (itemToDelete.type === 'escalaAeronaves') url = `/api/admin/escala-aeronaves/${itemToDelete.id}`;
       else if (itemToDelete.type === 'escalaMedicos') url = `/api/admin/escala-medicos/${itemToDelete.id}`;
       else if (itemToDelete.type === 'escalaCodec') url = `/api/admin/escala-codec/${itemToDelete.id}`;
-      
+
       await api.delete(url);
       toast.success('Registro excluído com sucesso!');
-      
+
       switch (itemToDelete.type) {
         case 'plantoes': fetchPlantoes(); break;
         case 'escalaMedicos': fetchEscalaMedicos(); break;
@@ -376,11 +392,11 @@ export default function Plantoes() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg">
         <div>
           <Label htmlFor="data_inicio">Data Início</Label>
-          <Input id="data_inicio" type="date" value={filters.data_inicio} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({...prev, data_inicio: e.target.value}))} />
+          <Input id="data_inicio" type="date" value={filters.data_inicio} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, data_inicio: e.target.value }))} />
         </div>
         <div>
           <Label htmlFor="data_fim">Data Fim</Label>
-          <Input id="data_fim" type="date" value={filters.data_fim} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({...prev, data_fim: e.target.value}))} />
+          <Input id="data_fim" type="date" value={filters.data_fim} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, data_fim: e.target.value }))} />
         </div>
         <div className="flex items-end">
           <Button onClick={() => setFilters({ data_inicio: '', data_fim: '' })} className="w-full bg-searchbar hover:bg-searchbar/80 text-textMain">Limpar Filtros</Button>
@@ -424,7 +440,7 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Viatura:">{p.viatura_prefixo}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="OBM:">{p.obm_abreviatura}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Guarnicao:">
-                          {p.guarnicao.length ? (
+                          {Array.isArray(p.guarnicao) && p.guarnicao.length > 0 ? (
                             <ul className="space-y-1">
                               {p.guarnicao.map((m, index) => {
                                 const nome =
@@ -438,11 +454,10 @@ export default function Plantoes() {
                                     <span className="font-semibold text-textMain">{nome}</span>
                                     {m.funcao && (
                                       <span
-                                        className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
-                                          /combatente/i.test(m.funcao)
-                                            ? 'bg-amber-400/20 text-amber-300'
-                                            : 'bg-tagBlue/20 text-tagBlue'
-                                        }`}
+                                        className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${/combatente/i.test(m.funcao)
+                                          ? 'bg-amber-400/20 text-amber-300'
+                                          : 'bg-tagBlue/20 text-tagBlue'
+                                          }`}
                                       >
                                         {m.funcao}
                                       </span>
@@ -507,7 +522,7 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Saída:">{formatDateTime(e.saida_servico)}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Status:"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status_servico === 'Presente' ? 'bg-cardGreen/20 text-cardGreen' : 'bg-premiumOrange/20 text-premiumOrange'} bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-400/40`}>{e.status_servico}</span></td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
-                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
+                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaMedicos')} className="text-spamRed hover:text-spamRed"><Trash2 size={18} /> Excluir</button>}
                         </td>
                       </tr>
                     ))}
@@ -546,7 +561,7 @@ export default function Plantoes() {
                           </span>
                         </td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
-                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
+                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaAeronaves')} className="text-spamRed hover:text-spamRed"><Trash2 size={18} /> Excluir</button>}
                         </td>
                       </tr>
                     ))}
@@ -579,7 +594,7 @@ export default function Plantoes() {
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Plantonista:">Plantonista {e.ordem_plantonista}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4" data-label="Nome:">{e.nome_plantonista}</td>
                         <td className="block md:table-cell px-6 py-2 md:py-4 text-center">
-                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaCodec')} className="text-spamRed hover:text-spamRed"><Trash2 size={18}/> Excluir</button>}
+                          {isAdmin && <button onClick={() => handleDeleteClick(e.id, 'escalaCodec')} className="text-spamRed hover:text-spamRed"><Trash2 size={18} /> Excluir</button>}
                         </td>
                       </tr>
                     ))}
@@ -593,7 +608,7 @@ export default function Plantoes() {
 
       {/* --- Modais --- */}
       <Modal isOpen={isPlantaoModalOpen} onClose={() => setIsPlantaoModalOpen(false)} title="Lançar Plantão de Viatura">
-        <PlantaoForm plantaoToEdit={plantaoToEdit} viaturas={viaturas} onSave={handleSavePlantao} onCancel={() => setIsPlantaoModalOpen(false)} isLoading={isSavingPlantao} />
+        <PlantaoForm plantaoToEdit={plantaoToEdit} viaturas={viaturas} obms={obms} onSave={handleSavePlantao} onCancel={() => setIsPlantaoModalOpen(false)} isLoading={isSavingPlantao} />
       </Modal>
       <Modal isOpen={isEscalaMedicoModalOpen} onClose={() => setIsEscalaMedicoModalOpen(false)} title="Adicionar Registro na Escala de Médicos">
         <EscalaMedicoForm onSave={handleSaveEscalaMedico} onCancel={() => setIsEscalaMedicoModalOpen(false)} isLoading={isSavingEscalaMedico} />

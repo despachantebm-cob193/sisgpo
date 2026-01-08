@@ -7,8 +7,24 @@
     color-scheme: dark;
   }
 
+  html,
   body {
     @apply bg-background text-textMain;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    /* Force app-like behavior */
+  }
+
+  #root {
+    height: 100%;
+  }
+
+  /* Zoom adjustment for large screens */
+  @media (min-width: 1024px) {
+    body {
+      zoom: 0.75;
+    }
   }
 
   a {
@@ -22,17 +38,21 @@
 }
 
 @layer utilities {
+
   /* Aurora animada (camada suave colorida) */
-  .bg-aurora { position: relative; }
+  .bg-aurora {
+    position: relative;
+  }
+
   .bg-aurora::before {
     content: "";
     position: absolute;
     inset: -20%;
     pointer-events: none;
     background:
-      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(34,211,238,.14), transparent 60%),
-      radial-gradient(ellipse 35% 25% at 80% 10%, rgba(232,121,249,.12), transparent 60%),
-      radial-gradient(ellipse 50% 30% at 50% 80%, rgba(132,204,22,.12), transparent 60%);
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(34, 211, 238, .14), transparent 60%),
+      radial-gradient(ellipse 35% 25% at 80% 10%, rgba(232, 121, 249, .12), transparent 60%),
+      radial-gradient(ellipse 50% 30% at 50% 80%, rgba(132, 204, 22, .12), transparent 60%);
     filter: blur(30px);
     animation: aurora 18s ease-in-out infinite alternate;
   }
@@ -40,19 +60,21 @@
   /* Grade cibernética suave + movimento */
   .bg-cyber-grid {
     background-image:
-      linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+      linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, .06) 1px, transparent 1px);
     background-size: 40px 40px, 40px 40px;
     background-position: 0 0, 0 0;
   }
 
   /* Card “glass” com leve brilho */
-  .card-glass { @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl; }
+  .card-glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl;
+  }
 
   /* Borda neon ciano */
   .border-neon {
-    border-color: rgba(34,211,238,.35);
-    box-shadow: 0 0 16px rgba(34,211,238,.22), inset 0 0 8px rgba(34,211,238,.15);
+    border-color: rgba(34, 211, 238, .35);
+    box-shadow: 0 0 16px rgba(34, 211, 238, .22), inset 0 0 8px rgba(34, 211, 238, .15);
   }
 
   /* Texto com gradiente */
@@ -111,13 +133,13 @@
     }
   }
 
-  .viaturas-detalhamento > * {
+  .viaturas-detalhamento>* {
     width: 100%;
     box-sizing: border-box;
     transition: transform 0.2s ease;
   }
 
-  .viaturas-detalhamento > *:hover {
+  .viaturas-detalhamento>*:hover {
     transform: translateY(-4px);
   }
 }
@@ -130,7 +152,7 @@
   height: 100vh;
 }
 
-.app-grid > aside {
+.app-grid>aside {
   grid-column: 1;
   grid-row: 1 / -1;
   position: sticky;
@@ -138,7 +160,7 @@
   height: 100vh;
 }
 
-.app-grid > header {
+.app-grid>header {
   grid-column: 2;
   grid-row: 1;
   position: sticky;
@@ -146,7 +168,7 @@
   z-index: 10;
 }
 
-.app-grid > main {
+.app-grid>main {
   grid-column: 2;
   grid-row: 2;
 }
@@ -157,12 +179,12 @@
     grid-template-rows: auto 1fr;
   }
 
-  .app-grid > aside {
+  .app-grid>aside {
     display: none;
   }
 
-  .app-grid > header,
-  .app-grid > main {
+  .app-grid>header,
+  .app-grid>main {
     grid-column: 1;
   }
 }

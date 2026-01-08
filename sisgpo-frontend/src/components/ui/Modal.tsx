@@ -19,8 +19,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
     // Fundo semi-transparente que cobre a tela inteira
     <div className="fixed inset-0 bg-searchbar bg-opacity-50 z-[9999] flex items-center justify-center">
       {/* Contêiner do modal */}
-      <div className="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-cardSlate">
-        <div className="flex justify-between items-center pb-3 border-b">
+      <div className="relative mx-auto border w-full max-w-5xl shadow-lg rounded-md bg-cardSlate flex flex-col h-[120vh]">
+        <div className="flex justify-between items-center p-5 border-b border-borderDark/60 shrink-0">
           <h3 className="text-2xl font-bold">{title}</h3>
           <button
             onClick={onClose}
@@ -30,7 +30,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
             <X size={24} />
           </button>
         </div>
-        <div className="mt-5">
+        <div className="p-5 overflow-y-auto">
           {/* O conteúdo (children) do modal será renderizado aqui */}
           {children}
         </div>

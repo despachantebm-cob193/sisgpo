@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 // import jwt from 'jsonwebtoken'; // Legacy
 import { supabaseAdmin } from '../config/supabase';
+import UserRepository from '../repositories/UserRepository';
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
@@ -31,7 +32,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     // Busca por supabase_id vinculado
     let { data: sistemaUser } = await supabaseAdmin
       .from('usuarios')
-      .select('id, perfil, status, ativo')
+      .select('*')
       .eq('supabase_id', user.id)
       .single();
 
@@ -39,13 +40,46 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     if (!sistemaUser && user.email) {
       const { data: byEmail } = await supabaseAdmin
         .from('usuarios')
-        .select('id, perfil, status, ativo')
+        .select('*')
         .eq('email', user.email)
         .single();
 
+      console.log(`[AuthMiddleware] Fallback por email para ${user.email}: ${byEmail ? 'ENCONTRADO' : 'NAO ENCONTRADO'}`);
+
       if (byEmail) {
         sistemaUser = byEmail;
-        // Opcional: Auto-link aqui? Melhor deixar bootstrap ou login lidar com isso para consistência
+        // Auto-link: Atualiza o supabase_id para evitar buscas futuras por email
+        await UserRepository.update(sistemaUser.id, { supabase_id: user.id });
+      }
+    }
+
+    // 3. Auto-cadastro se não existir
+    if (!sistemaUser) {
+      console.log(`[AuthMiddleware] Novo usu\u00e1rio detectado (Supabase ID: ${user.id}). Auto-cadastrando como Pendente.`);
+      try {
+        // Tenta extrair um login do metadata ou email
+        const loginBase = user.email ? user.email.split('@')[0] : `user_${user.id.substring(0, 8)}`;
+        const nomeCompleto = user.user_metadata?.full_name || user.user_metadata?.name || loginBase;
+
+        console.log('[AuthMiddleware] Auto-cadastrando usuario:', { login: loginBase, email: user.email });
+
+        sistemaUser = await UserRepository.create({
+          supabase_id: user.id,
+          email: user.email,
+          login: loginBase,
+          nome: nomeCompleto.split(' ')[0], // Primeiro nome
+          nome_completo: nomeCompleto,
+          perfil: 'user', // "visitante" não é válido no validator/schema? Usando "user" inativo.
+          ativo: false,
+          status: 'pendente',
+          senha_hash: 'SUPABASE_MANAGED_ACCOUNT' // Workaround para Constraint NOT NULL do legado
+        });
+      } catch (createErr) {
+        console.error('[AuthMiddleware] Erro ao auto-cadastrar usuario. Detalhes:', createErr);
+        if (createErr instanceof Error) {
+          console.error('Stack:', createErr.stack);
+        }
+        return res.status(500).json({ message: 'Erro ao registrar novo usuario no sistema.' });
       }
     }
 
@@ -54,7 +88,9 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     }
 
     if (!sistemaUser.ativo) {
-      return res.status(403).json({ message: 'Conta desativada.' });
+      // Retorna código específico para frontend tratar como "Aguardando Aprovação"
+      console.log(`[AuthMiddleware] Usuario ${sistemaUser.login} (ID: ${sistemaUser.id}) esta com ATIVO=${sistemaUser.ativo}. Retornando 403 USER_PENDING_APPROVAL`);
+      return res.status(403).json({ message: 'USER_PENDING_APPROVAL' });
     }
 
     // Injeta dados no Request para os Controllers usarem
@@ -65,7 +101,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     return next();
 
   } catch (err) {
-    console.error('Erro AuthMiddleware:', err);
+    console.error('Erro Fatal AuthMiddleware:', err);
+    if (err instanceof Error) {
+      console.error('Stack:', err.stack);
+    }
     return res.status(500).json({ message: 'Erro interno de autenticacao.' });
   }
 };

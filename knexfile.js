@@ -1,18 +1,10 @@
-﻿// Arquivo: knexfile.js (Corrigido para carregar o .env correto e desativar SSL)
+﻿// Arquivo: knexfile.js (Simplified to match runtime env loading)
 
 const fs = require('fs');
 const path = require('path');
 
-const nodeEnv = process.env.NODE_ENV || 'development';
-const envFileName = nodeEnv === 'production' ? '.env' : `.env.${nodeEnv}`;
-const envFilePath = path.resolve(__dirname, envFileName);
-const fallbackEnvPath = path.resolve(__dirname, '.env');
-
-if (fs.existsSync(envFilePath)) {
-  require('dotenv').config({ path: envFilePath });
-} else {
-  require('dotenv').config({ path: fallbackEnvPath });
-}
+// Load .env file (same as runtime)
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const getLocalConnection = () => ({
   host: process.env.DB_HOST,
@@ -26,7 +18,7 @@ const getLocalConnection = () => ({
 module.exports = {
   development: {
     client: 'pg',
-    connection: getLocalConnection(),
+    connection: process.env.DATABASE_URL || getLocalConnection(),
     migrations: {
       directory: './src/database/migrations'
     },
@@ -37,7 +29,7 @@ module.exports = {
 
   // --- SEÇÃO DE TESTE CORRIGIDA E COMPLETA ---
   test: {
-    client: 'pg', 
+    client: 'pg',
     connection: getLocalConnection(),
     migrations: {
       directory: './src/database/migrations'
