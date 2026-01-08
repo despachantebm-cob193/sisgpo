@@ -54,12 +54,20 @@ export const SupabaseAuthStateListener = () => {
                     } finally {
                         useAuthStore.getState().setLoadingProfile(false);
                     }
+                } else {
+                    // Session matches store, no action needed, just ensure loading is off
+                    console.log('[SupabaseAuth] Session already synced. App ready.');
+                    useAuthStore.getState().setLoadingProfile(false);
                 }
             } else if (event === 'SIGNED_OUT') {
                 if (token) {
                     console.log('[SupabaseAuth] Clearing store (Global SignOut)');
                     logout();
                 }
+                useAuthStore.getState().setLoadingProfile(false);
+            } else if (event === 'INITIAL_SESSION' && !session) {
+                console.log('[SupabaseAuth] No initial session found. App ready.');
+                useAuthStore.getState().setLoadingProfile(false);
             }
         });
 
