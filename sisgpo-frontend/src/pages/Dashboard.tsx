@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import api from '@/services/api';
+import { dashboardService } from '@/services/dashboardService';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -84,38 +84,14 @@ export default function Dashboard() {
   const fetchFleetSummaryData = useCallback(async () => {
     try {
       // Fetch all active viaturas
-      const viaturasRes = await api.get<ApiResponse<Viatura>>('/api/admin/viaturas?ativa=true&limit=1000');
-      const ativas = viaturasRes.data.data.length;
+      const ativas = await dashboardService.getViaturasAtivasCount();
       setTotalViaturasAtivas(ativas);
 
-      // Fetch all plantoes to find engaged viaturas
-      const engaged = new Set<string>();
-      let page = 1;
-      const limit = 100;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      while (true) {
-        const plantoesParams = new URLSearchParams({ page: String(page), limit: String(limit) });
-        const response = await api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${plantoesParams.toString()}`);
-        const plantoes = response.data.data ?? [];
-        plantoes.forEach((plantao) => {
-          const normalizedPrefix = plantao.viatura_prefixo?.trim().toUpperCase();
-          if (!normalizedPrefix) return;
-          const plantaoDate = new Date(plantao.data_plantao);
-          plantaoDate.setHours(0, 0, 0, 0);
-          if (!Number.isNaN(plantaoDate.getTime()) && plantaoDate >= today) {
-            engaged.add(normalizedPrefix);
-          }
-        });
-        const paginationInfo = response.data.pagination;
-        if (!paginationInfo || paginationInfo.currentPage >= paginationInfo.totalPages) {
-          break;
-        }
-        page += 1;
-      }
-      setTotalViaturasEmpenhadas(engaged.size);
-      setEmpenhadasViaturasSet(engaged); // Store the set
-      console.log('Dashboard: engaged set populated:', engaged); // Debug log
+      // Fetch engaged viaturas
+      const { count, engagedSet } = await dashboardService.getViaturasEmpenhadasCount();
+
+      setTotalViaturasEmpenhadas(count);
+      setEmpenhadasViaturasSet(engagedSet);
       setUiLastUpdate(formatDistanceToNow(new Date(), { addSuffix: true, locale: ptBR }));
     } catch (err) {
       toast.error('Não foi possível carregar o resumo da frota.');
@@ -123,65 +99,58 @@ export default function Dashboard() {
   }, [setUiLastUpdate]);
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
-    const apiPrefix = isLoggedInArea ? '/api/dashboard' : '/api/public';
     try {
-      const params = new URLSearchParams();
-      if (isLoggedInArea && selectedObm) {
-        params.append('obm_id', selectedObm);
-      }
-      const queryString = params.toString();
-      const qs = queryString ? `?${queryString}` : '';
       const [
-        statsRes,
-        viaturaTipoRes,
-        militarStatsRes,
-        viaturaDetailRes,
-        viaturaPorObmRes,
-        servicoDiaRes,
-        escalaAeronavesRes,
-        escalaCodecRes,
-        militaresEscaladosRes, // New API call
+        statsData,
+        viaturaTipoData,
+        militarStatsData,
+        viaturaDetailData,
+        viaturaPorObmData,
+        servicoDiaData,
+        escalaAeronavesData,
+        escalaCodecData,
+        militaresEscaladosCountVal
       ] = await Promise.all([
-        api.get<DashboardStats>(`${apiPrefix}/stats${qs}`),
-        api.get<ChartStat[]>(`${apiPrefix}/viatura-stats-por-tipo${qs}`),
-        api.get<ChartStat[]>(`${apiPrefix}/militar-stats${qs}`),
-        api.get<ViaturaStatAgrupada[]>(`${apiPrefix}/viatura-stats-detalhado${qs}`),
-        api.get<ViaturaPorObmStat[]>(`${apiPrefix}/viatura-stats-por-obm${qs}`),
-        api.get<ServicoInfo[]>(`${apiPrefix}/servico-dia${qs}`),
-        api.get<Aeronave[]>(`${apiPrefix}/escala-aeronaves${qs}`),
-        api.get<PlantonistaCodec[]>(`${apiPrefix}/escala-codec${qs}`),
-        api.get<{ count: number }>(`${apiPrefix}/militares-escalados-count${qs}`), // Fetch new count
+        dashboardService.getStats(selectedObm),
+        dashboardService.getViaturaStatsPorTipo(selectedObm),
+        dashboardService.getMilitarStats(selectedObm),
+        dashboardService.getViaturaStatsDetalhado(selectedObm),
+        dashboardService.getViaturaStatsPorObm(selectedObm),
+        dashboardService.getServicoDia(selectedObm),
+        dashboardService.getEscalaAeronaves(),
+        dashboardService.getEscalaCodec(),
+        dashboardService.getMilitaresEscaladosCount(selectedObm)
       ]);
-      setStats(statsRes.data || null);
-      setViaturaTipoStats(Array.isArray(viaturaTipoRes.data) ? viaturaTipoRes.data : []);
-      setMilitarStats(Array.isArray(militarStatsRes.data) ? militarStatsRes.data : []);
-      setViaturaDetailStats(Array.isArray(viaturaDetailRes.data) ? viaturaDetailRes.data : []);
-      setViaturaPorObmStats(Array.isArray(viaturaPorObmRes.data) ? viaturaPorObmRes.data : []);
-      setServicoDia(Array.isArray(servicoDiaRes.data) ? servicoDiaRes.data : []);
-      setEscalaAeronaves(Array.isArray(escalaAeronavesRes.data) ? escalaAeronavesRes.data : []);
-      setEscalaCodec(Array.isArray(escalaCodecRes.data) ? escalaCodecRes.data : []);
-      setMilitaresEscaladosCount(militaresEscaladosRes.data.count); // Set new count
+
+      setStats(statsData);
+      setViaturaTipoStats(viaturaTipoData);
+      setMilitarStats(militarStatsData);
+      setViaturaDetailStats(viaturaDetailData);
+      setViaturaPorObmStats(viaturaPorObmData);
+      setServicoDia(servicoDiaData);
+      setEscalaAeronaves(escalaAeronavesData);
+      setEscalaCodec(escalaCodecData);
+      setMilitaresEscaladosCount(militaresEscaladosCountVal);
       setError(null);
     } catch (err) {
       setError('Não foi possível carregar os dados do dashboard.');
       console.error(err);
     } finally {
       setIsLoading(false);
-      setIsLoadingMilitaresEscalados(false); // Set loading to false
+      setIsLoadingMilitaresEscalados(false);
     }
-  }, [selectedObm, isLoggedInArea]);
+  }, [selectedObm]);
 
   useEffect(() => {
     fetchFleetSummaryData(); // Fetch summary data
     if (isLoggedInArea) {
       const fetchAdminData = async () => {
         try {
-          const [obmsRes, metadataRes] = await Promise.all([
-            api.get<ApiResponse<Obm>>('/api/dashboard/obms?limit=500'),
-            api.get('/api/dashboard/metadata/viaturas_last_upload')
-          ]);
-          setObms(obmsRes.data && Array.isArray(obmsRes.data.data) ? obmsRes.data.data : []);
-          setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
+          const obmsData = await dashboardService.getObms();
+          setObms(obmsData);
+          // Metadata fetch temporarily disabled for Supabase-only mode
+          // const metadataRes = await api.get('/api/dashboard/metadata/viaturas_last_upload');
+          // setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
         } catch (err) { /* Não mostra erro para dados opcionais */ }
       };
       fetchAdminData();
