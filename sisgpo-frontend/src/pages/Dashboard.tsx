@@ -25,26 +25,20 @@ import CodecCard from '@/components/dashboard/CodecCard';
 import TopFleetSummary from '@/components/dashboard/TopFleetSummary'; // Import the new component
 
 // Interfaces
-interface Viatura { id: number; prefixo: string; ativa: boolean; }
-interface Plantao { viatura_prefixo: string | null; data_plantao: string; }
-interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; perPage: number; }
-interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
-interface DashboardStats { total_militares_ativos: number; total_viaturas_disponiveis: number; total_obms: number; }
-interface ChartStat { name: string; value: number; }
-interface Obm { id: number; abreviatura: string; nome: string; }
-interface ObmGrupo { nome: string; prefixos: string[]; }
-interface ViaturaStatAgrupada { tipo: string; quantidade: number; obms: ObmGrupo[]; }
-interface ViaturaPorObmStat {
-  id: number;
-  nome: string;
-  quantidade: number;
-  prefixos: string[];
-  crbm: string | null;
-  abreviatura?: string | null;
-}
-interface ServicoInfo { funcao: string; nome_guerra: string | null; posto_graduacao: string | null; telefone: string | null; }
-interface Aeronave { prefixo: string; tipo_asa: 'fixa' | 'rotativa'; status: string; primeiro_piloto: string; segundo_piloto: string; }
-interface PlantonistaCodec { turno: 'diurno' | 'noturno'; ordem_plantonista: number; nome_plantonista: string; }
+// Interfaces
+import {
+  DashboardStats,
+  ChartStat,
+  ViaturaStatAgrupada,
+  ViaturaPorObmStat,
+  ServicoInfo,
+  Aeronave,
+  PlantonistaCodec,
+  Obm,
+  Viatura,
+  Plantao,
+  ApiResponse
+} from '@/types/dashboard';
 
 export default function Dashboard() {
   const location = useLocation();

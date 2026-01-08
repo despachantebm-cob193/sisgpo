@@ -34,26 +34,26 @@ const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
 
 const customSelectStyles = {
-    placeholder: (provided) => ({
-        ...provided,
-        color: '#5A6470',
-    }),
-    singleValue: (provided) => ({
-        ...provided,
-        color: '#333333',
-    }),
-    multiValueLabel: (provided) => ({
-        ...provided,
-        color: '#333333',
-    }),
-    menu: (provided) => ({
-        ...provided,
-        color: '#333333',
-    }),
-    input: (provided) => ({
-        ...provided,
-        color: '#333333',
-    }),
+  placeholder: (provided: any) => ({
+    ...provided,
+    color: '#5A6470',
+  }),
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: '#333333',
+  }),
+  multiValueLabel: (provided: any) => ({
+    ...provided,
+    color: '#333333',
+  }),
+  menu: (provided: any) => ({
+    ...provided,
+    color: '#333333',
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    color: '#333333',
+  }),
 };
 
 export default function ServicoDia() {
@@ -69,7 +69,7 @@ export default function ServicoDia() {
 
   const [dataInicio, setDataInicio] = useState(hoje.toISOString().slice(0, 16));
   const [dataFim, setDataFim] = useState(amanha.toISOString().slice(0, 16));
-  
+
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -103,7 +103,7 @@ export default function ServicoDia() {
     try {
       const response = await api.get(`/api/admin/servico-dia?data=${new Date(dataSelecionada).toISOString()}`);
       const servicosDaApi: { funcao: string; pessoa_id: number; nome_guerra: string; posto_graduacao: string; pessoa_type: 'militar' | 'civil' }[] = response.data || [];
-      
+
       const servicosAgrupados = TODAS_AS_FUNCOES.map(funcao => {
         const pessoasNestaFuncao = servicosDaApi
           .filter(s => s.funcao === funcao)
@@ -112,7 +112,7 @@ export default function ServicoDia() {
             label: `${s.posto_graduacao || ''} ${s.nome_guerra || ''}`.trim(),
             type: s.pessoa_type,
           }));
-        
+
         return { funcao, pessoas: pessoasNestaFuncao };
       });
       setServicos(servicosAgrupados);
@@ -141,10 +141,10 @@ export default function ServicoDia() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const payloadServicos = servicos.flatMap(s => 
+      const payloadServicos = servicos.flatMap(s =>
         s.pessoas.map(p => ({ funcao: s.funcao, pessoa_id: p.id, pessoa_type: p.type }))
       );
-      
+
       const payload = { data_inicio: dataInicio, data_fim: dataFim, servicos: payloadServicos };
       await api.post('/api/admin/servico-dia', payload);
       toast.success('Serviço do dia salvo com sucesso!');
@@ -170,11 +170,11 @@ export default function ServicoDia() {
           data: new Date(dataInicio).toISOString()
         }
       });
-      
+
       // Limpa o estado local para refletir a mudança
       setServicos(prev => prev.map(s => ({ ...s, pessoas: [] })));
       toast.success('Escala limpa com sucesso do sistema e do Dashboard.');
-      
+
     } catch (error) {
       toast.error('Erro ao limpar a escala.');
     } finally {
@@ -232,9 +232,9 @@ export default function ServicoDia() {
           </div>
           <div className="mt-8 flex justify-end gap-4">
             {/* Botão de Limpar */}
-            <Button 
-              onClick={handleOpenClearModal} 
-              disabled={isSaving || isDeleting} 
+            <Button
+              onClick={handleOpenClearModal}
+              disabled={isSaving || isDeleting}
               className="!bg-rose-500 hover:!bg-rose-600 text-white"
             >
               <Trash2 className="w-4 h-4 mr-2" />

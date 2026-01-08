@@ -10,7 +10,7 @@ import {
     ObmGrupo,
     Obm,
     Viatura
-} from '../pages/Dashboard';
+} from '@/types/dashboard';
 
 export const dashboardService = {
     async getStats(selectedObm?: string): Promise<DashboardStats> {
@@ -38,8 +38,6 @@ export const dashboardService = {
                 .eq('ativa', true);
 
             if (selectedObm) {
-                // Viaturas guardam o nome da OBM ou ID?
-                // Schema diz: table.string('obm', 100);
                 const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
                 if (obm) {
                     queryViaturas = queryViaturas.ilike('obm', `%${obm.nome}%`);
@@ -212,6 +210,8 @@ export const dashboardService = {
 
             let query = supabase
                 .from('servico_dia')
+                // Using explicit references to avoid ambiguity if needed, but standard relation parsing should work
+                // Note: Relation name is 'militares' (automatic) or defined fk.
                 .select(`
             funcao, 
             militares (
@@ -231,6 +231,7 @@ export const dashboardService = {
             if (selectedObm) {
                 const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
                 if (obm) {
+                    // @ts-ignore
                     filteredData = data?.filter((item: any) => item.militares?.obm_nome === obm.nome) || [];
                 }
             }
@@ -315,7 +316,6 @@ export const dashboardService = {
             const today = new Date().toISOString().split('T')[0];
 
             // Count entries in militar_plantao for today's plantoes
-            // This requires a join: militar_plantao -> plantoes (filter by data)
             const { count, error } = await supabase
                 .from('militar_plantao')
                 .select('plantoes!inner(data_inicio)', { count: 'exact', head: true })
@@ -337,9 +337,9 @@ export const dashboardService = {
             const { data, error } = await supabase
                 .from('viatura_plantao')
                 .select(`
-                prefixo_viatura,
-                plantoes!inner (data_plantao)
-            `)
+            prefixo_viatura,
+            plantoes!inner (data_plantao)
+        `)
                 .gte('plantoes.data_plantao', today);
 
             if (error) throw error;
