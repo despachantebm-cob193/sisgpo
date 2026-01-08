@@ -20,10 +20,10 @@
     height: 100%;
   }
 
-  /* Zoom adjustment for large screens */
-  @media (min-width: 1024px) {
+  /* Zoom adjustment for non-mobile screens (80%) */
+  @media (min-width: 768px) {
     body {
-      zoom: 0.75;
+      zoom: 0.8;
     }
   }
 

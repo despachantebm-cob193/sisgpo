@@ -30,7 +30,7 @@ const AppLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col gap-6 h-full transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} ${isMobileMenuOpen ? 'backdrop-blur-5' : ''} relative z-10`}
+        className={`flex-1 flex flex-col gap-6 h-full transition-all duration-300 md:ml-64 ${isMobileMenuOpen ? 'backdrop-blur-5' : ''} relative z-10`}
       >
         {/* Desktop Header */}
         <div className="hidden md:block flex-shrink-0">

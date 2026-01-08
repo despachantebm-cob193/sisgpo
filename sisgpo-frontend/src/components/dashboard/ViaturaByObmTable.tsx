@@ -87,7 +87,7 @@ const ViaturaByObmTable: React.FC<ViaturaByObmTableProps> = ({ data, isLoading, 
       subtitle={`Total: ${totalViaturas} viaturas`}
       titleClassName="text-2xl font-bold text-brightBlue uppercase tracking-wide"
     >
-      <div className="space-y-8 pb-4">
+      <div className="space-y-8 px-4 pt-4 pb-4">
         {sortedGroupKeys.map((crbmKey) => {
           const obmsInGroup = groupedByCrbm[crbmKey].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
           return (
@@ -105,7 +105,7 @@ const ViaturaByObmTable: React.FC<ViaturaByObmTableProps> = ({ data, isLoading, 
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="text-base font-semibold text-textMain">{obm.abreviatura || obm.nome}</h4>
                       <div className="flex flex-col items-end">
-                        <span className="text-2xl font-bold text-brightYellow">{obm.quantidade}</span>
+                        <span className="text-2xl font-bold text-white">{obm.quantidade}</span>
                         <span className="text-[10px] text-textSecondary uppercase tracking-wider">Viaturas</span>
                       </div>
                     </div>

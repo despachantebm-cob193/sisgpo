@@ -91,14 +91,8 @@ export default function Sidebar() {
     'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
   const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
 
-  const resolvedCollapsed =
-    isMobileMenuOpen
-      ? false
-      : sidebarMode === 'expanded'
-        ? false
-        : sidebarMode === 'collapsed'
-          ? true
-          : isSidebarCollapsed;
+  // Always expanded, except on mobile when menu is closed
+  const resolvedCollapsed = isMobileMenuOpen ? false : false;
 
   const renderSidebarContent = (isCollapsed: boolean) => (
     <div className="flex h-full flex-col bg-transparent text-white border-r border-borderDark/60 backdrop-filter backdrop-blur-sm">
@@ -327,29 +321,7 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      <div className="relative w-full px-3 pb-4 space-y-2 border-t border-borderDark/60 bg-cardSlate">
-        <div className="relative rounded-lg border border-borderDark/60 bg-cardSlate/80 p-2 shadow-sm">
-          <button
-            type="button"
-            onClick={handleToggleMode}
-            className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-xs text-gray-200 hover:bg-borderDark/40 transition ${isCollapsed ? 'justify-center' : ''
-              }`}
-            title={sidebarMode === 'expanded' ? "Recolher menu" : "Fixar menu expandido"}
-          >
-            <div className="flex items-center gap-2">
-              {sidebarMode === 'expanded' ? (
-                <ChevronsLeftRight size={16} className="text-tagBlue rotate-180" />
-              ) : (
-                <ChevronsLeftRight size={16} className="text-tagBlue" />
-              )}
-              {!isCollapsed && <span className="font-semibold">{sidebarMode === 'expanded' ? 'Recolher Menu' : 'Fixar Menu'}</span>}
-            </div>
-            {!isCollapsed && (
-              <div className={`h-2 w-2 rounded-full ${sidebarMode === 'expanded' ? 'bg-tagBlue' : 'bg-gray-600'}`}></div>
-            )}
-          </button>
-        </div>
-      </div>
+
     </div>
   );
 
@@ -359,8 +331,6 @@ export default function Sidebar() {
         className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed left-0 z-50 transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
           } border-r border-borderDark/60 bg-[#0b0f1a]/95 backdrop-filter backdrop-blur-strong top-16 md:top-0 bottom-0`}
         aria-label="Sidebar"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         {renderSidebarContent(resolvedCollapsed)}
       </aside>
