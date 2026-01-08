@@ -208,40 +208,62 @@ export const dashboardService = {
         try {
             const today = new Date().toISOString().split('T')[0];
 
-            let query = supabase
+            // 1. Fetch servico_dia items
+            const { data: servicoData, error: servicoError } = await supabase
                 .from('servico_dia')
-                // Using explicit references to avoid ambiguity if needed, but standard relation parsing should work
-                // Note: Relation name is 'militares' (automatic) or defined fk.
-                .select(`
-            funcao, 
-            militares (
-                nome_guerra,
-                posto_graduacao,
-                telefone,
-                obm_nome
-            )
-        `)
+                .select('funcao, militar_id')
                 .eq('data', today);
 
-            const { data, error } = await query;
-            if (error) throw error;
+            if (servicoError) throw servicoError;
+            if (!servicoData || servicoData.length === 0) return [];
 
-            // Filter by OBM if selected (client-side since relation filtering is tricky here)
-            let filteredData = data;
+            // 2. Fetch related militares
+            const militarIds = servicoData.map(s => s.militar_id).filter(id => id !== null);
+
+            if (militarIds.length === 0) {
+                return servicoData.map(s => ({
+                    funcao: s.funcao,
+                    nome_guerra: 'N/A',
+                    posto_graduacao: '',
+                    telefone: null
+                }));
+            }
+
+            const { data: militaresData, error: militaresError } = await supabase
+                .from('militares')
+                .select('id, nome_guerra, posto_graduacao, telefone, obm_nome')
+                .in('id', militarIds);
+
+            if (militaresError) throw militaresError;
+
+            const militaresMap = new Map(militaresData?.map(m => [m.id, m]));
+
+            // 3. Merge and filter
+            let result = servicoData.map(item => {
+                const militar = militaresMap.get(item.militar_id);
+                return {
+                    funcao: item.funcao,
+                    nome_guerra: militar?.nome_guerra || 'N/A',
+                    posto_graduacao: militar?.posto_graduacao || '',
+                    telefone: militar?.telefone || null,
+                    obm_nome: militar?.obm_nome
+                };
+            });
+
+            // Filter by OBM if selected
             if (selectedObm) {
                 const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
                 if (obm) {
-                    // @ts-ignore
-                    filteredData = data?.filter((item: any) => item.militares?.obm_nome === obm.nome) || [];
+                    result = result.filter(item => item.obm_nome === obm.nome);
                 }
             }
 
-            return filteredData?.map((item: any) => ({
-                funcao: item.funcao,
-                nome_guerra: item.militares?.nome_guerra || null,
-                posto_graduacao: item.militares?.posto_graduacao || null,
-                telefone: item.militares?.telefone || null
-            })) || [];
+            return result.map(({ funcao, nome_guerra, posto_graduacao, telefone }) => ({
+                funcao,
+                nome_guerra,
+                posto_graduacao,
+                telefone
+            }));
 
         } catch (error) {
             console.error('Error fetching Service of the Day:', error);
