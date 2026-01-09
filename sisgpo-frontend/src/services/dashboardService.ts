@@ -7,10 +7,15 @@ import {
     ServicoInfo,
     Aeronave,
     PlantonistaCodec,
-    ObmGrupo,
-    Obm,
-    Viatura
+    ObmGrupo
 } from '@/types/dashboard';
+import {
+    Viatura,
+    Militar,
+    ServicoDia,
+    Obm,
+    EscalaAeronave
+} from '@/types/entities';
 
 export const dashboardService = {
     async getStats(selectedObm?: string): Promise<DashboardStats> {
@@ -77,7 +82,10 @@ export const dashboardService = {
             if (error) throw error;
 
             const stats: Record<string, number> = {};
-            data?.forEach((v) => {
+            // Cast as unknown then Viatura[] or just partial if full type matches DB response
+            const viaturas = data as unknown as Pick<Viatura, 'tipo' | 'obm'>[];
+
+            viaturas?.forEach((v) => {
                 const tipo = v.tipo || 'Outros';
                 stats[tipo] = (stats[tipo] || 0) + 1;
             });
@@ -104,7 +112,9 @@ export const dashboardService = {
             if (error) throw error;
 
             const stats: Record<string, number> = {};
-            data?.forEach((m) => {
+            const militares = data as unknown as Pick<Militar, 'posto_graduacao' | 'obm_nome'>[];
+
+            militares?.forEach((m) => {
                 const posto = m.posto_graduacao || 'Outros';
                 stats[posto] = (stats[posto] || 0) + 1;
             });
@@ -132,8 +142,9 @@ export const dashboardService = {
 
             // Group by Tipo -> OBM -> Prefixos
             const grouped: Record<string, Record<string, string[]>> = {};
+            const viaturas = data as unknown as Pick<Viatura, 'prefixo' | 'tipo' | 'obm'>[];
 
-            data?.forEach((v) => {
+            viaturas?.forEach((v) => {
                 const tipo = v.tipo || 'Outros';
                 const obmName = v.obm || 'Sem OBM';
 
@@ -163,7 +174,7 @@ export const dashboardService = {
         try {
             // Obter todas as OBMs para ter a referência de CRBM e abreviatura
             const { data: allObms } = await supabase.from('obms').select('*');
-            const obmMap = new Map(allObms?.map(o => [o.nome, o]));
+            const obmMap = new Map((allObms as unknown as Obm[])?.map(o => [o.nome, o]));
 
             let query = supabase.from('viaturas').select('prefixo, obm').eq('ativa', true);
 
@@ -178,8 +189,9 @@ export const dashboardService = {
             if (error) throw error;
 
             const grouped: Record<string, { prefixos: string[], obmRef: any }> = {};
+            const viaturas = data as unknown as Pick<Viatura, 'prefixo' | 'obm'>[];
 
-            data?.forEach((v) => {
+            viaturas?.forEach((v) => {
                 const obmName = v.obm || 'Sem OBM';
                 if (!grouped[obmName]) {
                     grouped[obmName] = {
@@ -206,13 +218,14 @@ export const dashboardService = {
 
     async getServicoDia(selectedObm?: string): Promise<ServicoInfo[]> {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const now = new Date().toISOString();
 
             // 1. Fetch servico_dia items
             const { data: servicoData, error: servicoError } = await supabase
                 .from('servico_dia')
                 .select('funcao, pessoa_id, pessoa_type')
-                .eq('data', today);
+                .lte('data_inicio', now)
+                .gte('data_fim', now);
 
             if (servicoError) throw servicoError;
             if (!servicoData || servicoData.length === 0) return [];
@@ -221,12 +234,14 @@ export const dashboardService = {
             // Note: The Dashboard interface ServicoInfo only supports militar-like fields (nome_guerra, posto).
             // We'll filter for military only or try to adapt if needed.
 
-            const militarIds = servicoData
+            const servicos = servicoData as unknown as ServicoDia[];
+
+            const militarIds = servicos
                 .filter(s => s.pessoa_type === 'militar' && s.pessoa_id)
                 .map(s => s.pessoa_id);
 
             if (militarIds.length === 0) {
-                return servicoData.map(s => ({
+                return servicoData.map((s: any) => ({
                     funcao: s.funcao,
                     nome_guerra: 'N/A',
                     posto_graduacao: '',
@@ -241,10 +256,10 @@ export const dashboardService = {
 
             if (militaresError) throw militaresError;
 
-            const militaresMap = new Map(militaresData?.map(m => [m.id, m]));
+            const militaresMap = new Map((militaresData as Militar[])?.map(m => [m.id, m]));
 
             // 3. Merge and filter
-            let result = servicoData.map(item => {
+            let result = servicos.map(item => {
                 // Skip if not militar (or handle civils if requirements change)
                 if (item.pessoa_type !== 'militar') return null;
 
@@ -256,7 +271,7 @@ export const dashboardService = {
                     telefone: militar?.telefone || null,
                     obm_nome: militar?.obm_nome
                 };
-            }).filter(item => item !== null) as any[];
+            }).filter(item => item !== null) as unknown as (ServicoInfo & { obm_nome?: string | null })[];
 
             // Filter by OBM if selected
             if (selectedObm) {

@@ -13,11 +13,23 @@
 export interface Viatura {
   id?: number;
   prefixo: string;
+  tipo: string;
   obm: string;
   cidade: string;
   ativa: boolean;
   telefone: string;
   synced?: boolean;
+}
+
+export interface ServicoDia {
+  id: number;
+  funcao: string;
+  pessoa_id: number;
+  pessoa_type: string;
+  data_inicio: string;
+  data_fim: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Obm {
