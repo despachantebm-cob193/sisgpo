@@ -22,49 +22,57 @@ const authController = {
     const rawLogin = typeof login === 'string' ? login.trim() : '';
 
     if (!rawLogin || !senha) {
-      throw new AppError('Login e senha sao obrigatorios.', 400);
+      throw new AppError('Login e senha são obrigatórios.', 400);
     }
 
-    // 1. Achar usuário no DB Local para pegar o Email (se logou com username)
-    // O Supabase Auth exige Email.
-    let user = await UserRepository.findByLogin(rawLogin);
-    if (!user) {
-      user = await UserRepository.findByEmail(rawLogin);
-    }
+    // PASSO 2: Segurança (Prevenção de Enumeração)
+    // Tentamos o login diretamente no Supabase assumindo o login como email
+    // Se o sistema usa username, o frontend deve enviar o email ou o backend deve ter uma estratégia 
+    // que não revele se o usuário existe antes da senha.
+    // Aqui, vamos tentar o login com o email fornecido (ou login se for email).
 
-    if (!user) {
-      throw new AppError('Credenciais invalidas.', 401);
-    }
-
-    if (!user.ativo) {
-      throw new AppError('Conta desativada.', 403);
-    }
-
-    // 2. Tentar Login no Supabase Auth
-    // Precisamos de email
-    const emailLogin = user.email || `${user.login}@sisgpo.temp`; // Fallback arriscado, mas necessário se não tiver email real
-
+    // Tentativa direta no Supabase
     const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-      email: emailLogin,
+      email: rawLogin,
       password: senha
     });
 
     if (authError) {
-      console.warn(`[Auth] Falha login Supabase para ${emailLogin}: ${authError.message}`);
-      throw new AppError('Credenciais invalidas ou erro de autenticacao.', 401);
+      console.warn(`[Auth] Falha login Supabase para ${rawLogin}: ${authError.message}`);
+      // Resposta genérica para evitar enumeração
+      throw new AppError('Credenciais inválidas.', 401);
     }
 
     const session = authData.session;
     const userAuth = authData.user;
 
-    // 3. Sync ID se necessário
-    if (user.id && !user.supabase_id && userAuth) {
+    if (!userAuth) {
+      throw new AppError('Erro na autenticação.', 401);
+    }
+
+    // Só após sucesso no Supabase buscamos os dados no DB Local
+    let user = await UserRepository.findByEmail(userAuth.email || '');
+    if (!user) {
+      user = await UserRepository.findByLogin(rawLogin);
+    }
+
+    if (!user) {
+      throw new AppError('Usuário autenticado mas não encontrado no sistema local.', 401);
+    }
+
+    if (!user.ativo) {
+      throw new AppError('Conta desativada ou aguardando aprovação.', 403);
+    }
+
+    // Sync ID se necessário
+    if (user.id && !user.supabase_id) {
       await UserRepository.update(user.id, { supabase_id: userAuth.id });
     }
 
     // Retorna Token Supabase + Dados User legado (frontend espera objeto 'user')
     const userResponse = { ...user };
-    delete (userResponse as any).senha_hash;
+    // @ts-ignore - senha_hash pode não estar no tipo mas estar no objeto vindo do DB
+    delete userResponse.senha_hash;
 
     return res.status(200).json({
       message: 'Login bem-sucedido!',
@@ -79,19 +87,20 @@ const authController = {
 
   // Endpoint para recuperar dados do user baseado no token (GET /me)
   me: async (req: Request, res: Response) => {
-    const userId = (req as any).userId as number | undefined;
+    const userId = req.userId;
 
     if (!userId) {
-      throw new AppError('Usuario nao identificado no contexto.', 401);
+      throw new AppError('Usuário não identificado no contexto.', 401);
     }
 
-    const user = await UserRepository.findById(userId);
+    const user = await UserRepository.findById(Number(userId));
     if (!user) {
-      throw new AppError('Usuario nao encontrado.', 404);
+      throw new AppError('Usuário não encontrado.', 404);
     }
 
     const userResponse = { ...user };
-    delete (userResponse as any).senha_hash;
+    // @ts-ignore
+    delete userResponse.senha_hash;
 
     return res.status(200).json({
       user: userResponse
