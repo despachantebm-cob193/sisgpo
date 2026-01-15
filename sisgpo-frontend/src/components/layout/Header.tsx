@@ -11,13 +11,43 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    console.log('Logout iniciado...');
+
+    // Limpa o store local primeiro
+    logout();
+    console.log('Store local limpo');
+
+    // Força limpeza COMPLETA do localStorage
+    try {
+      // Remove auth-storage do Zustand
+      localStorage.removeItem('auth-storage');
+
+      // Remove TODAS as chaves do Supabase
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      console.log('localStorage completamente limpo:', keysToRemove);
+    } catch (e) {
+      console.error('Erro ao limpar localStorage:', e);
+    }
+
+    // Aguarda o signOut do Supabase completar
     try {
       await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
+      console.log('Supabase signOut completo');
+    } catch (err) {
+      console.error('Erro ao desconectar do Supabase:', err);
     }
-    logout();
-    navigate('/login');
+
+    // Força reload completo da página para /login
+    console.log('Redirecionando para /login com reload completo');
+    window.location.href = '/login';
   };
 
   return (

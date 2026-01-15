@@ -103,7 +103,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] relative bg-gradient-to-br from-[#090b13] via-[#0e1121] to-[#0b0f1c] flex flex-col">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-gradient-to-br from-[#090b13] via-[#0e1121] to-[#0b0f1c] flex flex-col">
       {/* Background image */}
       <div
         className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${bgLoaded ? 'opacity-100' : 'opacity-0'}`}
@@ -121,7 +121,7 @@ export default function Login() {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] p-4 pb-10 w-full">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full p-4 pb-10 w-full">
         <div className="w-full max-w-md">
           <div
             className={`text-center mb-8 transform transition-all duration-700 ease-out ${intro ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2'
