@@ -74,6 +74,7 @@ router.delete('/viaturas/clear-all', ensureAdmin, viaturaController.clearAll);
 router.delete('/viaturas/:id', ensureAdmin, viaturaController.delete);
 router.post('/viaturas/:id/toggle-active', ensureAdmin, viaturaController.toggleActive);
 router.get('/viaturas/clear-all/preview', ensureAdmin, viaturaController.previewClearAll);
+router.patch('/viaturas/:id/status-integracao', viaturaController.handleExternalStatusChange);
 
 router.get('/militares', militarController.getAll);
 router.get('/militares/search', militarController.search);

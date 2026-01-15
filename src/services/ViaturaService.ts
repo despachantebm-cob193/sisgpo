@@ -190,6 +190,40 @@ export class ViaturaService {
 
     return { message: 'Tabela de viaturas limpa com sucesso!' };
   }
+
+  async updateStatusExternal(id: number, status: string, ocorrenciaId?: string) {
+    const viatura = await this.repository.findById(id);
+    if (!viatura) {
+      throw new AppError('Viatura não encontrada.', 404);
+    }
+
+    // Validar status
+    const validStatuses = ['DISPONIVEL', 'EMPENHADA', 'MANUTENCAO', 'INDISPONIVEL'];
+    const normalizedStatus = status.toUpperCase();
+    if (!validStatuses.includes(normalizedStatus)) {
+      throw new AppError(`Status inválido. Valores aceitos: ${validStatuses.join(', ')}`, 400);
+    }
+
+    // Atualizar no banco (Supabase Realtime dispara evento automaticamente)
+    const { error } = await supabaseAdmin
+      .from('viaturas')
+      .update({
+        status: normalizedStatus,
+        updated_at: new Date()
+      })
+      .eq('id', id);
+
+    if (error) {
+      throw new AppError(`Erro ao atualizar status da viatura: ${error.message}`, 500);
+    }
+
+    console.log(`[ViaturaService] Status atualizado via integração externa: Viatura ${viatura.prefixo} -> ${normalizedStatus} ${ocorrenciaId ? `(Ocorrência: ${ocorrenciaId})` : ''}`);
+
+    return {
+      message: 'Status da viatura atualizado com sucesso',
+      viatura: { id, prefixo: viatura.prefixo, status: normalizedStatus }
+    };
+  }
 }
 
 export default ViaturaService;

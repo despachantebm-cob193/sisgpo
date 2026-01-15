@@ -128,6 +128,28 @@ const viaturaController = {
       return next(error instanceof AppError ? error : new AppError('Nao foi possivel limpar a tabela de viaturas.', 500));
     }
   },
+
+  handleExternalStatusChange: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { status, ocorrenciaId } = req.body;
+
+      if (!status || typeof status !== 'string') {
+        throw new AppError('Campo "status" é obrigatório e deve ser string', 400);
+      }
+
+      const result = await service.updateStatusExternal(
+        Number(id),
+        status,
+        ocorrenciaId
+      );
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('[viaturaController.handleExternalStatusChange] Erro:', error);
+      return next(error);
+    }
+  },
 };
 
 export = viaturaController;
