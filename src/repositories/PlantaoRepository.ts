@@ -14,8 +14,8 @@ export type PlantaoRow = {
   data_fim?: Date | string | null;
   ativo?: boolean;
   observacoes?: string | null;
-  horario_inicio?: string | null;
-  horario_fim?: string | null; // Corrigido nome coluna no schema original era 'horario_fim'
+  hora_inicio?: string | null;
+  hora_fim?: string | null;
   viatura_id?: number | null;
   obm_id?: number | null;
   created_at?: Date;
@@ -154,32 +154,77 @@ export class PlantaoRepository {
   }
 
   async getViaturaContext(viaturaId: number): Promise<{ prefixo: string; obmId: number | null }> {
-    // Busca info da viatura e tenta inferir OBM como no original
+    // Busca info da viatura
     const { data: viatura } = await this.supabase
       .from('viaturas')
-      .select('prefixo, obm') // obm aqui é string livre
+      .select('prefixo, obm')
       .eq('id', viaturaId)
       .single();
 
     if (!viatura) return { prefixo: '', obmId: null };
+    if (!viatura.obm) return { prefixo: viatura.prefixo, obmId: null };
 
-    // Tenta achar OBM via busca textual simples (simplificação da lógica original)
-    // Se obm string bater com nome de alguma OBM
-    let obmId = null;
-    if (viatura.obm) {
-      const { data: obm } = await this.supabase
-        .from('obms')
-        .select('id')
-        .or(`nome.ilike.${viatura.obm},abreviatura.ilike.${viatura.obm}`)
-        .limit(1)
-        .single();
+    // Busca todas as OBMs para fazer match inteligente em memória
+    // Tabela pequena (< 100 registros), safe para carregar
+    const { data: obms } = await this.supabase.from('obms').select('id, nome, abreviatura');
 
-      if (obm) obmId = obm.id;
+    if (!obms || obms.length === 0) {
+      // Fallback para lógica antiga se falhar carga
+      return { prefixo: viatura.prefixo, obmId: null };
+    }
+
+    const target = normalizeText(viatura.obm);
+
+    // 1. Exact match (normalized)
+    let match = obms.find((o: any) =>
+      normalizeText(o.nome) === target || normalizeText(o.abreviatura) === target
+    );
+
+    // 3. Token-based cross-match (e.g. "1º BBM - BOPAR" vs "BOPAR - 1º BBM")
+    if (!match) {
+      // Break target into meaningful tokens
+      const targetTokens = viatura.obm
+        .split(/[-/()]/) // Split by common separators
+        .map((t: string) => normalizeText(t))
+        .filter((t: string) => t.length > 2); // Ignore small connectors
+
+      // Search in DB
+      for (const obm of obms) {
+        const dbTokens = [obm.nome, obm.abreviatura]
+          .filter(Boolean)
+          .join(' ')
+          .split(/[-/()]/)
+          .map((t: string) => normalizeText(t))
+          .filter((t: string) => t.length > 2);
+
+        // Check intersection
+        const hasMatch = targetTokens.some((token: string) => dbTokens.includes(token));
+        if (hasMatch) {
+          match = obm;
+          break;
+        }
+      }
+    }
+
+    // 4. Fallback: "Starts With" or "Contains"
+    if (!match) {
+      match = obms.find((o: any) => {
+        const name = normalizeText(o.nome || '');
+        const abbr = normalizeText(o.abreviatura || '');
+        return target.startsWith(name) || target.includes(abbr) || abbr.includes(target);
+      });
+    }
+
+    if (!match) {
+      console.warn(`[getViaturaContext] Failed to match OBM for viatura ${viatura.prefixo}. Raw: '${viatura.obm}', Target: '${target}'`);
+      console.warn(`[getViaturaContext] Available OBMs sample: ${obms.slice(0, 3).map((o: any) => `${o.nome} (${o.abreviatura})`).join(', ')}`);
+    } else {
+      console.log(`[getViaturaContext] Matched OBM: ${match.nome} (ID: ${match.id}) for viatura ${viatura.prefixo}`);
     }
 
     return {
       prefixo: viatura.prefixo,
-      obmId: obmId,
+      obmId: match ? match.id : null,
     };
   }
 

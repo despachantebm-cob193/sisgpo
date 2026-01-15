@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '../config/supabase'; // Admin Client
 // import { supabaseClient } from ... precisamos de um cliente anon para login de usuario comum?
 // Para login com senha (signInWithPassword), idealmente usa-se a chave anonima pública.
@@ -112,7 +113,32 @@ const authController = {
   },
 
   ssoLogin: async (req: Request, res: Response) => {
-    throw new AppError('SSO Login deve ser feito via Frontend Supabase Client nesta versao.', 501);
+    // O middleware ssoAuthMiddleware já validou o token compartilhado e injetou o payload em req.ssoPayload
+    const payload = (req as any).ssoPayload;
+
+    if (!payload || !payload.email) {
+      throw new AppError('Payload SSO inválido: email não encontrado.', 400);
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      throw new AppError('Servidor mal configurado: JWT_SECRET ausente.', 500);
+    }
+
+    // Gera um token interno do SISGPO para essa sessão
+    // Esse token deve ser aceito pelo authMiddleware
+    const token = jwt.sign(
+      {
+        email: payload.email,
+        sub: payload.sub, // ID do usuário no sistema de origem (opcional)
+        nome: payload.nome,
+        type: 'sso_integration'
+      },
+      JWT_SECRET,
+      { expiresIn: '2h' }
+    );
+
+    return res.status(200).json({ token });
   }
 };
 

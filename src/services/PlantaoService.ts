@@ -102,8 +102,8 @@ export class PlantaoService {
       obm_id: obmId,
       ativo: true,
       observacoes: observacoes || null,
-      horario_inicio: normalizeHorarioInput(hora_inicio),
-      horario_fim: normalizeHorarioInput(hora_fim),
+      hora_inicio: normalizeHorarioInput(hora_inicio),
+      hora_fim: normalizeHorarioInput(hora_fim),
     });
 
     // PASSO 4: Integridade de Dados (Compensating Transaction)
@@ -141,8 +141,8 @@ export class PlantaoService {
 
     const updatePayload: Partial<PlantaoRow> = {
       observacoes: payload.observacoes,
-      horario_inicio: normalizeHorarioInput(payload.hora_inicio),
-      horario_fim: normalizeHorarioInput(payload.hora_fim),
+      hora_inicio: normalizeHorarioInput(payload.hora_inicio),
+      hora_fim: normalizeHorarioInput(payload.hora_fim),
     };
 
     if (payload.data_plantao) updatePayload.data_plantao = payload.data_plantao;

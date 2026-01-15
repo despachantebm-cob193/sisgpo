@@ -40,6 +40,11 @@ const isAllowedOrigin = (origin: string): boolean => {
   return allowedOrigins.includes(origin);
 };
 
+app.use((req, res, next) => {
+  console.log(`[Request] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(
   cors({
     origin: (origin, callback) => {

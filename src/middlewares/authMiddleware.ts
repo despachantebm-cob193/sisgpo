@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-// import jwt from 'jsonwebtoken'; // Legacy
+import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '../config/supabase';
 import UserRepository from '../repositories/UserRepository';
 
@@ -32,10 +32,31 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       const { data: { user: supabaseUser }, error } = await supabaseAdmin.auth.getUser(token);
 
       if (error || !supabaseUser) {
-        return res.status(401).json({ message: 'Sessão expirada ou inválida (Supabase).' });
-      }
+        // [FALLBACK] Tenta validar como Token SSO/Legado assinado via JWT_SECRET
+        try {
+          const JWT_SECRET = process.env.JWT_SECRET;
+          if (!JWT_SECRET) throw new Error('JWT_SECRET missing');
 
-      user = supabaseUser;
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+          // Simula estrutura de usuário do Supabase para manter compatibilidade com o resto da função
+          user = {
+            id: decoded.sub ? `sso_${decoded.sub}` : `sso_email_${decoded.email}`,
+            email: decoded.email,
+            user_metadata: { full_name: decoded.nome },
+            app_metadata: { provider: 'sso_integration' },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+          };
+
+          console.log(`[AuthMiddleware] Autenticado via Token SSO para: ${user.email}`);
+
+        } catch (jwtError) {
+          return res.status(401).json({ message: 'Sessão expirada ou inválida (Supabase e JWT).' });
+        }
+      } else {
+        user = supabaseUser;
+      }
       // Salva no cache
       authCache.set(token, { user, expiresAt: Date.now() + CACHE_TTL });
 
@@ -68,8 +89,19 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 
       if (byEmail) {
         sistemaUser = byEmail;
+        // Check if it's the specific admin user and force update if not admin
+        if (user.email === 'timbo.correa@gmail.com' && sistemaUser.perfil !== 'admin') {
+          console.log(`[AuthMiddleware] Promoting existing user ${user.email} to ADMIN.`);
+          await UserRepository.update(sistemaUser.id, { perfil: 'admin', ativo: true });
+          sistemaUser.perfil = 'admin';
+          sistemaUser.ativo = true;
+        }
+
         // Auto-link: Atualiza o supabase_id para evitar buscas futuras por email
-        await UserRepository.update(sistemaUser.id, { supabase_id: user.id });
+        // APENAS se for usuário Supabase real (com UUID válido)
+        if (user.app_metadata?.provider !== 'sso_integration') {
+          await UserRepository.update(sistemaUser.id, { supabase_id: user.id });
+        }
       }
     }
 
@@ -81,14 +113,14 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         const nomeCompleto = user.user_metadata?.full_name || user.user_metadata?.name || loginBase;
 
         sistemaUser = await UserRepository.create({
-          supabase_id: user.id,
+          supabase_id: user.app_metadata?.provider === 'sso_integration' ? null : user.id,
           email: user.email,
           login: loginBase,
           nome: nomeCompleto.split(' ')[0],
           nome_completo: nomeCompleto,
-          perfil: 'user',
-          ativo: false,
-          status: 'pendente',
+          perfil: user.email === 'timbo.correa@gmail.com' ? 'admin' : 'user',
+          ativo: user.email === 'timbo.correa@gmail.com' ? true : false,
+          status: user.email === 'timbo.correa@gmail.com' ? 'ativo' : 'pendente',
           senha_hash: 'SUPABASE_MANAGED_ACCOUNT'
         });
       } catch (createErr) {
