@@ -30,6 +30,23 @@ const baseFields = {
 
 const createEscalaMedicoSchema = Joi.object<EscalaMedicoDTO>(baseFields).options({ allowUnknown: true });
 
+// Validador para criação de ESCALA (aceita civil_id OU nome_completo+funcao)
+const createEscalaSchema = Joi.object({
+  civil_id: Joi.number().integer().positive().optional(),
+  nome_completo: Joi.string().trim().min(3).max(150).optional(),
+  funcao: Joi.string().trim().max(100).optional(),
+  telefone: Joi.string().allow(null, ''),
+  observacoes: Joi.string().allow(null, ''),
+  ativo: Joi.boolean().optional(),
+  entrada_servico: Joi.date().required().messages({
+    'any.required': 'A data/hora de entrada é obrigatória.',
+  }),
+  saida_servico: Joi.date().required().messages({
+    'any.required': 'A data/hora de saída é obrigatória.',
+  }),
+  status_servico: Joi.string().valid('Presente', 'Ausente').optional(),
+}).options({ allowUnknown: true });
+
 const updateEscalaMedicoSchema = Joi.object<EscalaMedicoDTO>(baseFields)
   .min(1)
   .options({ allowUnknown: true });
@@ -37,6 +54,9 @@ const updateEscalaMedicoSchema = Joi.object<EscalaMedicoDTO>(baseFields)
 const escalaMedicoValidator = {
   create: {
     body: createEscalaMedicoSchema,
+  },
+  createEscala: {
+    body: createEscalaSchema,
   },
   update: {
     params: Joi.object({

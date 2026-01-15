@@ -21,6 +21,7 @@ export type ViaturaListFilters = {
   ativa?: boolean;
   cidade?: string;
   obm?: string;
+  tipo?: string;
   page: number;
   limit: number;
 };
@@ -77,7 +78,7 @@ export class ViaturaRepository {
   }
 
   async list(filters: ViaturaListFilters): Promise<ViaturaListResult> {
-    const { q, ativa, cidade, obm, page, limit } = filters;
+    const { q, ativa, cidade, obm, tipo, page, limit } = filters;
 
     let query = this.supabase
       .from('viaturas')
@@ -96,6 +97,10 @@ export class ViaturaRepository {
 
     if (obm) {
       query = query.eq('obm', obm);
+    }
+
+    if (tipo) {
+      query = query.eq('tipo', tipo);
     }
 
     if (typeof ativa === 'boolean') {

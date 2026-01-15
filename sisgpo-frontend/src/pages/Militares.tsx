@@ -117,7 +117,7 @@ export default function Militares() {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(() => new Set());
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [escaladosMilitares, setEscaladosMilitares] = useState<Set<number>>(new Set());
-  
+
   const [postoGradFilter, setPostoGradFilter] = useState('');
   const [obmFilter, setObmFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -190,25 +190,17 @@ export default function Militares() {
 
   const fetchEscalados = useCallback(async () => {
     try {
-      const response = await api.get('/api/admin/plantoes?all=true');
+      // Busca plantões vigentes (data >= hoje) com limit alto para pegar todos
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const response = await api.get(`/api/admin/plantoes?data_inicio=${todayStr}&limit=1000`);
       const plantoes: Plantao[] = response.data.data ?? [];
       const escalados = new Set<number>();
-      // Normaliza comparacao de datas por string (YYYY-MM-DD) para evitar timezone
-      const todayStr = new Date().toISOString().slice(0, 10);
 
       plantoes.forEach((plantao) => {
-        const rawDate = plantao.data_plantao || plantao.data_inicio || plantao.data_fim;
-        if (!rawDate) return;
-        const plantaoDate = new Date(rawDate);
-        if (Number.isNaN(plantaoDate.getTime())) {
-            return;
-        }
-
-        const plantaoStr = plantaoDate.toISOString().slice(0, 10);
-        if (plantaoStr >= todayStr) {
+        if (Array.isArray(plantao.guarnicao)) {
           plantao.guarnicao.forEach((membro) => {
             const idNum = Number(membro.militar_id);
-            if (Number.isFinite(idNum)) {
+            if (Number.isFinite(idNum) && idNum > 0) {
               escalados.add(idNum);
             }
           });
@@ -247,8 +239,8 @@ export default function Militares() {
   }, [allMilitaresForFilters]);
 
   const obmsForFilter = useMemo(() => {
-      const allObms = allMilitaresForFilters.map(m => m.obm_nome).filter(Boolean);
-      return [...new Set(allObms)].sort();
+    const allObms = allMilitaresForFilters.map(m => m.obm_nome).filter(Boolean);
+    return [...new Set(allObms)].sort();
   }, [allMilitaresForFilters]);
 
   useEffect(() => {
@@ -380,20 +372,20 @@ export default function Militares() {
               ))}
             </Select>
             <Select
-                value={statusFilter}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setStatusFilter(value);
-                  // Aciona filtro independente no backend
-                  // para que 'Escalado' funcione em todas as paginas
-                  handleFilterChange('escalado', value === 'Escalado' ? 'true' : '');
-                }}
-                className="w-full md:w-56"
+              value={statusFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setStatusFilter(value);
+                // Aciona filtro independente no backend
+                // para que 'Escalado' funcione em todas as paginas
+                handleFilterChange('escalado', value === 'Escalado' ? 'true' : '');
+              }}
+              className="w-full md:w-56"
             >
-                <option value="">Filtrar por Status...</option>
-                <option value="Ativo">Ativo</option>
-                <option value="Inativo">Inativo</option>
-                <option value="Escalado">Escalado</option>
+              <option value="">Filtrar por Status...</option>
+              <option value="Ativo">Ativo</option>
+              <option value="Inativo">Inativo</option>
+              <option value="Escalado">Escalado</option>
             </Select>
             <Button onClick={() => {
               setPostoGradFilter('');
@@ -486,7 +478,7 @@ export default function Militares() {
                 />
               ))}
             </div>
-            
+
             {pagination && pagination.totalPages > 1 && (
               <div className="mt-4">
                 <Pagination

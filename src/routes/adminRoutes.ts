@@ -75,6 +75,7 @@ router.delete('/viaturas/:id', ensureAdmin, viaturaController.delete);
 router.post('/viaturas/:id/toggle-active', ensureAdmin, viaturaController.toggleActive);
 router.get('/viaturas/clear-all/preview', ensureAdmin, viaturaController.previewClearAll);
 router.patch('/viaturas/:id/status-integracao', viaturaController.handleExternalStatusChange);
+router.get('/viaturas/aeronaves', viaturaController.getAeronaves);
 
 router.get('/militares', militarController.getAll);
 router.get('/militares/search', militarController.search);
@@ -132,9 +133,9 @@ router.delete('/escala-codec/:id', ensureAdmin, escalaCodecController.delete);
 
 router.get('/escala-medicos', escalaMedicoController.getAll);
 router.get('/escala-medicos/:id', escalaMedicoController.getById);
-router.post('/escala-medicos', ensureAdmin, validate(escalaMedicoValidator.create), escalaMedicoController.create);
+router.post('/escala-medicos', ensureAdmin, validate(escalaMedicoValidator.createEscala), escalaMedicoController.createEscala);
 router.put('/escala-medicos/:id', ensureAdmin, validate(escalaMedicoValidator.update), escalaMedicoController.update);
-router.delete('/escala-medicos/:id', ensureAdmin, escalaMedicoController.delete);
+router.delete('/escala-medicos/:id', ensureAdmin, escalaMedicoController.deleteEscala);
 
 router.get('/escala', escalaController.getEscala);
 router.put('/escala', ensureAdmin, escalaController.updateEscala);

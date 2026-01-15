@@ -97,9 +97,18 @@ const escalaCodecController = {
 
     if (error) throw new AppError(`Erro ao buscar escalas: ${error.message}`, 500);
 
-    const agrupadas = splitByTurno(escalas as unknown as EscalaCodecRow[]);
+    // Retorna array flat com cada plantonista como um registro
+    const resultado = (escalas as unknown as EscalaCodecRow[]).map(e => ({
+      id: e.id,
+      data: e.data,
+      turno: e.turno === 'diurno' ? 'Diurno' : 'Noturno', // Capitalize para consistência
+      ordem_plantonista: e.ordem_plantonista,
+      nome_plantonista: e.militares
+        ? `${e.militares.posto_graduacao} ${e.militares.nome_guerra || e.militares.nome_completo}`
+        : 'N/A'
+    }));
 
-    return res.status(200).json({ diurno: agrupadas.diurno, noturno: agrupadas.noturno, data: data_inicio || data_fim });
+    return res.status(200).json(resultado);
   },
 
   getById: async (req: Request, res: Response) => {

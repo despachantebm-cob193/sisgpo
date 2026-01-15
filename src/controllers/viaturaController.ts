@@ -150,6 +150,17 @@ const viaturaController = {
       return next(error);
     }
   },
+
+  getAeronaves: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Busca apenas viaturas aéreas (aeronaves) ativas
+      const result = await service.list({ tipo: 'AÉREA', ativa: true, limit: 500, page: 1 });
+      return res.status(200).json({ data: result.data });
+    } catch (error) {
+      console.error('[viaturaController.getAeronaves] Erro ao buscar aeronaves:', error);
+      return next(new AppError('Não foi possível carregar as aeronaves.', 500));
+    }
+  },
 };
 
 export = viaturaController;

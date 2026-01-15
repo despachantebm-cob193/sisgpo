@@ -156,6 +156,13 @@ export default function Plantoes() {
     setIsLoadingPlantoes(true);
     try {
       const filteredFilters = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ''));
+
+      // Se não houver filtros, define data_inicio como hoje (apenas plantões vigentes)
+      if (!filteredFilters.data_inicio && !filteredFilters.data_fim) {
+        const hoje = new Date().toISOString().split('T')[0];
+        filteredFilters.data_inicio = hoje;
+      }
+
       const params = new URLSearchParams({ page: String(currentPlantaoPage), limit: '15', ...filteredFilters });
       const plantoesRes = await api.get<ApiResponse<Plantao>>(`/api/admin/plantoes?${params.toString()}`);
       setPlantoes(plantoesRes.data.data);
@@ -180,9 +187,11 @@ export default function Plantoes() {
     try {
       const params = new URLSearchParams(filters);
       const response = await api.get<EscalaAeronave[]>(`/api/admin/escala-aeronaves?${params.toString()}`);
-      setEscalaAeronaves(response.data);
-    } catch (err) { toast.error('Não foi possível carregar a escala de aeronaves.'); }
-    finally { setIsLoadingAeronaves(false); }
+      setEscalaAeronaves(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      toast.error('Não foi possível carregar a escala de aeronaves.');
+      setEscalaAeronaves([]);
+    } finally { setIsLoadingAeronaves(false); }
   }, [filters]);
 
   const fetchEscalaCodec = useCallback(async () => {
@@ -190,9 +199,11 @@ export default function Plantoes() {
     try {
       const params = new URLSearchParams(filters);
       const response = await api.get<EscalaCodec[]>(`/api/admin/escala-codec?${params.toString()}`);
-      setEscalaCodec(response.data);
-    } catch (err) { toast.error('Não foi possível carregar a escala do CODEC.'); }
-    finally { setIsLoadingCodec(false); }
+      setEscalaCodec(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      toast.error('Não foi possível carregar a escala do CODEC.');
+      setEscalaCodec([]);
+    } finally { setIsLoadingCodec(false); }
   }, [filters]);
 
   useEffect(() => {

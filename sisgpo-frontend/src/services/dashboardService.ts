@@ -360,11 +360,11 @@ export const dashboardService = {
         try {
             const today = new Date().toISOString().split('T')[0];
 
-            // Count entries in militar_plantao for today's plantoes
+            // Busca militares escalados em plantões vigentes (data >= hoje)
             const { count, error } = await supabase
                 .from('militar_plantao')
-                .select('plantoes!inner(data_inicio)', { count: 'exact', head: true })
-                .eq('plantoes.data_inicio', today);
+                .select('plantoes!inner(data_plantao)', { count: 'exact', head: true })
+                .gte('plantoes.data_plantao', today);
 
             if (error) throw error;
 
@@ -378,20 +378,24 @@ export const dashboardService = {
     async getViaturasEmpenhadasCount(): Promise<{ count: number, engagedSet: Set<string> }> {
         try {
             const today = new Date().toISOString().split('T')[0];
-            // Count entries in viatura_plantao linked to today's plantoes
+
+            // Busca plantões vigentes (data >= hoje) com viaturas
             const { data, error } = await supabase
-                .from('viatura_plantao')
+                .from('plantoes')
                 .select(`
-            prefixo_viatura,
-            plantoes!inner (data_plantao)
-        `)
-                .gte('plantoes.data_plantao', today);
+                    viatura_id,
+                    viaturas!inner (prefixo)
+                `)
+                .gte('data_plantao', today)
+                .not('viatura_id', 'is', null);
 
             if (error) throw error;
 
             const engagedSet = new Set<string>();
             data?.forEach((item: any) => {
-                if (item.prefixo_viatura) engagedSet.add(item.prefixo_viatura);
+                if (item.viaturas?.prefixo) {
+                    engagedSet.add(item.viaturas.prefixo);
+                }
             });
 
             return { count: engagedSet.size, engagedSet };
