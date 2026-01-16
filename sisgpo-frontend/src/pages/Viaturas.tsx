@@ -646,6 +646,7 @@ export default function Viaturas() {
               <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const viatura = filteredViaturas[virtualRow.index];
+                  if (!viatura) return null;
                   const status = getViaturaStatus(viatura);
                   return (
                     <div
