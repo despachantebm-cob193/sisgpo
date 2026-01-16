@@ -14,9 +14,9 @@ export default function PublicLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
 
   return (
-    <div className="min-h-screen bg-background font-sans text-textMain">
+    <div className="flex h-full flex-col overflow-y-auto bg-background font-sans text-textMain">
       {/* Cabeçalho público com menu dedicado */}
-      <header className="sticky top-0 z-10 border-b border-borderDark bg-searchbar shadow-md">
+      <header className="sticky top-0 z-10 flex-none border-b border-borderDark bg-searchbar shadow-md">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-textMain">SISGPO - Dashboard Público</h1>
@@ -85,7 +85,7 @@ export default function PublicLayout() {
       </header>
 
       {/* Conteúdo principal renderizado pelas rotas públicas */}
-      <main className="py-6">
+      <main className="flex-1 pt-6 pb-[20px]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Outlet />
         </div>

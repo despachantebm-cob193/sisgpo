@@ -35,21 +35,55 @@ export const SupabaseAuthStateListener = () => {
                             useAuthStore.getState().setPending(true);
                             navigate('/pending-approval', { replace: true });
                         } else {
-                            // FALLBACK: If backend is unreachable (e.g. Supabase-only mode), construct user from session
-                            console.warn('[SupabaseAuth] Backend unreachable. Falling back to session data.');
+                            // TENTATIVA DE RECUPERAÇÃO ROBUSTA
+                            const cachedUser = useAuthStore.getState().user;
+                            
+                            // 1. Tenta usar o cache se existir (Assume-se que pertence à sessão atual)
+                            if (cachedUser) {
+                                console.warn('[SupabaseAuth] Backend unreachable. Preserving cached user profile.');
+                                login(session.access_token, cachedUser);
+                            } else {
+                                // 2. Se não tem cache, tenta buscar direto no banco (Supabase) bypassando a API
+                                // Tenta 'adivinhar' o login baseado no email (ex: timbo.correa@... -> timbo.correa)
+                                const username = session.user.email?.split('@')[0];
+                                console.warn(`[SupabaseAuth] Backend unreachable. Attempting direct DB fetch for login: ${username}`);
+                                
+                                let dbUser = null;
+                                if (username) {
+                                  const { data } = await supabase
+                                    .from('usuarios')
+                                    .select('*')
+                                    .eq('login', username)
+                                    .single();
+                                  dbUser = data;
+                                }
 
-                            const fallbackUser: any = {
-                                id: 0, // Temporary ID since we don't have numeric ID
-                                login: session.user.email || 'user',
-                                nome: session.user.user_metadata?.full_name || session.user.email,
-                                email: session.user.email,
-                                perfil: session.user.user_metadata?.perfil || 'user', // Trust metadata if available
-                                ativo: true,
-                                status: 'approved'
-                            };
+                                if (dbUser) {
+                                    console.log('[SupabaseAuth] Recovered user from direct DB query:', dbUser);
+                                    // Adapta o objeto do banco para o formato UserRecord esperado
+                                    const recoveredUser: any = {
+                                        ...dbUser,
+                                        email: session.user.email // Garante que o email da sessão esteja presente
+                                    };
+                                    login(session.access_token, recoveredUser);
+                                } else {
+                                    // 3. Último caso: Fallback genérico (provavelmente perderá admin)
+                                    console.warn('[SupabaseAuth] Backend unreachable and User not found in DB. Falling back to session data.');
 
-                            login(session.access_token, fallbackUser);
-                            console.log('[SupabaseAuth] Logged in with fallback session data.');
+                                    const fallbackUser: any = {
+                                        id: 0, 
+                                        login: session.user.email || 'user',
+                                        nome: session.user.user_metadata?.full_name || session.user.email,
+                                        email: session.user.email,
+                                        perfil: session.user.user_metadata?.perfil || 'user', 
+                                        ativo: true,
+                                        status: 'approved'
+                                    };
+
+                                    login(session.access_token, fallbackUser);
+                                    console.log('[SupabaseAuth] Logged in with fallback session data.');
+                                }
+                            }
                         }
                     } finally {
                         useAuthStore.getState().setLoadingProfile(false);
