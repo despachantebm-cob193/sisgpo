@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Label from '@/components/ui/Label';
 import { PlusCircle, XCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '@/services/api';
 
 // Interfaces para tipagem

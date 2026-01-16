@@ -257,6 +257,43 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, obms
     setConflictModalOpen(false);
   };
 
+  // --- Event Handlers ---
+  const handleGuarnicaoInputChange = (index: number, field: keyof GuarnicaoMembro, value: string) => {
+    const novaGuarnicao = [...formData.guarnicao];
+    novaGuarnicao[index] = { ...novaGuarnicao[index], [field]: value };
+    setFormData(prev => ({ ...prev, guarnicao: novaGuarnicao }));
+  };
+
+  const adicionarMembro = () => {
+    setFormData(prev => ({
+      ...prev,
+      guarnicao: [...prev.guarnicao, getInitialGuarnicaoMembro()],
+    }));
+  };
+
+  const removerMembro = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      guarnicao: prev.guarnicao.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!formData.data_plantao || !formData.hora_inicio || !formData.hora_fim || !formData.viatura_id) {
+      toast.error('Preencha os campos obrigatórios.');
+      return;
+    }
+    // Simple validation for guarnicao
+    for (const m of formData.guarnicao) {
+      if (!m.militar_id || !m.funcao) {
+        toast.error('Preencha os dados de todos os membros da guarnição.');
+        return;
+      }
+    }
+    onSave(formData);
+  };
+
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6">

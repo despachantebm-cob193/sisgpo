@@ -510,7 +510,7 @@ export default function Viaturas() {
         >
           <option value="">Filtrar por OBM...</option>
           {obms.map(obm => (
-            <option key={obm} value={obm}>{obm}</option>
+            <option key={obm || 'null'} value={obm || ''}>{obm}</option>
           ))}
         </Select>
         <Select
@@ -523,7 +523,7 @@ export default function Viaturas() {
         >
           <option value="">Filtrar por Cidade...</option>
           {cidades.map(cidade => (
-            <option key={cidade} value={cidade}>{cidade}</option>
+            <option key={cidade || 'null'} value={cidade || ''}>{cidade}</option>
           ))}
         </Select>
         <Select
@@ -752,7 +752,7 @@ export default function Viaturas() {
       </Modal>
 
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
-        <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
+        <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave as any} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
       <ConfirmationModal
         isOpen={isConfirmModalOpen}
@@ -860,7 +860,7 @@ export default function Viaturas() {
         isOpen={isLongInactiveModalOpen}
         onClose={() => setIsLongInactiveModalOpen(false)}
         title="Viaturas Sem Escala Recente (> 30 Dias)"
-        maxWidth="4xl"
+      // removed maxWidth prop as per previous fix, if needed handled via content width
       >
         <div className="space-y-4">
           <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
@@ -923,7 +923,7 @@ export default function Viaturas() {
           </div>
         </div>
       </Modal>
-    </div>
+    </div >
   );
 }
 
