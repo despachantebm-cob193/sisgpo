@@ -69,12 +69,24 @@ export class PlantaoRepository {
 
     // Supabase join syntax: table!fk(columns)
     // Precisamos selecionar colunas de relações
+    // Supabase join syntax: table!fk(columns)
+    // Precisamos selecionar colunas de relações
     let query = this.supabase
       .from('plantoes')
       .select(`
         *,
         viaturas (prefixo),
-        obms (abreviatura, nome)
+        obms (abreviatura, nome),
+        militar_plantao (
+          militar_id,
+          funcao,
+          militares (
+            id,
+            nome_guerra,
+            posto_graduacao,
+            nome_completo
+          )
+        )
       `, { count: 'exact' });
 
     if (data_inicio) {
@@ -96,7 +108,17 @@ export class PlantaoRepository {
         .select(`
           *,
           viaturas!inner(prefixo),
-          obms(abreviatura, nome)
+          obms(abreviatura, nome),
+          militar_plantao (
+            militar_id,
+            funcao,
+            militares (
+              id,
+              nome_guerra,
+              posto_graduacao,
+              nome_completo
+            )
+          )
         `, { count: 'exact' })
         .ilike('viaturas.prefixo', viatura_prefixo);
     }
@@ -113,13 +135,25 @@ export class PlantaoRepository {
       throw new Error(`Erro ao listar plantões: ${error.message}`);
     }
 
-    // Flatten results
-    const plantoes = (data || []).map((p: any) => ({
-      ...p,
-      viatura_prefixo: p.viaturas?.prefixo,
-      obm_abreviatura: p.obms?.abreviatura,
-      obm_nome: p.obms?.nome,
-    }));
+    // Flatten results & Map Guarnição
+    const plantoes = (data || []).map((p: any) => {
+      // Map nested militar_plantao to flat guarnicao array
+      const guarnicao = (p.militar_plantao || []).map((mp: any) => ({
+        militar_id: mp.militar_id,
+        funcao: mp.funcao,
+        nome_guerra: mp.militares?.nome_guerra,
+        posto_graduacao: mp.militares?.posto_graduacao,
+        nome_completo: mp.militares?.nome_completo
+      }));
+
+      return {
+        ...p,
+        viatura_prefixo: p.viaturas?.prefixo,
+        obm_abreviatura: p.obms?.abreviatura,
+        obm_nome: p.obms?.nome,
+        guarnicao
+      };
+    });
 
     const totalRecords = count || 0;
     const totalPages = Math.ceil(totalRecords / limit) || 1;

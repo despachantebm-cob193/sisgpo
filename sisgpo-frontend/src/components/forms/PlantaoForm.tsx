@@ -167,287 +167,282 @@ const PlantaoForm: React.FC<PlantaoFormProps> = ({ plantaoToEdit, viaturas, obms
       .catch(() => callback([]));
   };
 
-  const handleMilitarSelectChange = (index: number, selectedOption: MilitarOption | null) => {
-    const novaGuarnicao = [...formData.guarnicao];
-    if (selectedOption) {
-      const exibicao = (selectedOption.militar.nome_exibicao || selectedOption.label || selectedOption.militar.nome_completo || selectedOption.militar.nome_guerra || '').trim();
-      novaGuarnicao[index] = {
-        ...novaGuarnicao[index],
-        militar_id: selectedOption.value,
-        nome_completo: exibicao,
-        nome_guerra: selectedOption.militar.nome_guerra ?? '',
-        nome_exibicao: exibicao,
-        posto_graduacao: selectedOption.militar.posto_graduacao ?? '',
-        funcao: novaGuarnicao[index].funcao, // Manter função existente
-        telefone: selectedOption.militar.telefone ? formatarTelefoneInput(selectedOption.militar.telefone) : '',
-      };
-    } else {
-      novaGuarnicao[index] = getInitialGuarnicaoMembro();
-    }
-    setFormData(prev => ({ ...prev, guarnicao: novaGuarnicao }));
-  };
+  // --- Conflict Handling States ---
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictMessage, setConflictMessage] = useState('');
+  const [pendingSelection, setPendingSelection] = useState<{ index: number; option: MilitarOption } | null>(null);
 
-  const handleGuarnicaoInputChange = (index: number, field: 'funcao' | 'telefone', value: string) => {
-    const novaGuarnicao = [...formData.guarnicao];
-    if (field === 'telefone') {
-      novaGuarnicao[index][field] = formatarTelefoneInput(value);
-    } else {
-      novaGuarnicao[index][field] = value;
-    }
-    setFormData(prev => ({ ...prev, guarnicao: novaGuarnicao }));
-  };
+  const checkMilitarAvailability = async (militarId: number, dataPlantao: string): Promise<string | null> => {
+    try {
+      // Fetch all plantoes for the day, including guarnicao
+      // This matches the logic used in 'verificarPlantaoDuplicado' but inspecting members
+      const params = new URLSearchParams({
+        data_inicio: dataPlantao,
+        data_fim: dataPlantao,
+        limit: '1000', // Fetch enough to cover the day
+        all: 'true'
+      });
 
-  const adicionarMembro = () => setFormData(prev => ({ ...prev, guarnicao: [...prev.guarnicao, getInitialGuarnicaoMembro()] }));
-  const removerMembro = (index: number) => {
-    if (formData.guarnicao.length > 1) {
-      setFormData(prev => ({ ...prev, guarnicao: prev.guarnicao.filter((_, i) => i !== index) }));
-    }
-  };
+      const response = await api.get(`/api/admin/plantoes?${params.toString()}`);
+      const lista = Array.isArray(response.data?.data) ? response.data.data : (response.data?.data || response.data || []);
 
-  const verificarPlantaoDuplicado = useCallback(
-    async (dataPlantao: string, viaturaId: number, viaturaPrefixo?: string | null) => {
-      try {
-        const params = new URLSearchParams({
-          data_inicio: dataPlantao,
-          data_fim: dataPlantao,
-          limit: '500',
-          all: 'true',
-        });
-        const response = await api.get(`/api/admin/plantoes?${params.toString()}`);
-        const lista =
-          Array.isArray(response.data?.data) ? response.data.data : response.data?.data ? response.data.data : response.data;
-        const normalizedPrefix = viaturaPrefixo?.trim().toUpperCase() || '';
-        return Array.isArray(lista)
-          ? lista.some((plantao: any) => {
-            const prefix =
-              plantao.viatura_prefixo ||
-              plantao.prefixo ||
-              plantao.viatura?.prefixo ||
-              '';
-            const normalized = prefix.trim().toUpperCase();
-            const plantaoViaturaId = Number(
-              plantao.viatura_id ??
-              plantao.viaturaId ??
-              plantao.viatura?.id
-            );
-            return (
-              (normalizedPrefix && normalized === normalizedPrefix) ||
-              (Number.isFinite(plantaoViaturaId) && plantaoViaturaId === viaturaId)
-            );
-          })
-          : false;
-      } catch (error) {
-        console.error('Erro ao verificar plantão duplicado', error);
-        return false;
+      if (!Array.isArray(lista)) return null;
+
+      for (const plantao of lista) {
+        // Skip current plantao being edited (if any)
+        if (plantaoToEdit && plantao.id === plantaoToEdit.id) continue;
+
+        // Check if militar is in this plantao's guarnicao
+        // Note: The list endpoint might return nested guarnicao if configured, 
+        // OR we might need to rely on the backend check. 
+        // Assuming the list returns guarnicao as per previous context fixes.
+        if (plantao.guarnicao && Array.isArray(plantao.guarnicao)) {
+          const found = plantao.guarnicao.find((m: any) => m.militar_id === militarId);
+          if (found) {
+            const vtr = plantao.viatura_prefixo || plantao.viatura?.prefixo || 'Viatura desconhecida';
+            return `Este militar já está escalado na viatura ${vtr} para a data ${dataPlantao}.`;
+          }
+        }
       }
-    },
-    []
-  );
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const guarnicaoValida = formData.guarnicao.every(m => m.militar_id && m.funcao);
-    if (!guarnicaoValida) {
-      toast.error('Verifique se todos os militares foram selecionados e se todas as funções foram preenchidas.');
-      return;
+      return null;
+    } catch (err) {
+      console.error('Erro ao verificar disponibilidade do militar:', err);
+      return null; // Fail safe: allow adding if check fails
     }
-    const viaturaSelecionada = viaturas.find(v => v.id === formData.viatura_id);
-    if (!viaturaSelecionada) {
-      toast.error('Por favor, selecione uma viatura.');
-      return;
-    }
+  };
 
-    const duplicate = await verificarPlantaoDuplicado(
-      formData.data_plantao,
-      Number(formData.viatura_id),
-      viaturaSelecionada.prefixo
-    );
-    if (duplicate && !formData.id) {
-      toast.error('Já existe um plantão para esta viatura nesta data.');
-      return;
-    }
+  const executeMilitarUpdate = (index: number, selectedOption: MilitarOption) => {
+    const novaGuarnicao = [...formData.guarnicao];
+    const exibicao = (selectedOption.militar.nome_exibicao || selectedOption.label || selectedOption.militar.nome_completo || selectedOption.militar.nome_guerra || '').trim();
 
-    const obmIdFromState = typeof formData.obm_id === 'number' ? formData.obm_id : null;
-    const obmId = (typeof viaturaSelecionada.obm_id === 'number' ? viaturaSelecionada.obm_id : null) ?? obmIdFromState;
-
-    if (!obmId) {
-      toast.error('A viatura selecionada não está vinculada a uma OBM. Por favor, selecione uma OBM manualmente no campo "OBM de Vinculação".');
-      return;
-    }
-
-    const payload = {
-      ...formData,
-      hora_inicio: formData.hora_inicio || null,
-      hora_fim: formData.hora_fim || null,
-      obm_id: obmId,
-      guarnicao: formData.guarnicao.map(({ militar_id, funcao, telefone }) => ({
-        militar_id: Number(militar_id),
-        funcao,
-        telefone: (telefone || '').replace(/\D/g, ''),
-      })),
+    novaGuarnicao[index] = {
+      ...novaGuarnicao[index],
+      militar_id: selectedOption.value,
+      nome_completo: exibicao,
+      nome_guerra: selectedOption.militar.nome_guerra ?? '',
+      nome_exibicao: exibicao,
+      posto_graduacao: selectedOption.militar.posto_graduacao ?? '',
+      funcao: novaGuarnicao[index].funcao,
+      telefone: selectedOption.militar.telefone ? formatarTelefoneInput(selectedOption.militar.telefone) : '',
     };
-    onSave(payload);
+    setFormData(prev => ({ ...prev, guarnicao: novaGuarnicao }));
+  };
+
+  const handleMilitarSelectChange = async (index: number, selectedOption: MilitarOption | null) => {
+    if (!selectedOption) {
+      // Clearing selection
+      const novaGuarnicao = [...formData.guarnicao];
+      novaGuarnicao[index] = getInitialGuarnicaoMembro();
+      setFormData(prev => ({ ...prev, guarnicao: novaGuarnicao }));
+      return;
+    }
+
+    // Check for conflicts
+    const conflictMsg = await checkMilitarAvailability(selectedOption.value, formData.data_plantao);
+
+    if (conflictMsg) {
+      setConflictMessage(conflictMsg);
+      setPendingSelection({ index, option: selectedOption });
+      setConflictModalOpen(true);
+    } else {
+      executeMilitarUpdate(index, selectedOption);
+    }
+  };
+
+  const handleConfirmConflict = () => {
+    if (pendingSelection) {
+      executeMilitarUpdate(pendingSelection.index, pendingSelection.option);
+      setPendingSelection(null);
+    }
+    setConflictModalOpen(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Row 1: OBM e Viatura */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Campo OBM */}
-        <div>
-          <Label htmlFor="obm_id">OBM de Vinculação</Label>
-          <select
-            id="obm_id"
-            value={formData.obm_id ?? ''}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, obm_id: Number(e.target.value) || '' }))}
-            required
-            className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
-          >
-            <option value="">Selecione a OBM...</option>
-            {obms?.map(obm => (
-              <option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>
-            ))}
-          </select>
-          <p className="text-xs text-textSecondary mt-1">
-            *Selecione manualmente se a viatura não tiver OBM vinculada.
-          </p>
+    <>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Row 1: OBM e Viatura */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Campo OBM */}
+          <div>
+            <Label htmlFor="obm_id">OBM de Vinculação</Label>
+            <select
+              id="obm_id"
+              value={formData.obm_id ?? ''}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, obm_id: Number(e.target.value) || '' }))}
+              required
+              className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
+            >
+              <option value="">Selecione a OBM...</option>
+              {obms?.map(obm => (
+                <option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>
+              ))}
+            </select>
+            <p className="text-xs text-textSecondary mt-1">
+              *Selecione manualmente se a viatura não tiver OBM vinculada.
+            </p>
+          </div>
+
+          {/* Campo Viatura */}
+          <div>
+            <Label htmlFor="viatura_id">Viatura</Label>
+            <select
+              id="viatura_id"
+              value={formData.viatura_id}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                const { value } = e.target;
+                if (!value) {
+                  setFormData(prev => ({ ...prev, viatura_id: '', obm_id: '' }));
+                  return;
+                }
+
+                const selectedId = Number(value);
+                const viatura = viaturas.find(v => v.id === selectedId) || null;
+
+                setFormData(prev => ({
+                  ...prev,
+                  viatura_id: selectedId,
+                  obm_id: viatura?.obm_id ?? '', // Default to linked OBM, or empty if none
+                }));
+              }}
+              required
+              className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
+            >
+              <option value="">Selecione uma viatura</option>
+              {viaturas?.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
+            </select>
+          </div>
         </div>
 
-        {/* Campo Viatura */}
-        <div>
-          <Label htmlFor="viatura_id">Viatura</Label>
-          <select
-            id="viatura_id"
-            value={formData.viatura_id}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-              const { value } = e.target;
-              if (!value) {
-                setFormData(prev => ({ ...prev, viatura_id: '', obm_id: '' }));
-                return;
-              }
+        {/* Row 2: Data e Horários */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {/* Campo Data */}
+          <div>
+            <Label htmlFor="data_plantao">Data do Plantão</Label>
+            <Input id="data_plantao" type="date" value={formData.data_plantao} onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, data_plantao: e.target.value }))} required />
+          </div>
 
-              const selectedId = Number(value);
-              const viatura = viaturas.find(v => v.id === selectedId) || null;
+          {/* Campo Horario Inicial */}
+          <div>
+            <Label htmlFor="hora_inicio">Horario inicial</Label>
+            <Input
+              id="hora_inicio"
+              type="time"
+              value={formData.hora_inicio}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
+            />
+          </div>
 
-              setFormData(prev => ({
-                ...prev,
-                viatura_id: selectedId,
-                obm_id: viatura?.obm_id ?? '', // Default to linked OBM, or empty if none
-              }));
-            }}
-            required
-            className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm"
-          >
-            <option value="">Selecione uma viatura</option>
-            {viaturas?.map(vtr => (<option key={vtr.id} value={vtr.id}>{vtr.prefixo}</option>))}
-          </select>
-        </div>
-      </div>
-
-      {/* Row 2: Data e Horários */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {/* Campo Data */}
-        <div>
-          <Label htmlFor="data_plantao">Data do Plantão</Label>
-          <Input id="data_plantao" type="date" value={formData.data_plantao} onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, data_plantao: e.target.value }))} required />
+          {/* Campo Horario Final */}
+          <div>
+            <Label htmlFor="hora_fim">Horario final</Label>
+            <Input
+              id="hora_fim"
+              type="time"
+              value={formData.hora_fim}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_fim: e.target.value }))}
+            />
+          </div>
         </div>
 
-        {/* Campo Horario Inicial */}
+        {/* Seção da Guarnição */}
         <div>
-          <Label htmlFor="hora_inicio">Horario inicial</Label>
-          <Input
-            id="hora_inicio"
-            type="time"
-            value={formData.hora_inicio}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_inicio: e.target.value }))}
-          />
-        </div>
-
-        {/* Campo Horario Final */}
-        <div>
-          <Label htmlFor="hora_fim">Horario final</Label>
-          <Input
-            id="hora_fim"
-            type="time"
-            value={formData.hora_fim}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, hora_fim: e.target.value }))}
-          />
-        </div>
-      </div>
-
-      {/* Seção da Guarnição */}
-      <div>
-        <Label className="mb-2">Guarnição</Label>
-        <div className="space-y-4">
-          {formData.guarnicao.map((membro, index) => (
-            <div key={index} className="p-4 border rounded-lg bg-searchbar relative">
-              {/* --- LAYOUT VERTICAL PARA CADA MEMBRO --- */}
-              <div className="space-y-4">
-                {/* Linha 1: Busca Militar */}
-                <div>
-                  <Label htmlFor={`militar-select-${index}`}>Buscar Militar</Label>
-                  <AsyncSelect
-                    id={`militar-select-${index}`}
-                    cacheOptions
-                    loadOptions={loadMilitarOptions}
-                    defaultOptions
-                    isClearable
-                    placeholder="Nome, guerra ou matrícula..."
-                    value={membro.militar_id ? { value: membro.militar_id, label: membro.nome_exibicao } : null}
-                    onChange={(option) => handleMilitarSelectChange(index, option as MilitarOption)}
-                    noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Digite pelo menos 2 caracteres' : 'Nenhum militar encontrado'}
-                    styles={customStyles}
-                  />
-                </div>
-
-                {/* Linha 2: Telefone e Função */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Label className="mb-2">Guarnição</Label>
+          <div className="space-y-4">
+            {formData.guarnicao.map((membro, index) => (
+              <div key={index} className="p-4 border rounded-lg bg-searchbar relative">
+                {/* --- LAYOUT VERTICAL PARA CADA MEMBRO --- */}
+                <div className="space-y-4">
+                  {/* Linha 1: Busca Militar */}
                   <div>
-                    <Label htmlFor={`telefone-${index}`}>Telefone</Label>
-                    <Input
-                      id={`telefone-${index}`}
-                      type="text"
-                      placeholder="(XX) XXXX-XXXX"
-                      value={membro.telefone ?? ''}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleGuarnicaoInputChange(index, 'telefone', e.target.value)}
-                      maxLength={14}
-                      disabled={!membro.militar_id}
+                    <Label htmlFor={`militar-select-${index}`}>Buscar Militar</Label>
+                    <AsyncSelect
+                      id={`militar-select-${index}`}
+                      cacheOptions
+                      loadOptions={loadMilitarOptions}
+                      defaultOptions
+                      isClearable
+                      placeholder="Nome, guerra ou matrícula..."
+                      value={membro.militar_id ? { value: membro.militar_id, label: membro.nome_exibicao } : null}
+                      onChange={(option) => handleMilitarSelectChange(index, option as MilitarOption)}
+                      noOptionsMessage={({ inputValue }) => inputValue.length < 2 ? 'Digite pelo menos 2 caracteres' : 'Nenhum militar encontrado'}
+                      styles={customStyles}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor={`funcao-${index}`}>Função</Label>
-                    <Input id={`funcao-${index}`} type="text" placeholder="Ex: Motorista" value={membro.funcao} onChange={(e: ChangeEvent<HTMLInputElement>) => handleGuarnicaoInputChange(index, 'funcao', e.target.value)} required />
+
+                  {/* Linha 2: Telefone e Função */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor={`telefone-${index}`}>Telefone</Label>
+                      <Input
+                        id={`telefone-${index}`}
+                        type="text"
+                        placeholder="(XX) XXXX-XXXX"
+                        value={membro.telefone ?? ''}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleGuarnicaoInputChange(index, 'telefone', e.target.value)}
+                        maxLength={14}
+                        disabled={!membro.militar_id}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`funcao-${index}`}>Função</Label>
+                      <Input id={`funcao-${index}`} type="text" placeholder="Ex: Motorista" value={membro.funcao} onChange={(e: ChangeEvent<HTMLInputElement>) => handleGuarnicaoInputChange(index, 'funcao', e.target.value)} required />
+                    </div>
                   </div>
                 </div>
+                {/* --- FIM DO LAYOUT VERTICAL --- */}
+
+                {/* Botão de remover */}
+                {formData.guarnicao.length > 1 && (
+                  <div className="absolute top-2 right-2">
+                    <Button type="button" onClick={() => removerMembro(index)} className="!w-auto !p-2 bg-spamRed hover:bg-spamRed/80" title="Remover Militar">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
-              {/* --- FIM DO LAYOUT VERTICAL --- */}
-
-              {/* Botão de remover */}
-              {formData.guarnicao.length > 1 && (
-                <div className="absolute top-2 right-2">
-                  <Button type="button" onClick={() => removerMembro(index)} className="!w-auto !p-2 bg-spamRed hover:bg-spamRed/80" title="Remover Militar">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+          <Button type="button" onClick={adicionarMembro} variant="primary" className="mt-3 !w-auto text-sm">Adicionar Militar à Guarnição</Button>
         </div>
-        <Button type="button" onClick={adicionarMembro} variant="primary" className="mt-3 !w-auto text-sm">Adicionar Militar à Guarnição</Button>
-      </div>
 
-      {/* Seção de Observações */}
-      <div>
-        <Label htmlFor="observacoes">Observações</Label>
-        <textarea id="observacoes" value={formData.observacoes || ''} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
-      </div>
+        {/* Seção de Observações */}
+        <div>
+          <Label htmlFor="observacoes">Observações</Label>
+          <textarea id="observacoes" value={formData.observacoes || ''} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))} rows={3} className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm" />
+        </div>
 
-      {/* Botões de Ação */}
-      <div className="flex justify-end gap-4 pt-4">
-        <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
-        <Button type="submit" disabled={isLoading} className="bg-cardGreen hover:bg-cardGreen/80 text-textMain">{isLoading ? 'Salvando...' : 'Salvar Plantão'}</Button>
-      </div>
-    </form>
+        {/* Botões de Ação */}
+        <div className="flex justify-end gap-4 pt-4">
+          <Button type="button" onClick={onCancel} variant="danger">Cancelar</Button>
+          <Button type="submit" disabled={isLoading} className="bg-cardGreen hover:bg-cardGreen/80 text-textMain">{isLoading ? 'Salvando...' : 'Salvar Plantão'}</Button>
+        </div>
+      </form>
+
+      {/* Modal De Confirmação de Duplicidade */}
+      {/* Usando um modal simples inline ou importar ConfirmationModal se disponível */}
+      {conflictModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-cardSlate border border-borderDark/60 p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-bold text-textMain mb-2">Militar Já Escalado</h3>
+            <p className="text-textSecondary mb-6">{conflictMessage}</p>
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => { setConflictModalOpen(false); setPendingSelection(null); }}
+                variant="secondary"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmConflict}
+                className="bg-tagBlue hover:bg-tagBlue/80 text-white"
+              >
+                Continuar Assim Mesmo
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

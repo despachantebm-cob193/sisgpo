@@ -134,6 +134,13 @@ const EscalaCodecForm: React.FC<FormProps> = ({ onSave, onCancel, isLoading }) =
               isClearable
               onChange={(option) => handlePlantonistaChange(turno, index, option)}
               noOptionsMessage={() => 'Nenhum militar encontrado'}
+              styles={{
+                singleValue: (base) => ({ ...base, color: '#333333' }), // Dark Gray for selected text
+                input: (base) => ({ ...base, color: '#333333' }), // Dark Gray for typing
+                placeholder: (base) => ({ ...base, color: '#666666' }), // Lighter Gray for placeholder
+                control: (base) => ({ ...base, backgroundColor: 'white', borderColor: '#cbd5e0' }),
+                menu: (base) => ({ ...base, zIndex: 9999, color: '#333333' }) // Ensure dropdown text is also readable
+              }}
             />
           </div>
           {formData[turno].length > 1 && (

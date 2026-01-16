@@ -16,8 +16,8 @@ const dashboardController = {
   getStats: async (_req: Request, res: Response) => {
     try {
       const [mil, vtr, obm] = await Promise.all([
-        supabaseAdmin.from('militares').select('id', { count: 'exact', head: true }),
-        supabaseAdmin.from('viaturas').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('militares').select('id', { count: 'exact', head: true }).eq('ativo', true),
+        supabaseAdmin.from('viaturas').select('id', { count: 'exact', head: true }).eq('ativa', true),
         supabaseAdmin.from('obms').select('id', { count: 'exact', head: true }),
       ]);
       return res.status(200).json({
@@ -73,24 +73,67 @@ const dashboardController = {
       // Fetch com paginação para garantir todos os registros (>1000)
       let allMilitares: any[] = [];
       let page = 0;
-      const pageSize = 1000;
+      const pageSize = 500; // Reduzido para evitar timeouts ou limites ocultos
+
+      // Check count first
+      const { count } = await supabaseAdmin
+        .from('militares')
+        .select('*', { count: 'exact', head: true })
+        .eq('ativo', true);
+
+      let lastId = 0;
+      let totalFetched = 0;
+
+      console.log(`[Dashboard] Total de militares ativos no DB (count): ${count}`);
+      console.log('[Dashboard] Iniciando busca via KEYSET PAGINATION (ID > lastId)...');
+
       while (true) {
         const { data, error } = await supabaseAdmin
           .from('militares')
-          .select('posto_graduacao')
+          .select('id, posto_graduacao') // ID is required for keyset
           .eq('ativo', true)
-          .range(page * pageSize, (page + 1) * pageSize - 1);
+          .gt('id', lastId)
+          .order('id', { ascending: true })
+          .limit(pageSize);
 
-        if (error) throw error;
+        if (error) {
+          console.error('[Dashboard] Erro na paginação de militares:', error);
+          throw error;
+        }
+
         if (!data || data.length === 0) break;
+
         allMilitares = allMilitares.concat(data);
-        if (data.length < pageSize) break;
-        page++;
+        const batchSize = data.length;
+        totalFetched += batchSize;
+        lastId = data[batchSize - 1].id; // Update cursor
+
+        console.log(`[Dashboard] Batch carregado. LastId: ${lastId}. Itens: ${batchSize}. Total: ${totalFetched}`);
+
+        if (batchSize < pageSize) break;
       }
+
+      console.log(`[Dashboard] Total de militares ativos recuperados: ${allMilitares.length}`);
+
+      const normalizePosto = (str: string) => {
+        if (!str) return 'N/A';
+        // Caso especial para normalizar "SGT" -> "Sgt", "PEL" -> "Pel", etc.
+        // Mantém "2º", "1º", "CB", "SD" se for padrão, ou converte tudo para Title Case.
+        // Title Case simples:
+        return str.toLowerCase().split(' ').map(word => {
+          // Preserva numerais ordinais como estão se já estiverem ok, ou normaliza se precisar
+          // Mas o toLowerCase já resolveu SGT -> sgt. Agora capitalize.
+          if (word.length > 2 && word.includes('º')) return word; // 2º, 1º pode manter minúsculo se quiser ou não.
+          // Melhor forçar Title Case em tudo
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ');
+      };
 
       const stats: Record<string, number> = {};
       (allMilitares || []).forEach((m: any) => {
-        const pg = m.posto_graduacao || 'N/A';
+        let pg = m.posto_graduacao || 'N/A';
+        // Normalização forçada para evitar duplicatas por Case Sensitivity
+        pg = normalizePosto(pg);
         stats[pg] = (stats[pg] || 0) + 1;
       });
 

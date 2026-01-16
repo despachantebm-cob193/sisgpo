@@ -12,6 +12,7 @@ export type ViaturaRow = {
   obm?: string | null;
   telefone?: string | null;
   obm_abreviatura?: string | null;
+  last_plantao_date?: string | null;
   created_at?: Date;
   updated_at?: Date;
 };
@@ -82,7 +83,7 @@ export class ViaturaRepository {
 
     let query = this.supabase
       .from('viaturas')
-      .select('*', { count: 'exact' });
+      .select('*, plantoes(data_plantao)', { count: 'exact' });
 
     if (q) {
       // Busca apenas em campos da viatura por enquanto. 
@@ -110,6 +111,7 @@ export class ViaturaRepository {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
+    // Use order on viaturas
     const { data, count, error } = await query
       .order('prefixo', { ascending: true })
       .range(from, to);
@@ -118,7 +120,16 @@ export class ViaturaRepository {
       throw new Error(`Erro ao listar viaturas: ${error.message}`);
     }
 
-    let viaturas = data as ViaturaRow[];
+    let viaturas = (data || []).map((v: any) => {
+      // Extract latest plantao date
+      const dates = (v.plantoes || []).map((p: any) => p.data_plantao).sort().reverse();
+      const last_plantao_date = dates.length > 0 ? dates[0] : null;
+
+      // Clean up the nested plantoes array from the result object to match ViaturaRow cleanly
+      // (Optional, but good for cleanliness)
+      const { plantoes, ...rest } = v;
+      return { ...rest, last_plantao_date };
+    }) as ViaturaRow[];
 
     // Hydrate OBM abbreviations (Client-side join logic replacement)
     // Chamamos isso sempre para garantir que obm_abreviatura esteja preenchido

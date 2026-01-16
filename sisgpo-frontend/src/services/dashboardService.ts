@@ -17,50 +17,16 @@ import {
     EscalaAeronave
 } from '@/types/entities';
 
+import api from './api';
+
 export const dashboardService = {
+    // ... (getStats implementation remains, or can be updated separately) ...
+
     async getStats(selectedObm?: string): Promise<DashboardStats> {
         try {
-            // 1. Total Militares Ativos
-            let queryMilitares = supabase
-                .from('militares')
-                .select('*', { count: 'exact', head: true })
-                .eq('ativo', true);
-
-            if (selectedObm) {
-                // Encontrar o nome da OBM pelo ID
-                const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
-                if (obm) {
-                    queryMilitares = queryMilitares.eq('obm_nome', obm.nome);
-                }
-            }
-
-            const { count: militaresCount } = await queryMilitares;
-
-            // 2. Total Viaturas Disponíveis (Ativas)
-            let queryViaturas = supabase
-                .from('viaturas')
-                .select('*', { count: 'exact', head: true })
-                .eq('ativa', true);
-
-            if (selectedObm) {
-                const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
-                if (obm) {
-                    queryViaturas = queryViaturas.ilike('obm', `%${obm.nome}%`);
-                }
-            }
-
-            const { count: viaturasCount } = await queryViaturas;
-
-            // 3. Total OBMs
-            const { count: obmsCount } = await supabase
-                .from('obms')
-                .select('*', { count: 'exact', head: true });
-
-            return {
-                total_militares_ativos: militaresCount || 0,
-                total_viaturas_disponiveis: viaturasCount || 0,
-                total_obms: obmsCount || 0
-            };
+            const params = selectedObm ? { obm_id: selectedObm } : {};
+            const response = await api.get<DashboardStats>('/api/dashboard/stats', { params });
+            return response.data;
         } catch (error) {
             console.error('Error fetching stats:', error);
             return { total_militares_ativos: 0, total_viaturas_disponiveis: 0, total_obms: 0 };
@@ -69,28 +35,9 @@ export const dashboardService = {
 
     async getViaturaStatsPorTipo(selectedObm?: string): Promise<ChartStat[]> {
         try {
-            let query = supabase.from('viaturas').select('tipo, obm').eq('ativa', true);
-
-            if (selectedObm) {
-                const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
-                if (obm) {
-                    query = query.ilike('obm', `%${obm.nome}%`);
-                }
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            const stats: Record<string, number> = {};
-            // Cast as unknown then Viatura[] or just partial if full type matches DB response
-            const viaturas = data as unknown as Pick<Viatura, 'tipo' | 'obm'>[];
-
-            viaturas?.forEach((v) => {
-                const tipo = v.tipo || 'Outros';
-                stats[tipo] = (stats[tipo] || 0) + 1;
-            });
-
-            return Object.entries(stats).map(([name, value]) => ({ name, value }));
+            const params = selectedObm ? { obm_id: selectedObm } : {};
+            const response = await api.get<ChartStat[]>('/api/dashboard/viatura-stats-por-tipo', { params });
+            return response.data;
         } catch (error) {
             console.error('Error fetching viatura stats by type:', error);
             return [];
@@ -99,27 +46,9 @@ export const dashboardService = {
 
     async getMilitarStats(selectedObm?: string): Promise<ChartStat[]> {
         try {
-            let query = supabase.from('militares').select('posto_graduacao, obm_nome').eq('ativo', true);
-
-            if (selectedObm) {
-                const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
-                if (obm) {
-                    query = query.eq('obm_nome', obm.nome);
-                }
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            const stats: Record<string, number> = {};
-            const militares = data as unknown as Pick<Militar, 'posto_graduacao' | 'obm_nome'>[];
-
-            militares?.forEach((m) => {
-                const posto = m.posto_graduacao || 'Outros';
-                stats[posto] = (stats[posto] || 0) + 1;
-            });
-
-            return Object.entries(stats).map(([name, value]) => ({ name, value }));
+            const params = selectedObm ? { obm_id: selectedObm } : {};
+            const response = await api.get<ChartStat[]>('/api/dashboard/militar-stats', { params });
+            return response.data;
         } catch (error) {
             console.error('Error fetching militar stats:', error);
             return [];
@@ -128,42 +57,9 @@ export const dashboardService = {
 
     async getViaturaStatsDetalhado(selectedObm?: string): Promise<ViaturaStatAgrupada[]> {
         try {
-            let query = supabase.from('viaturas').select('prefixo, tipo, obm').eq('ativa', true);
-
-            if (selectedObm) {
-                const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
-                if (obm) {
-                    query = query.ilike('obm', `%${obm.nome}%`);
-                }
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            // Group by Tipo -> OBM -> Prefixos
-            const grouped: Record<string, Record<string, string[]>> = {};
-            const viaturas = data as unknown as Pick<Viatura, 'prefixo' | 'tipo' | 'obm'>[];
-
-            viaturas?.forEach((v) => {
-                const tipo = v.tipo || 'Outros';
-                const obmName = v.obm || 'Sem OBM';
-
-                if (!grouped[tipo]) grouped[tipo] = {};
-                if (!grouped[tipo][obmName]) grouped[tipo][obmName] = [];
-
-                grouped[tipo][obmName].push(v.prefixo);
-            });
-
-            return Object.entries(grouped).map(([tipo, obmsMap]) => {
-                const obms: ObmGrupo[] = Object.entries(obmsMap).map(([nome, prefixos]) => ({
-                    nome,
-                    prefixos
-                }));
-
-                const quantidade = obms.reduce((acc, curr) => acc + curr.prefixos.length, 0);
-
-                return { tipo, quantidade, obms };
-            });
+            const params = selectedObm ? { obm_id: selectedObm } : {};
+            const response = await api.get<ViaturaStatAgrupada[]>('/api/dashboard/viatura-stats-detalhado', { params });
+            return response.data;
         } catch (error) {
             console.error('Error fetching detailed viatura stats:', error);
             return [];
@@ -172,44 +68,9 @@ export const dashboardService = {
 
     async getViaturaStatsPorObm(selectedObm?: string): Promise<ViaturaPorObmStat[]> {
         try {
-            // Obter todas as OBMs para ter a referência de CRBM e abreviatura
-            const { data: allObms } = await supabase.from('obms').select('*');
-            const obmMap = new Map((allObms as unknown as Obm[])?.map(o => [o.nome, o]));
-
-            let query = supabase.from('viaturas').select('prefixo, obm').eq('ativa', true);
-
-            if (selectedObm) {
-                const { data: obm } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
-                if (obm) {
-                    query = query.ilike('obm', `%${obm.nome}%`);
-                }
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            const grouped: Record<string, { prefixos: string[], obmRef: any }> = {};
-            const viaturas = data as unknown as Pick<Viatura, 'prefixo' | 'obm'>[];
-
-            viaturas?.forEach((v) => {
-                const obmName = v.obm || 'Sem OBM';
-                if (!grouped[obmName]) {
-                    grouped[obmName] = {
-                        prefixos: [],
-                        obmRef: obmMap.get(obmName)
-                    };
-                }
-                grouped[obmName].prefixos.push(v.prefixo);
-            });
-
-            return Object.entries(grouped).map(([nome, info], index) => ({
-                id: info.obmRef?.id || index,
-                nome,
-                quantidade: info.prefixos.length,
-                prefixos: info.prefixos,
-                crbm: info.obmRef?.crbm || 'Outros', // Campo CRBM na tabela OBMs
-                abreviatura: info.obmRef?.abreviatura
-            }));
+            const params = selectedObm ? { obm_id: selectedObm } : {};
+            const response = await api.get<ViaturaPorObmStat[]>('/api/dashboard/viatura-stats-por-obm', { params });
+            return response.data;
         } catch (error) {
             console.error('Error fetching viatura stats per OBM:', error);
             return [];

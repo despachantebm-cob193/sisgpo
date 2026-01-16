@@ -25,6 +25,7 @@ interface Viatura {
   obm: string | null;
   obm_abreviatura: string | null;
   ativa: boolean;
+  last_plantao_date?: string | null;
 }
 interface PaginationState { currentPage: number; totalPages: number; totalRecords: number; }
 interface ApiResponse<T> { data: T[]; pagination: PaginationState | null; }
@@ -73,6 +74,10 @@ export default function Viaturas() {
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
 
+  // States for Long Inactive Viaturas Notification
+  const [longInactiveViaturas, setLongInactiveViaturas] = useState<Viatura[]>([]);
+  const [isLongInactiveModalOpen, setIsLongInactiveModalOpen] = useState(false);
+
 
   const [previewData, setPreviewData] = useState<{
     totalViaturas: number;
@@ -84,21 +89,48 @@ export default function Viaturas() {
 
   const getViaturaStatus = useCallback((viatura: Viatura) => {
     const prefix = viatura.prefixo?.toUpperCase() ?? '';
+
+    // 1. EMPENHADA (Prioridade Máxima: Está em plantão ativo ou futuro)
     if (prefix && empenhadasViaturas.has(prefix)) {
       return {
-        label: 'EMPENHADO',
+        label: 'EMPENHADo',
         classes: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40',
       };
     }
-    if (viatura.ativa) {
-      return {
-        label: 'ATIVA',
-        classes: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40',
-      };
+
+    // 2. Verificação temporal baseada na última escala
+    const lastDate = viatura.last_plantao_date ? new Date(viatura.last_plantao_date) : null;
+
+    if (!lastDate) {
+      // Se nunca foi escalada (ou data nula), assume status de inatividade padrão (BAIXADA se for antiga, mas como não sabemos a data de criação, vamos forçar INATIVA ou BAIXADA).
+      // Para segurança, vamos considerar > 15 dias (BAIXADA) se não tem registro recente.
+      return { label: 'BAIXADA', classes: 'bg-stone-800 text-stone-400 ring-1 ring-stone-600' };
     }
+
+    const now = new Date();
+    const diffTime = now.getTime() - lastDate.getTime();
+    const diffHours = diffTime / (1000 * 3600);
+    const diffDays = diffTime / (1000 * 3600 * 24);
+
+    // Conceito:
+    // > 15 dias: BAIXADA
+    // > 7 dias: FORA DE SERVIÇO
+    // > 24 horas: INATIVA
+    // <= 24 horas: ATIVA
+
+    if (diffDays > 15) {
+      return { label: 'BAIXADA', classes: 'bg-stone-800 text-stone-400 ring-1 ring-stone-600' };
+    }
+    if (diffDays > 7) {
+      return { label: 'FORA DE SERVIÇO', classes: 'bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/40' };
+    }
+    if (diffHours > 24) {
+      return { label: 'INATIVA', classes: 'bg-slate-500/20 text-slate-400 ring-1 ring-slate-500/40' };
+    }
+
     return {
-      label: 'INATIVA',
-      classes: 'bg-spamRed/20 text-spamRed',
+      label: 'ATIVA',
+      classes: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40',
     };
   }, [empenhadasViaturas]);
 
@@ -144,10 +176,10 @@ export default function Viaturas() {
   useEffect(() => {
     const fetchAllForFilters = async () => {
       try {
-      const response = await api.get('/api/admin/viaturas?limit=9999');
-      setAllViaturasForFilters(response.data.data);
-    } catch {
-      toast.error('Falha ao carregar opções de filtro.');
+        const response = await api.get('/api/admin/viaturas?limit=9999');
+        setAllViaturasForFilters(response.data.data);
+      } catch {
+        toast.error('Falha ao carregar opções de filtro.');
       }
     };
     fetchAllForFilters();
@@ -182,6 +214,27 @@ export default function Viaturas() {
     } catch (err) { toast.error('Não foi possível carregar as viaturas.'); }
     finally { setIsLoading(false); }
   }, [filters, currentPage, allViaturasForFilters.length]);
+
+  // Check for long-inactive vehicles (> 30 days)
+  useEffect(() => {
+    if (allViaturasForFilters.length > 0) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const inactive = allViaturasForFilters.filter(v => {
+        // If no last date, assume inactive for long time (unless new? we don't have created_at here easily validatable, assuming dirty data means strict check)
+        // User requirement: "MAIS DE 30 DIAS SEM SEREM ESCALADAS"
+        if (!v.last_plantao_date) return true; // Never scheduled?
+        const lastDate = new Date(v.last_plantao_date);
+        return lastDate < thirtyDaysAgo;
+      });
+
+      if (inactive.length > 0) {
+        setLongInactiveViaturas(inactive);
+        setIsLongInactiveModalOpen(true);
+      }
+    }
+  }, [allViaturasForFilters]);
 
   const fetchEmpenhadas = useCallback(async () => {
     try {
@@ -345,7 +398,7 @@ export default function Viaturas() {
 
     try {
       const validationResponse = await api.post('/api/admin/viaturas/upload-validate', formData);
-      
+
       if (validationResponse.data.status === 'erro' && validationResponse.data.erros.length > 0) {
         setUploadValidationErrors(validationResponse.data.erros);
         setIsValidationModalOpen(true);
@@ -402,7 +455,7 @@ export default function Viaturas() {
     finally { setIsClearing(false); setIsClearConfirmModalOpen(false); }
   };
 
-  
+
   // Removido: duplicaÃ§Ã£o de getViaturaStatus, empenhadasCount e filteredViaturas
 
   return (
@@ -421,7 +474,7 @@ export default function Viaturas() {
           </div>
         )}
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <StatCard
           title="Total de Viaturas"
@@ -701,9 +754,16 @@ export default function Viaturas() {
       <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={itemToEdit ? 'Editar Viatura' : 'Adicionar Nova Viatura'}>
         <ViaturaForm viaturaToEdit={itemToEdit} onSave={handleSave} onCancel={handleCloseFormModal} isLoading={isSaving} errors={validationErrors} />
       </Modal>
-      <ConfirmationModal isOpen={isConfirmModalOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmDelete} title="Confirmar Exclusão" message="Tem certeza que deseja excluir esta viatura?" isLoading={isDeleting} />
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseConfirmModal}
+        onConfirm={handleConfirmDelete}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir esta viatura? ATENÇÃO: Todos os militares e escalas vinculados a esta viatura serão REMOVIDOS da tabela de plantões."
+        isLoading={isDeleting}
+      />
       <ConfirmationModal isOpen={isClearConfirmModalOpen} onClose={() => setIsClearConfirmModalOpen(false)} onConfirm={handleClearAllViaturas} title="Confirmar Limpeza Total" message="ATENÇÃO: Esta ação é irreversível e irá apagar TODAS as viaturas do banco de dados. Deseja continuar?" isLoading={isClearing} />
-      
+
       <Modal
         isOpen={isUploadModalOpen}
         title="Importar/Atualizar Viaturas"
@@ -791,6 +851,74 @@ export default function Viaturas() {
               isLoading={isUploading}
             >
               Prosseguir com a Importação
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      {/* Modal De Notificação de Inatividade Prolongada */}
+      <Modal
+        isOpen={isLongInactiveModalOpen}
+        onClose={() => setIsLongInactiveModalOpen(false)}
+        title="Viaturas Sem Escala Recente (> 30 Dias)"
+        maxWidth="4xl"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-full text-amber-500 mt-1">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-amber-500">Alerta de Operacionalidade</h4>
+                <p className="text-sm text-textSecondary mt-1">
+                  As viaturas listadas abaixo estão há mais de 30 dias sem registro de escala no sistema.
+                  Por favor, verifique se elas ainda estão operacionais.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-[60vh] overflow-y-auto border border-borderDark/60 rounded-md">
+            <table className="w-full text-left text-sm text-textSecondary">
+              <thead className="bg-bgDashboard sticky top-0">
+                <tr>
+                  <th className="p-3 font-semibold text-textMain">Prefixo</th>
+                  <th className="p-3 font-semibold text-textMain">OBM</th>
+                  <th className="p-3 font-semibold text-textMain">Última Escala</th>
+                  <th className="p-3 font-semibold text-textMain">Status Calculado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borderDark/60 text-textMain">
+                {longInactiveViaturas.map(v => {
+                  const status = getViaturaStatus(v);
+                  return (
+                    <tr key={v.id} className="hover:bg-cardSlate/50 transition-colors">
+                      <td className="p-3 font-medium">{v.prefixo}</td>
+                      <td className="p-3">{v.obm_abreviatura || v.obm || '-'}</td>
+                      <td className="p-3">
+                        {v.last_plantao_date
+                          ? new Date(v.last_plantao_date).toLocaleDateString('pt-BR')
+                          : <span className="text-spamRed font-semibold">Nunca/Desc.</span>
+                        }
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${status.classes}`}>
+                          {status.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <Button
+              onClick={() => setIsLongInactiveModalOpen(false)}
+              className="bg-tagBlue hover:bg-tagBlue/80 text-white w-full sm:w-auto px-6"
+            >
+              Confirmar Operacionalidade (Ciente)
             </Button>
           </div>
         </div>

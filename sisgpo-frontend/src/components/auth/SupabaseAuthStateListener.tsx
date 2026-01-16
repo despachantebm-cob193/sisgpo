@@ -37,25 +37,49 @@ export const SupabaseAuthStateListener = () => {
                         } else {
                             // TENTATIVA DE RECUPERAÇÃO ROBUSTA
                             const cachedUser = useAuthStore.getState().user;
-                            
+
                             // 1. Tenta usar o cache se existir (Assume-se que pertence à sessão atual)
                             if (cachedUser) {
                                 console.warn('[SupabaseAuth] Backend unreachable. Preserving cached user profile.');
                                 login(session.access_token, cachedUser);
                             } else {
                                 // 2. Se não tem cache, tenta buscar direto no banco (Supabase) bypassando a API
-                                // Tenta 'adivinhar' o login baseado no email (ex: timbo.correa@... -> timbo.correa)
-                                const username = session.user.email?.split('@')[0];
-                                console.warn(`[SupabaseAuth] Backend unreachable. Attempting direct DB fetch for login: ${username}`);
-                                
+                                console.warn('[SupabaseAuth] Backend unreachable. Attempting direct DB fetch...');
+
                                 let dbUser = null;
-                                if (username) {
-                                  const { data } = await supabase
-                                    .from('usuarios')
-                                    .select('*')
-                                    .eq('login', username)
-                                    .single();
-                                  dbUser = data;
+
+                                // Estratégia A: Busca por ID do Supabase (Mais preciso)
+                                if (!dbUser && session.user.id) {
+                                    const { data } = await supabase
+                                        .from('usuarios')
+                                        .select('*')
+                                        .eq('supabase_id', session.user.id)
+                                        .single();
+                                    if (data) console.log('[SupabaseAuth] User found by supabase_id');
+                                    dbUser = data;
+                                }
+
+                                // Estratégia B: Busca por Email (conferindo lowercase)
+                                if (!dbUser && session.user.email) {
+                                    const { data } = await supabase
+                                        .from('usuarios')
+                                        .select('*')
+                                        .eq('email', session.user.email.toLowerCase())
+                                        .single();
+                                    if (data) console.log('[SupabaseAuth] User found by email');
+                                    dbUser = data;
+                                }
+
+                                // Estratégia C: Busca por Login (Legacy)
+                                if (!dbUser && session.user.email) {
+                                    const username = session.user.email.split('@')[0].toLowerCase();
+                                    const { data } = await supabase
+                                        .from('usuarios')
+                                        .select('*')
+                                        .eq('login', username)
+                                        .single();
+                                    if (data) console.log('[SupabaseAuth] User found by login');
+                                    dbUser = data;
                                 }
 
                                 if (dbUser) {
@@ -71,11 +95,11 @@ export const SupabaseAuthStateListener = () => {
                                     console.warn('[SupabaseAuth] Backend unreachable and User not found in DB. Falling back to session data.');
 
                                     const fallbackUser: any = {
-                                        id: 0, 
+                                        id: 0,
                                         login: session.user.email || 'user',
                                         nome: session.user.user_metadata?.full_name || session.user.email,
                                         email: session.user.email,
-                                        perfil: session.user.user_metadata?.perfil || 'user', 
+                                        perfil: session.user.user_metadata?.perfil || 'user',
                                         ativo: true,
                                         status: 'approved'
                                     };

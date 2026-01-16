@@ -139,6 +139,19 @@ export class ViaturaService {
   }
 
   async delete(id: number) {
+    // 1. Explicitly delete related schedules (plantoes) to prevent orphaned rows
+    // This addresses the user requirement: "TODOS MILITARES EMPENHADOS NESSA VIATURA SERAO REMOVIDOS DA TABELA PLANTAO"
+    const { error: plantaoError } = await supabaseAdmin
+      .from('plantoes')
+      .delete()
+      .eq('viatura_id', id);
+
+    if (plantaoError) {
+      console.error(`[ViaturaService] Erro ao excluir plantoes da viatura ${id}:`, plantaoError);
+      throw new AppError(`Erro ao excluir plantões vinculados: ${plantaoError.message}`, 500);
+    }
+
+    // 2. Delete the viatura
     const deleted = await this.repository.delete(id);
     if (deleted === 0) {
       throw new AppError('Viatura nao encontrada.', 404);
