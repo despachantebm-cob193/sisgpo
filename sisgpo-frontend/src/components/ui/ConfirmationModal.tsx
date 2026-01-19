@@ -26,7 +26,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
       <div>
         <p className="text-textSecondary mb-6">{message}</p>
         <div className="flex justify-end gap-4">
