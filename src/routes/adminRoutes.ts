@@ -11,15 +11,15 @@ const load = (relativePath: string) => {
   return mod?.default || mod;
 };
 
-const obmValidator = load('..\\validators\\obmValidator');
-const viaturaValidator = load('..\\validators\\viaturaValidator');
-const militarValidator = load('..\\validators\\militarValidator');
-const userValidator = load('..\\validators\\userValidator');
-const escalaValidator = load('..\\validators\\escalaValidator');
-const aeronaveValidator = load('..\\validators\\aeronaveValidator');
-const escalaAeronaveValidator = load('..\\validators\\escalaAeronaveValidator');
-const escalaCodecValidator = load('..\\validators\\escalaCodecValidator');
-const escalaMedicoValidator = load('..\\validators\\escalaMedicoValidator');
+const obmValidator = load('../validators/obmValidator');
+const viaturaValidator = load('../validators/viaturaValidator');
+const militarValidator = load('../validators/militarValidator');
+const userValidator = load('../validators/userValidator');
+const escalaValidator = load('../validators/escalaValidator');
+const aeronaveValidator = load('../validators/aeronaveValidator');
+const escalaAeronaveValidator = load('../validators/escalaAeronaveValidator');
+const escalaCodecValidator = load('../validators/escalaCodecValidator');
+const escalaMedicoValidator = load('../validators/escalaMedicoValidator');
 
 const obmController = require(path.join(__dirname, '..', 'controllers', 'obmController'));
 const viaturaController = require(path.join(__dirname, '..', 'controllers', 'viaturaController'));
