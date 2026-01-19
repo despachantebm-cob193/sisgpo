@@ -170,10 +170,12 @@ export const dashboardService = {
                 return acc;
             }, {});
 
-            return Object.entries(grouped).map(([name, value]) => ({
-                name,
-                value: value as number
-            }));
+            return Object.entries(grouped)
+                .map(([name, value]) => ({
+                    name,
+                    value: value as number
+                }))
+                .sort((a, b) => b.value - a.value);
         } catch (error) {
             console.error('Error fetching militar stats:', error);
             return [];
