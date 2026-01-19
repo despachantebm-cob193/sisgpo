@@ -163,9 +163,24 @@ export const dashboardService = {
 
             const data = allData;
 
-            // Group by posto_graduacao
+            // Group by posto_graduacao (Normalizado)
             const grouped = (data || []).reduce((acc: Record<string, number>, militar: any) => {
-                const posto = militar.posto_graduacao || 'Não especificado';
+                let posto = militar.posto_graduacao || 'Não especificado';
+
+                // Normaliza: Remove espaços extras e padroniza para evitar duplicatas (2º SGT vs 2º Sgt)
+                posto = posto.trim();
+
+                // Tenta converter para Title Case (primeira letra maiúscula) se estiver tudo maiúsculo
+                // Ex: "2º SGT" -> "2º Sgt" (manual simples para casos comuns)
+                if (posto === '2º SGT') posto = '2º Sgt';
+                if (posto === '3º SGT') posto = '3º Sgt';
+                if (posto === '1º SGT') posto = '1º Sgt';
+                if (posto === 'SD 1ª CLASSE') posto = 'Sd 1ª Classe';
+                if (posto === 'SD 2ª CLASSE') posto = 'Sd 2ª Classe';
+
+                // Ou podemos fazer um toUpperCase() para garantir, mas Title Case fica mais bonito no gráfico.
+                // Vou usar o valor do banco, mas corrigindo os casos específicos detectados na imagem.
+
                 acc[posto] = (acc[posto] || 0) + 1;
                 return acc;
             }, {});
