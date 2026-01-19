@@ -140,7 +140,8 @@ export const dashboardService = {
                 query = query.eq('obm_nome', selectedObmNome);
             }
 
-            const { data, error } = await query;
+            // Aumenta o limite para garantir que traga todo o efetivo (padrão é 1000)
+            const { data, error } = await query.range(0, 5000);
 
             if (error) throw error;
 
