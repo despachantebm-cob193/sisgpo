@@ -197,6 +197,77 @@ export const dashboardService = {
         }
     },
 
+    async getMilitarStatsPorCrbm(selectedObm?: string): Promise<ChartStat[]> {
+        try {
+            // Se houver filtro por OBM, não faz sentido mostrar gráfico por CRBM geral, 
+            // mas vamos manter a lógica: se filtrar OBM, vai mostrar só o CRBM daquela OBM.
+
+            // 1. Busca todas as OBMs para mapear Nome -> CRBM
+            const { data: obmsData, error: obmsError } = await supabase
+                .from('obms')
+                .select('nome, crbm');
+
+            if (obmsError) throw obmsError;
+
+            // Cria um mapa: '1º BBM' -> '1º CRBM'
+            const obmToCrbmMap = new Map<string, string>();
+            obmsData?.forEach((o) => {
+                if (o.nome && o.crbm) {
+                    obmToCrbmMap.set(o.nome, o.crbm);
+                }
+            });
+
+            // 2. Busca militares (paginado)
+            let query = supabase
+                .from('militares')
+                .select('obm_nome')
+                .eq('ativo', true);
+
+            // Filtro opcional
+            if (selectedObm) {
+                const { data: obmInfo } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
+                if (obmInfo) query = query.eq('obm_nome', obmInfo.nome);
+            }
+
+            let allData: any[] = [];
+            let configRange = 0;
+            const pageSize = 1000;
+            let fetchMore = true;
+
+            while (fetchMore) {
+                const { data, error } = await query.range(configRange, configRange + pageSize - 1);
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    allData = [...allData, ...data];
+                    configRange += pageSize;
+                    if (data.length < pageSize) fetchMore = false;
+                } else {
+                    fetchMore = false;
+                }
+            }
+
+            // 3. Agrupa por CRBM usando o mapa
+            const grouped = allData.reduce((acc: Record<string, number>, militar: any) => {
+                const obmNome = militar.obm_nome;
+                // Busca o CRBM correspondente à OBM do militar
+                const crbm = obmToCrbmMap.get(obmNome) || 'Sem CRBM';
+                acc[crbm] = (acc[crbm] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.entries(grouped)
+                .map(([name, value]) => ({
+                    name,
+                    value: value as number
+                }))
+                .sort((a, b) => b.value - a.value);
+
+        } catch (error) {
+            console.error('Error fetching militar stats por CRBM:', error);
+            return [];
+        }
+    },
+
     async getViaturaStatsDetalhado(selectedObm?: string): Promise<ViaturaStatAgrupada[]> {
         try {
             // Get selected OBM name if needed
