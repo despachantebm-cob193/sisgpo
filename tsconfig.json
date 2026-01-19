@@ -6,22 +6,29 @@
     "allowJs": true,
     "rootDir": "./src",
     "outDir": "./dist",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "esModuleInterop": true,
     "strict": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
-    "node_modules", 
+    "node_modules",
     "__tests__",
     "dist",
     "knexfile.js",
     "jest.config.js",
     "updateAdminPassword.js",
     "updatePassword.js",
-    "scripts/createAdmin.js"
+    "scripts/createAdmin.js",
+    "src/database/index.ts",
+    "src/scripts/createAdminUser.ts",
+    "src/scripts/updateAdminPassword.ts"
   ]
 }
