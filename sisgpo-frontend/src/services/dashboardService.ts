@@ -140,10 +140,28 @@ export const dashboardService = {
                 query = query.eq('obm_nome', selectedObmNome);
             }
 
-            // Aumenta o limite para garantir que traga todo o efetivo (padrão é 1000)
-            const { data, error } = await query.range(0, 5000);
+            // Busca paginada para contornar o limite de 1000 registros do Supabase
+            let allData: any[] = [];
+            let configRange = 0;
+            const pageSize = 1000;
+            let fetchMore = true;
 
-            if (error) throw error;
+            while (fetchMore) {
+                const { data, error } = await query.range(configRange, configRange + pageSize - 1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    allData = [...allData, ...data];
+                    configRange += pageSize;
+                    // Se veio menos que o tamanho da página, acabaram os registros
+                    if (data.length < pageSize) fetchMore = false;
+                } else {
+                    fetchMore = false;
+                }
+            }
+
+            const data = allData;
 
             // Group by posto_graduacao
             const grouped = (data || []).reduce((acc: Record<string, number>, militar: any) => {
