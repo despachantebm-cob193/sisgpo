@@ -24,9 +24,40 @@ export const dashboardService = {
 
     async getStats(selectedObm?: string): Promise<DashboardStats> {
         try {
-            const params = selectedObm ? { obm_id: selectedObm } : {};
-            const response = await api.get<DashboardStats>('/api/dashboard/stats', { params });
-            return response.data;
+            // Count active militares
+            let militaresQuery = supabase
+                .from('militares')
+                .select('*', { count: 'exact', head: true })
+                .eq('situacao', 'ativo');
+
+            if (selectedObm) {
+                militaresQuery = militaresQuery.eq('obm_id', selectedObm);
+            }
+
+            const { count: total_militares_ativos } = await militaresQuery;
+
+            // Count available viaturas
+            let viaturasQuery = supabase
+                .from('viaturas')
+                .select('*', { count: 'exact', head: true })
+                .eq('ativa', true);
+
+            if (selectedObm) {
+                viaturasQuery = viaturasQuery.eq('obm_id', selectedObm);
+            }
+
+            const { count: total_viaturas_disponiveis } = await viaturasQuery;
+
+            // Count OBMs
+            const { count: total_obms } = await supabase
+                .from('obms')
+                .select('*', { count: 'exact', head: true });
+
+            return {
+                total_militares_ativos: total_militares_ativos || 0,
+                total_viaturas_disponiveis: total_viaturas_disponiveis || 0,
+                total_obms: total_obms || 0
+            };
         } catch (error) {
             console.error('Error fetching stats:', error);
             return { total_militares_ativos: 0, total_viaturas_disponiveis: 0, total_obms: 0 };
@@ -35,9 +66,30 @@ export const dashboardService = {
 
     async getViaturaStatsPorTipo(selectedObm?: string): Promise<ChartStat[]> {
         try {
-            const params = selectedObm ? { obm_id: selectedObm } : {};
-            const response = await api.get<ChartStat[]>('/api/dashboard/viatura-stats-por-tipo', { params });
-            return response.data;
+            let query = supabase
+                .from('viaturas')
+                .select('tipo_viatura')
+                .eq('ativa', true);
+
+            if (selectedObm) {
+                query = query.eq('obm_id', selectedObm);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            // Group by tipo_viatura
+            const grouped = (data || []).reduce((acc: Record<string, number>, viatura) => {
+                const tipo = viatura.tipo_viatura || 'Não especificado';
+                acc[tipo] = (acc[tipo] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.entries(grouped).map(([name, value]) => ({
+                name,
+                value: value as number
+            }));
         } catch (error) {
             console.error('Error fetching viatura stats by type:', error);
             return [];
@@ -46,9 +98,30 @@ export const dashboardService = {
 
     async getMilitarStats(selectedObm?: string): Promise<ChartStat[]> {
         try {
-            const params = selectedObm ? { obm_id: selectedObm } : {};
-            const response = await api.get<ChartStat[]>('/api/dashboard/militar-stats', { params });
-            return response.data;
+            let query = supabase
+                .from('militares')
+                .select('posto_graduacao')
+                .eq('situacao', 'ativo');
+
+            if (selectedObm) {
+                query = query.eq('obm_id', selectedObm);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            // Group by posto_graduacao
+            const grouped = (data || []).reduce((acc: Record<string, number>, militar) => {
+                const posto = militar.posto_graduacao || 'Não especificado';
+                acc[posto] = (acc[posto] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.entries(grouped).map(([name, value]) => ({
+                name,
+                value: value as number
+            }));
         } catch (error) {
             console.error('Error fetching militar stats:', error);
             return [];
@@ -57,9 +130,35 @@ export const dashboardService = {
 
     async getViaturaStatsDetalhado(selectedObm?: string): Promise<ViaturaStatAgrupada[]> {
         try {
-            const params = selectedObm ? { obm_id: selectedObm } : {};
-            const response = await api.get<ViaturaStatAgrupada[]>('/api/dashboard/viatura-stats-detalhado', { params });
-            return response.data;
+            let query = supabase
+                .from('viaturas')
+                .select('tipo_viatura, prefixo')
+                .eq('ativa', true);
+
+            if (selectedObm) {
+                query = query.eq('obm_id', selectedObm);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            // Group by tipo_viatura
+            const grouped = (data || []).reduce((acc: Record<string, ViaturaStatAgrupada>, viatura) => {
+                const tipo = viatura.tipo_viatura || 'Não especificado';
+                if (!acc[tipo]) {
+                    acc[tipo] = {
+                        tipo_viatura: tipo,
+                        total: 0,
+                        viaturas: []
+                    };
+                }
+                acc[tipo].total += 1;
+                acc[tipo].viaturas.push(viatura.prefixo);
+                return acc;
+            }, {});
+
+            return Object.values(grouped);
         } catch (error) {
             console.error('Error fetching detailed viatura stats:', error);
             return [];
@@ -68,9 +167,40 @@ export const dashboardService = {
 
     async getViaturaStatsPorObm(selectedObm?: string): Promise<ViaturaPorObmStat[]> {
         try {
-            const params = selectedObm ? { obm_id: selectedObm } : {};
-            const response = await api.get<ViaturaPorObmStat[]>('/api/dashboard/viatura-stats-por-obm', { params });
-            return response.data;
+            let query = supabase
+                .from('viaturas')
+                .select(`
+                    tipo_viatura,
+                    obm_id,
+                    obms (nome)
+                `)
+                .eq('ativa', true);
+
+            if (selectedObm) {
+                query = query.eq('obm_id', selectedObm);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            // Group by OBM and tipo_viatura
+            const grouped = (data || []).reduce((acc: Record<string, ViaturaPorObmStat>, item: any) => {
+                const obmNome = item.obms?.nome || 'Não especificado';
+                const tipo = item.tipo_viatura || 'Não especificado';
+
+                if (!acc[obmNome]) {
+                    acc[obmNome] = {
+                        obm_nome: obmNome,
+                        stats: {}
+                    };
+                }
+
+                acc[obmNome].stats[tipo] = (acc[obmNome].stats[tipo] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.values(grouped);
         } catch (error) {
             console.error('Error fetching viatura stats per OBM:', error);
             return [];
