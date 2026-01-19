@@ -132,45 +132,9 @@ export const dashboardService = {
         try {
             let query = supabase
                 .from('viaturas')
-                .select('tipo_viatura, prefixo')
-                .eq('ativa', true);
-
-            if (selectedObm) {
-                query = query.eq('obm_id', selectedObm);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-
-            // Group by tipo_viatura
-            const grouped = (data || []).reduce((acc: Record<string, ViaturaStatAgrupada>, viatura) => {
-                const tipo = viatura.tipo_viatura || 'Não especificado';
-                if (!acc[tipo]) {
-                    acc[tipo] = {
-                        tipo_viatura: tipo,
-                        total: 0,
-                        viaturas: []
-                    };
-                }
-                acc[tipo].total += 1;
-                acc[tipo].viaturas.push(viatura.prefixo);
-                return acc;
-            }, {});
-
-            return Object.values(grouped);
-        } catch (error) {
-            console.error('Error fetching detailed viatura stats:', error);
-            return [];
-        }
-    },
-
-    async getViaturaStatsPorObm(selectedObm?: string): Promise<ViaturaPorObmStat[]> {
-        try {
-            let query = supabase
-                .from('viaturas')
                 .select(`
                     tipo_viatura,
+                    prefixo,
                     obm_id,
                     obms (nome)
                 `)
@@ -184,19 +148,84 @@ export const dashboardService = {
 
             if (error) throw error;
 
-            // Group by OBM and tipo_viatura
-            const grouped = (data || []).reduce((acc: Record<string, ViaturaPorObmStat>, item: any) => {
-                const obmNome = item.obms?.nome || 'Não especificado';
+            // Group by tipo_viatura
+            const grouped = (data || []).reduce((acc: Record<string, { tipo: string; quantidade: number; obms: Map<string, string[]> }>, item: any) => {
                 const tipo = item.tipo_viatura || 'Não especificado';
+                const obmNome = item.obms?.nome || 'Não especificado';
 
-                if (!acc[obmNome]) {
-                    acc[obmNome] = {
-                        obm_nome: obmNome,
-                        stats: {}
+                if (!acc[tipo]) {
+                    acc[tipo] = {
+                        tipo,
+                        quantidade: 0,
+                        obms: new Map()
                     };
                 }
 
-                acc[obmNome].stats[tipo] = (acc[obmNome].stats[tipo] || 0) + 1;
+                acc[tipo].quantidade += 1;
+
+                if (!acc[tipo].obms.has(obmNome)) {
+                    acc[tipo].obms.set(obmNome, []);
+                }
+                acc[tipo].obms.get(obmNome)!.push(item.prefixo);
+
+                return acc;
+            }, {});
+
+            // Convert Map to ObmGrupo array
+            return Object.values(grouped).map(({ tipo, quantidade, obms }) => ({
+                tipo,
+                quantidade,
+                obms: Array.from(obms.entries()).map(([nome, prefixos]) => ({
+                    nome,
+                    prefixos
+                }))
+            }));
+        } catch (error) {
+            console.error('Error fetching detailed viatura stats:', error);
+            return [];
+        }
+    },
+
+    async getViaturaStatsPorObm(selectedObm?: string): Promise<ViaturaPorObmStat[]> {
+        try {
+            let query = supabase
+                .from('viaturas')
+                .select(`
+                    prefixo,
+                    obm_id,
+                    obms (id, nome, abreviatura, crbm)
+                `)
+                .eq('ativa', true);
+
+            if (selectedObm) {
+                query = query.eq('obm_id', selectedObm);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            // Group by OBM
+            const grouped = (data || []).reduce((acc: Record<number, ViaturaPorObmStat>, item: any) => {
+                const obm = item.obms;
+                const obmId = obm?.id;
+
+                if (!obmId) return acc;
+
+                if (!acc[obmId]) {
+                    acc[obmId] = {
+                        id: obmId,
+                        nome: obm.nome || 'Não especificado',
+                        quantidade: 0,
+                        prefixos: [],
+                        crbm: obm.crbm || null,
+                        abreviatura: obm.abreviatura || null
+                    };
+                }
+
+                acc[obmId].quantidade += 1;
+                acc[obmId].prefixos.push(item.prefixo);
+
                 return acc;
             }, {});
 
