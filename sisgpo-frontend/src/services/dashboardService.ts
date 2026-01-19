@@ -24,14 +24,25 @@ export const dashboardService = {
 
     async getStats(selectedObm?: string): Promise<DashboardStats> {
         try {
+            // Get selected OBM name if needed
+            let selectedObmNome: string | null = null;
+            if (selectedObm) {
+                const { data: obmData } = await supabase
+                    .from('obms')
+                    .select('nome')
+                    .eq('id', selectedObm)
+                    .single();
+                selectedObmNome = obmData?.nome || null;
+            }
+
             // Count active militares
             let militaresQuery = supabase
                 .from('militares')
                 .select('*', { count: 'exact', head: true })
-                .eq('situacao', 'ativo');
+                .eq('ativo', true);
 
-            if (selectedObm) {
-                militaresQuery = militaresQuery.eq('obm_id', selectedObm);
+            if (selectedObmNome) {
+                militaresQuery = militaresQuery.eq('obm_nome', selectedObmNome);
             }
 
             const { count: total_militares_ativos } = await militaresQuery;
@@ -42,8 +53,8 @@ export const dashboardService = {
                 .select('*', { count: 'exact', head: true })
                 .eq('ativa', true);
 
-            if (selectedObm) {
-                viaturasQuery = viaturasQuery.eq('obm_id', selectedObm);
+            if (selectedObmNome) {
+                viaturasQuery = viaturasQuery.eq('obm', selectedObmNome);
             }
 
             const { count: total_viaturas_disponiveis } = await viaturasQuery;
@@ -66,22 +77,33 @@ export const dashboardService = {
 
     async getViaturaStatsPorTipo(selectedObm?: string): Promise<ChartStat[]> {
         try {
+            // Get selected OBM name if needed
+            let selectedObmNome: string | null = null;
+            if (selectedObm) {
+                const { data: obmData } = await supabase
+                    .from('obms')
+                    .select('nome')
+                    .eq('id', selectedObm)
+                    .single();
+                selectedObmNome = obmData?.nome || null;
+            }
+
             let query = supabase
                 .from('viaturas')
-                .select('tipo_viatura')
+                .select('tipo')
                 .eq('ativa', true);
 
-            if (selectedObm) {
-                query = query.eq('obm_id', selectedObm);
+            if (selectedObmNome) {
+                query = query.eq('obm', selectedObmNome);
             }
 
             const { data, error } = await query;
 
             if (error) throw error;
 
-            // Group by tipo_viatura
-            const grouped = (data || []).reduce((acc: Record<string, number>, viatura) => {
-                const tipo = viatura.tipo_viatura || 'Não especificado';
+            // Group by tipo
+            const grouped = (data || []).reduce((acc: Record<string, number>, viatura: any) => {
+                const tipo = viatura.tipo || 'Não especificado';
                 acc[tipo] = (acc[tipo] || 0) + 1;
                 return acc;
             }, {});
@@ -98,13 +120,24 @@ export const dashboardService = {
 
     async getMilitarStats(selectedObm?: string): Promise<ChartStat[]> {
         try {
+            // Get selected OBM name if needed
+            let selectedObmNome: string | null = null;
+            if (selectedObm) {
+                const { data: obmData } = await supabase
+                    .from('obms')
+                    .select('nome')
+                    .eq('id', selectedObm)
+                    .single();
+                selectedObmNome = obmData?.nome || null;
+            }
+
             let query = supabase
                 .from('militares')
                 .select('posto_graduacao')
-                .eq('situacao', 'ativo');
+                .eq('ativo', true);
 
-            if (selectedObm) {
-                query = query.eq('obm_id', selectedObm);
+            if (selectedObmNome) {
+                query = query.eq('obm_nome', selectedObmNome);
             }
 
             const { data, error } = await query;
@@ -112,7 +145,7 @@ export const dashboardService = {
             if (error) throw error;
 
             // Group by posto_graduacao
-            const grouped = (data || []).reduce((acc: Record<string, number>, militar) => {
+            const grouped = (data || []).reduce((acc: Record<string, number>, militar: any) => {
                 const posto = militar.posto_graduacao || 'Não especificado';
                 acc[posto] = (acc[posto] || 0) + 1;
                 return acc;
@@ -130,28 +163,34 @@ export const dashboardService = {
 
     async getViaturaStatsDetalhado(selectedObm?: string): Promise<ViaturaStatAgrupada[]> {
         try {
+            // Get selected OBM name if needed
+            let selectedObmNome: string | null = null;
+            if (selectedObm) {
+                const { data: obmData } = await supabase
+                    .from('obms')
+                    .select('nome')
+                    .eq('id', selectedObm)
+                    .single();
+                selectedObmNome = obmData?.nome || null;
+            }
+
             let query = supabase
                 .from('viaturas')
-                .select(`
-                    tipo_viatura,
-                    prefixo,
-                    obm_id,
-                    obms (nome)
-                `)
+                .select('tipo, prefixo, obm')
                 .eq('ativa', true);
 
-            if (selectedObm) {
-                query = query.eq('obm_id', selectedObm);
+            if (selectedObmNome) {
+                query = query.eq('obm', selectedObmNome);
             }
 
             const { data, error } = await query;
 
             if (error) throw error;
 
-            // Group by tipo_viatura
+            // Group by tipo
             const grouped = (data || []).reduce((acc: Record<string, { tipo: string; quantidade: number; obms: Map<string, string[]> }>, item: any) => {
-                const tipo = item.tipo_viatura || 'Não especificado';
-                const obmNome = item.obms?.nome || 'Não especificado';
+                const tipo = item.tipo || 'Não especificado';
+                const obmNome = item.obm || 'Não especificado';
 
                 if (!acc[tipo]) {
                     acc[tipo] = {
@@ -188,17 +227,34 @@ export const dashboardService = {
 
     async getViaturaStatsPorObm(selectedObm?: string): Promise<ViaturaPorObmStat[]> {
         try {
+            // Get selected OBM name if needed
+            let selectedObmNome: string | null = null;
+            if (selectedObm) {
+                const { data: obmData } = await supabase
+                    .from('obms')
+                    .select('nome')
+                    .eq('id', selectedObm)
+                    .single();
+                selectedObmNome = obmData?.nome || null;
+            }
+
+            // Get all OBMs for mapping
+            const { data: obmsData, error: obmsError } = await supabase
+                .from('obms')
+                .select('id, nome, abreviatura, crbm');
+
+            if (obmsError) throw obmsError;
+
+            const obmsMap = new Map((obmsData || []).map((obm: any) => [obm.nome, obm]));
+
+            // Get viaturas
             let query = supabase
                 .from('viaturas')
-                .select(`
-                    prefixo,
-                    obm_id,
-                    obms (id, nome, abreviatura, crbm)
-                `)
+                .select('prefixo, obm')
                 .eq('ativa', true);
 
-            if (selectedObm) {
-                query = query.eq('obm_id', selectedObm);
+            if (selectedObmNome) {
+                query = query.eq('obm', selectedObmNome);
             }
 
             const { data, error } = await query;
@@ -206,25 +262,25 @@ export const dashboardService = {
             if (error) throw error;
 
             // Group by OBM
-            const grouped = (data || []).reduce((acc: Record<number, ViaturaPorObmStat>, item: any) => {
-                const obm = item.obms;
-                const obmId = obm?.id;
+            const grouped = (data || []).reduce((acc: Record<string, ViaturaPorObmStat>, item: any) => {
+                const obmNome = item.obm || 'Não especificado';
+                const obmInfo = obmsMap.get(obmNome);
 
-                if (!obmId) return acc;
 
-                if (!acc[obmId]) {
-                    acc[obmId] = {
-                        id: obmId,
-                        nome: obm.nome || 'Não especificado',
+
+                if (!acc[obmNome]) {
+                    acc[obmNome] = {
+                        id: obmInfo?.id || null,
+                        nome: obmNome,
                         quantidade: 0,
                         prefixos: [],
-                        crbm: obm.crbm || null,
-                        abreviatura: obm.abreviatura || null
+                        crbm: obmInfo?.crbm || null,
+                        abreviatura: obmInfo?.abreviatura || null
                     };
                 }
 
-                acc[obmId].quantidade += 1;
-                acc[obmId].prefixos.push(item.prefixo);
+                acc[obmNome].quantidade += 1;
+                acc[obmNome].prefixos.push(item.prefixo);
 
                 return acc;
             }, {});
