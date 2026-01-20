@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 import express, { ErrorRequestHandler, Request, RequestHandler, Response } from 'express';
 import 'express-async-errors';
@@ -12,6 +13,7 @@ import estatisticasExternasRoutes from './routes/estatisticasExternasRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import authMiddleware from './middlewares/authMiddleware';
 import errorMiddleware from './middlewares/errorMiddleware';
+import aiRoutes from './routes/aiRoutes';
 
 const app = express();
 
@@ -78,6 +80,7 @@ const errorHandler = errorMiddleware as unknown as ErrorRequestHandler;
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', authHandler, dashboardRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/ai', authHandler, aiRoutes); // Protected route
 app.use('/api', estatisticasExternasRoutes);
 app.use('/api/admin', authHandler, adminRoutes);
 

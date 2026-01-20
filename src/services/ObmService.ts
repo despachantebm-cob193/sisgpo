@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import AppError from '../utils/AppError';
 import ObmRepository, { ObmFilters, ObmListResult, ObmRow } from '../repositories/ObmRepository';
 import { CreateObmDTO, UpdateObmDTO } from '../validators/obmValidator';
+import aiAssistedValidationService from './aiAssistedValidationService';
 
 type CsvRecord = {
   abreviatura?: string;
@@ -20,7 +21,7 @@ const FIELD_LIMITS: Record<string, { limit: number; label: string }> = {
 };
 
 export class ObmService {
-  constructor(private readonly repository: ObmRepository = new ObmRepository()) {}
+  constructor(private readonly repository: ObmRepository = new ObmRepository()) { }
 
   async list(filters: ObmFilters): Promise<ObmListResult> {
     const hasTable = await this.repository.hasTable();
@@ -50,12 +51,19 @@ export class ObmService {
     const exists = await this.repository.findByAbreviatura(abreviaturaTrim);
     if (exists) throw new AppError('Abreviatura ja cadastrada no sistema.', 409);
 
+    // AI Correction Hook
+    const { nome, abreviatura, crbm } = await aiAssistedValidationService.correctObmData(
+      nomeTrim,
+      abreviaturaTrim,
+      dto.crbm
+    );
+
     return this.repository.create({
-      nome: nomeTrim,
-      abreviatura: abreviaturaTrim,
+      nome,
+      abreviatura,
       cidade: dto.cidade || null,
       telefone: dto.telefone || null,
-      crbm: dto.crbm || null,
+      crbm: crbm || null,
     });
   }
 
@@ -75,12 +83,19 @@ export class ObmService {
       }
     }
 
+    // AI Correction Hook
+    const { nome, abreviatura, crbm } = await aiAssistedValidationService.correctObmData(
+      nomeTrim,
+      abreviaturaTrim,
+      dto.crbm
+    );
+
     return this.repository.update(id, {
-      nome: nomeTrim,
-      abreviatura: abreviaturaTrim,
+      nome,
+      abreviatura,
       cidade: dto.cidade || null,
       telefone: dto.telefone || null,
-      crbm: dto.crbm || null,
+      crbm: crbm || null,
     });
   }
 

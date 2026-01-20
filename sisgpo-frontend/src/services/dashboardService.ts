@@ -268,6 +268,73 @@ export const dashboardService = {
         }
     },
 
+    async getMilitarStatsPorObm(selectedObm?: string): Promise<ChartStat[]> {
+        try {
+            // 1. Fetch OBMs for abbreviation mapping
+            const { data: obmsData } = await supabase
+                .from('obms')
+                .select('nome, abreviatura');
+
+            const obmMap = new Map<string, string>();
+            if (obmsData) {
+                obmsData.forEach(o => {
+                    if (o.nome) obmMap.set(o.nome, o.abreviatura || o.nome);
+                });
+            }
+
+            let query = supabase
+                .from('militares')
+                .select('obm_nome')
+                .eq('ativo', true);
+
+            if (selectedObm) {
+                const { data: obmData } = await supabase
+                    .from('obms')
+                    .select('nome')
+                    .eq('id', selectedObm)
+                    .single();
+                if (obmData) query = query.eq('obm_nome', obmData.nome);
+            }
+
+            // 2. Busca militares (paginado)
+            let allData: any[] = [];
+            let configRange = 0;
+            const pageSize = 1000;
+            let fetchMore = true;
+
+            while (fetchMore) {
+                const { data, error } = await query.range(configRange, configRange + pageSize - 1);
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    allData = [...allData, ...data];
+                    configRange += pageSize;
+                    if (data.length < pageSize) fetchMore = false;
+                } else {
+                    fetchMore = false;
+                }
+            }
+
+            // 3. Agrupa por OBM (usando abreviatura)
+            const grouped = allData.reduce((acc: Record<string, number>, militar: any) => {
+                const rawName = militar.obm_nome || 'Sem OBM';
+                const label = obmMap.get(rawName) || rawName;
+                acc[label] = (acc[label] || 0) + 1;
+                return acc;
+            }, {});
+
+            return Object.entries(grouped)
+                .map(([name, value]) => ({
+                    name,
+                    value: value as number
+                }))
+                .sort((a, b) => b.value - a.value);
+
+        } catch (error) {
+            console.error('Error fetching militar stats por OBM:', error);
+            return [];
+        }
+    },
+
     async getViaturaStatsDetalhado(selectedObm?: string): Promise<ViaturaStatAgrupada[]> {
         try {
             // Get selected OBM name if needed

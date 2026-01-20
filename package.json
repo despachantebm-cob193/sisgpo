@@ -15,12 +15,13 @@
     "test": "cross-env NODE_ENV=test npm run test:setup && cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-virtual": "^3.13.12",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
     "express-fileupload": "^1.5.2",
@@ -28,6 +29,7 @@
     "express-validator": "^7.2.1",
     "google-auth-library": "^10.4.1",
     "googleapis": "^169.0.0",
+    "groq-sdk": "^0.37.0",
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.0",
     "knex": "^3.1.0",

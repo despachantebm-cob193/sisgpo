@@ -4,7 +4,7 @@ import React from 'react';
 import Spinner from './Spinner';
 
 interface ChartCardProps {
-  title: string;
+  title?: string;
   isLoading: boolean;
   hasData: boolean;
   children: React.ReactNode;
@@ -14,7 +14,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, isLoading, hasData, childr
   return (
     // A classe 'h-96' foi removida daqui para permitir que o card cresça.
     <div className="surface-card flex flex-col p-4">
-      <h3 className="mb-4 text-lg font-semibold text-textMain">{title}</h3>
+      {title && <h3 className="mb-4 text-lg font-semibold text-textMain">{title}</h3>}
       <div className="flex-grow">
         {isLoading ? (
           <div className="h-full flex justify-center items-center min-h-[200px]">

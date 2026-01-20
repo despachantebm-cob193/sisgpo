@@ -26,12 +26,15 @@ const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'))
 const SsoLogin = lazy(() => import('../pages/SsoLogin'));
 const SubjectPendingPage = lazy(() => import('../pages/SubjectPendingPage'));
 
+import ChatWidget from '../components/ui/ChatWidget';
+
 const RootLayout = () => (
   <>
     <SupabaseAuthStateListener />
     {/* Monitora inatividade e faz logout automatico */}
     <SessionTimeoutHandler />
     <Outlet />
+    <ChatWidget />
   </>
 );
 

@@ -7,12 +7,12 @@ interface ChartData {
     value: number;
 }
 
-interface MilitarByCrbmChartProps {
+interface MilitarByObmChartProps {
     data: ChartData[];
     isLoading: boolean;
 }
 
-const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading }) => {
+const MilitarByObmChart: React.FC<MilitarByObmChartProps> = ({ data, isLoading }) => {
     const totalMilitares = data ? data.reduce((acc, item) => acc + item.value, 0) : 0;
 
     return (
@@ -21,7 +21,7 @@ const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading
             hasData={data && data.length > 0}
         >
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-textMain">Quantidade de Militares por CRBM</h3>
+                <h3 className="text-lg font-semibold text-textMain">Quantidade de Militares por OBM</h3>
                 <span className="text-sm font-medium bg-tagBlue text-white whitespace-nowrap px-2 py-1 rounded">
                     Total: {totalMilitares}
                 </span>
@@ -45,7 +45,7 @@ const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading
                             labelStyle={{ color: '#000' }}
                         />
                         <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
-                        <Bar dataKey="value" name="Efetivo por CRBM" fill="#10B981" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="value" name="Efetivo por OBM" fill="#10B981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -53,4 +53,4 @@ const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading
     );
 };
 
-export default MilitarByCrbmChart;
+export default MilitarByObmChart;

@@ -17,7 +17,7 @@ import { Share2 } from 'lucide-react';
 // Componentes de Gráficos e Tabelas
 import ViaturaTypeChart from '@/components/charts/ViaturaTypeChart';
 import MilitarRankChart from '@/components/charts/MilitarRankChart';
-import MilitarByCrbmChart from '@/components/charts/MilitarByCrbmChart';
+import MilitarByObmChart from '@/components/charts/MilitarByObmChart';
 import ViaturaDetailTable from '@/components/dashboard/ViaturaDetailTable';
 import ViaturaByObmTable from '@/components/dashboard/ViaturaByObmTable';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
@@ -60,7 +60,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
   const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
-  const [militarByCrbmStats, setMilitarByCrbmStats] = useState<ChartStat[]>([]);
+  const [militarByObmStats, setMilitarByObmStats] = useState<ChartStat[]>([]);
   const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
   const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
   const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
@@ -100,7 +100,7 @@ export default function Dashboard() {
         statsData,
         viaturaTipoData,
         militarStatsData,
-        militarByCrbmStatsData,
+        militarByObmStatsData,
         viaturaDetailData,
         viaturaPorObmData,
         servicoDiaData,
@@ -111,7 +111,7 @@ export default function Dashboard() {
         dashboardService.getStats(selectedObm),
         dashboardService.getViaturaStatsPorTipo(selectedObm),
         dashboardService.getMilitarStats(selectedObm),
-        dashboardService.getMilitarStatsPorCrbm(selectedObm),
+        dashboardService.getMilitarStatsPorObm(selectedObm),
         dashboardService.getViaturaStatsDetalhado(selectedObm),
         dashboardService.getViaturaStatsPorObm(selectedObm),
         dashboardService.getServicoDia(selectedObm),
@@ -123,7 +123,7 @@ export default function Dashboard() {
       setStats(statsData);
       setViaturaTipoStats(viaturaTipoData);
       setMilitarStats(militarStatsData);
-      setMilitarByCrbmStats(militarByCrbmStatsData);
+      setMilitarByObmStats(militarByObmStatsData);
       setViaturaDetailStats(viaturaDetailData);
       setViaturaPorObmStats(viaturaPorObmData);
       setServicoDia(servicoDiaData);
@@ -233,7 +233,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <MilitarByCrbmChart data={militarByCrbmStats} isLoading={isLoading} />
+        <MilitarByObmChart data={militarByObmStats} isLoading={isLoading} />
       </div>
 
       {isLoggedInArea && (
