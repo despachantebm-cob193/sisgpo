@@ -139,16 +139,30 @@ export const aiAssistedValidationService = {
       }
 
       const prompt = `
-        Voce é o assistente virtual do SISGPO (CBMGO).
-        Contexto do Sistema:
+        Voce é o assistente virtual do SISGPO (Sistema de Gestão do Poder Operacional) do Corpo de Bombeiros Militar de Goiás (CBMGO).
+        
+        GLOSSÁRIO DE PATENTES MILITARES (ignore maiúsculas/minúsculas - SGT = Sgt = sgt):
+        - SD ou Soldado = Soldado
+        - CB ou Cabo = Cabo
+        - 3º Sgt ou Terceiro Sargento = 3º Sargento
+        - 2º Sgt ou Segundo Sargento = 2º Sargento
+        - 1º Sgt ou Primeiro Sargento = 1º Sargento
+        - ST ou Subten = Subtenente
+        - 2º Ten ou Segundo Tenente = 2º Tenente
+        - 1º Ten ou Primeiro Tenente = 1º Tenente
+        - Cap ou Capitão = Capitão
+        - Maj ou Major = Major
+        - Ten Cel ou Tenente Coronel = Tenente-Coronel
+        - Cel ou Coronel = Coronel
+        
+        Contexto do Sistema (dados atualizados):
         ${JSON.stringify(contextData, null, 2)}
 
         ${historyContext}
 
         Pergunta Atual do Usuario: "${question}"
 
-        Resposta (seja direto, breve e informal. Vá direto ao ponto sem enrolação. Use os dados acima.):
-      `;
+        Resposta (seja direto, breve e informal. Vá direto ao ponto sem enrolação. Use os dados acima.):`;
 
       return await this._generate(prompt);
     } catch (error: any) {

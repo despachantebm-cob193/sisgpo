@@ -199,36 +199,19 @@ export const dashboardService = {
 
     async getMilitarStatsPorCrbm(selectedObm?: string): Promise<ChartStat[]> {
         try {
-            // Se houver filtro por OBM, não faz sentido mostrar gráfico por CRBM geral, 
-            // mas vamos manter a lógica: se filtrar OBM, vai mostrar só o CRBM daquela OBM.
-
-            // 1. Busca todas as OBMs para mapear Nome -> CRBM
-            const { data: obmsData, error: obmsError } = await supabase
-                .from('obms')
-                .select('nome, crbm');
-
-            if (obmsError) throw obmsError;
-
-            // Cria um mapa: '1º BBM' -> '1º CRBM'
-            const obmToCrbmMap = new Map<string, string>();
-            obmsData?.forEach((o) => {
-                if (o.nome && o.crbm) {
-                    obmToCrbmMap.set(o.nome, o.crbm);
-                }
-            });
-
-            // 2. Busca militares (paginado)
+            // Agora usamos o campo 'crbm' diretamente da tabela militares
             let query = supabase
                 .from('militares')
-                .select('obm_nome')
+                .select('crbm')
                 .eq('ativo', true);
 
-            // Filtro opcional
+            // Filtro opcional por OBM
             if (selectedObm) {
                 const { data: obmInfo } = await supabase.from('obms').select('nome').eq('id', selectedObm).single();
                 if (obmInfo) query = query.eq('obm_nome', obmInfo.nome);
             }
 
+            // Busca paginada
             let allData: any[] = [];
             let configRange = 0;
             const pageSize = 1000;
@@ -246,11 +229,9 @@ export const dashboardService = {
                 }
             }
 
-            // 3. Agrupa por CRBM usando o mapa
+            // Agrupa diretamente pelo campo crbm
             const grouped = allData.reduce((acc: Record<string, number>, militar: any) => {
-                const obmNome = militar.obm_nome;
-                // Busca o CRBM correspondente à OBM do militar
-                const crbm = obmToCrbmMap.get(obmNome) || 'Sem CRBM';
+                const crbm = militar.crbm || 'Sem CRBM';
                 acc[crbm] = (acc[crbm] || 0) + 1;
                 return acc;
             }, {});
@@ -260,7 +241,12 @@ export const dashboardService = {
                     name,
                     value: value as number
                 }))
-                .sort((a, b) => b.value - a.value);
+                .sort((a, b) => {
+                    // Ordenar numericamente (1º CRBM, 2º CRBM, ...)
+                    const numA = parseInt(a.name.match(/\d+/)?.[0] || '99');
+                    const numB = parseInt(b.name.match(/\d+/)?.[0] || '99');
+                    return numA - numB;
+                });
 
         } catch (error) {
             console.error('Error fetching militar stats por CRBM:', error);
