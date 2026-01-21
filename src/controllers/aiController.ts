@@ -3,6 +3,8 @@ import { Request, Response } from 'express';
 import aiAssistedValidationService from '../services/aiAssistedValidationService';
 import { supabaseAdmin } from '../config/supabase';
 
+const RANGE_LIMIT = 20000; // garante busca completa para agregações (limite alto para evitar corte padrão de 1000)
+
 const aiController = {
     chat: async (req: Request, res: Response) => {
         try {
@@ -20,35 +22,44 @@ const aiController = {
             // A. Global Stats - Comprehensive Data Fetch
             const hoje = new Date().toISOString().split('T')[0];
 
-            const [mil, vtr, obm, ranks, vtrTypes, aeronaves, plantoesHoje, escaladosHoje] = await Promise.all([
+            const [mil, vtr, obm, ranks, milObm, vtrTypes, aeronaves, plantoesHoje, escaladosHoje] = await Promise.all([
                 // Core counts
                 supabaseAdmin.from('militares').select('count', { count: 'exact', head: true }).eq('ativo', true),
                 supabaseAdmin.from('viaturas').select('count', { count: 'exact', head: true }).eq('ativa', true),
-                supabaseAdmin.from('obms').select('nome, abreviatura, crbm, telefone, cidade'),
+                supabaseAdmin.from('obms').select('nome, abreviatura, crbm, telefone, cidade').range(0, RANGE_LIMIT - 1),
                 // Rank breakdown
-                supabaseAdmin.from('militares').select('posto_graduacao').eq('ativo', true),
+                supabaseAdmin.from('militares').select('posto_graduacao').eq('ativo', true).range(0, RANGE_LIMIT - 1),
+                // Militares por OBM
+                supabaseAdmin.from('militares').select('obm_nome, obm').eq('ativo', true).range(0, RANGE_LIMIT - 1),
                 // Viatura Types
-                supabaseAdmin.from('viaturas').select('tipo, obm').eq('ativa', true),
+                supabaseAdmin.from('viaturas').select('tipo, obm').eq('ativa', true).range(0, RANGE_LIMIT - 1),
                 // Aeronaves
                 supabaseAdmin.from('aeronaves').select('count', { count: 'exact', head: true }).eq('ativa', true),
                 // Plantoes today
-                supabaseAdmin.from('plantoes').select('id').eq('data_plantao', hoje),
+                supabaseAdmin.from('plantoes').select('id').eq('data_plantao', hoje).range(0, RANGE_LIMIT - 1),
                 // Militares escalados hoje (join)
-                supabaseAdmin.from('militar_plantao').select('militar_id, plantoes!inner(data_plantao)').eq('plantoes.data_plantao', hoje)
+                supabaseAdmin.from('militar_plantao').select('militar_id, plantoes!inner(data_plantao)').eq('plantoes.data_plantao', hoje).range(0, RANGE_LIMIT - 1)
             ]);
 
             // Aggregate Ranks in Memory
             const rankCounts: Record<string, number> = {};
             ranks.data?.forEach(m => {
-                const p = m.posto_graduacao || 'Não Informado';
+                const p = m.posto_graduacao || 'Nao Informado';
                 rankCounts[p] = (rankCounts[p] || 0) + 1;
+            });
+
+            // Aggregate Militares per OBM
+            const militaresPorObm: Record<string, number> = {};
+            milObm.data?.forEach(m => {
+                const obmNome = (m.obm_nome || m.obm || 'Sem OBM').trim();
+                militaresPorObm[obmNome] = (militaresPorObm[obmNome] || 0) + 1;
             });
 
             // Aggregate Viatura Types
             const tipoViaturaCounts: Record<string, number> = {};
             const vtrPorObm: Record<string, number> = {};
             vtrTypes.data?.forEach(v => {
-                const t = v.tipo || 'Não Informado';
+                const t = v.tipo || 'Nao Informado';
                 tipoViaturaCounts[t] = (tipoViaturaCounts[t] || 0) + 1;
                 const o = v.obm || 'Sem OBM';
                 vtrPorObm[o] = (vtrPorObm[o] || 0) + 1;
@@ -60,6 +71,7 @@ const aiController = {
             contextResults.stats = {
                 total_militares_ativos: mil.count || 0,
                 militares_por_patente: rankCounts,
+                militares_por_obm: militaresPorObm,
                 total_viaturas_ativas: vtr.count || 0,
                 viaturas_por_tipo: tipoViaturaCounts,
                 viaturas_por_obm: vtrPorObm,
@@ -181,7 +193,11 @@ const aiController = {
             const contextData = {
                 ...contextResults,
                 // Passing full list with phones+cities so AI can answer contact/location questions
-                lista_completa_obms: obmRichList?.slice(0, 5000)
+                lista_completa_obms: obmRichList?.slice(0, 5000),
+                lista_militares_por_obm: Object.entries(contextResults.stats.militares_por_obm || {})
+                    .sort((a, b) => (b[1] as number) - (a[1] as number))
+                    .map(([nome, total]) => `${nome}: ${total}`)
+                    .join('\n')
             };
 
             // 2. Ask AI

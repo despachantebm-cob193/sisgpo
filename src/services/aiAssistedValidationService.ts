@@ -1,77 +1,93 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 import AppError from '../utils/AppError';
 
-// Load env vars if not already loaded (though server usually loads them)
+// Load env vars
 dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GEMINI_MODEL_CANDIDATES = Array.from(
+  new Set(
+    [
+      process.env.GEMINI_MODEL,
+      // Priorizar modelos 2.5 que passaram no teste; manter variantes 2.0 como backup
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-2.0-flash',
+      'gemini-2.0-flash-001',
+      'gemini-2.0-flash-lite',
+      'gemini-2.0-flash-lite-001',
+    ].filter(Boolean)
+  )
+);
 
 let genAI: GoogleGenerativeAI | null = null;
 let googleModel: any = null;
-let groqClient: Groq | null = null;
+let currentModelName = '';
 
-// Initialize Groq if Key Exists (Priority if set/requested)
-if (GROQ_API_KEY) {
-  console.log(`[AI Service] 🟢 GROQ (Llama) ATIVO. Chave: ...${GROQ_API_KEY.slice(-4)}`);
-  groqClient = new Groq({ apiKey: GROQ_API_KEY });
-} else {
-  console.log('[AI Service] 🔴 GROQ API Key não encontrada. Tentando fallback para Gemini...');
+// Initialize Gemini (Primary AI Provider) using API v1
+function initializeGemini() {
+  if (!GEMINI_API_KEY) {
+    console.error('[AI Service] 🔴 GEMINI_API_KEY não configurada no ambiente.');
+    return;
+  }
+
+  try {
+    // SDK atual usa v1beta; manter string para não quebrar compatibilidade.
+    genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  } catch (err: any) {
+    console.error('[AI Service] 🔴 Falha ao criar cliente Gemini:', err?.message || err);
+    return;
+  }
+
+  for (const modelName of GEMINI_MODEL_CANDIDATES) {
+    try {
+      googleModel = genAI.getGenerativeModel({ model: modelName });
+      currentModelName = modelName;
+      console.log(`[AI Service] 🟢 GEMINI v1 ativo. Modelo: ${modelName}. Chave: ...${GEMINI_API_KEY.slice(-4)}`);
+      break;
+    } catch (err: any) {
+      console.error(`[AI Service] 🔴 Falha ao inicializar modelo ${modelName}:`, err?.message || err);
+    }
+  }
+
+  if (!googleModel) {
+    console.error('[AI Service] 🔴 Nenhum modelo Gemini pôde ser inicializado. Verifique GEMINI_MODEL/GEMINI_API_KEY.');
+  }
 }
 
-// Fallback or Alternative: Initialize Gemini
-if (GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  // Using 2.0 Flash Lite as it is available for this user key
-  googleModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
-  console.log(`[AI Service] 🟡 GEMINI ATIVO (Fallback). Chave: ...${GEMINI_API_KEY.slice(-4)}`);
-}
+initializeGemini();
 
 /**
- * Service to correct typos using AI (Groq/Llama or Gemini).
+ * Service to handle AI-assisted operations using Google Gemini.
  */
 export const aiAssistedValidationService = {
 
   /**
-   * Helper to generate content from active provider
+   * Internal helper to generate content from Gemini
    */
   async _generate(prompt: string): Promise<string> {
-    // 1. Try Gemini (Primary)
-    if (googleModel) {
-      try {
-        console.log('[AI Service] 🚀 Tentando resposta via Gemini 2.0...');
-        const result = await googleModel.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
-      } catch (geminiErr: any) {
-        console.warn('⚠️ Erro no Gemini:', geminiErr.message);
-        // Fallthrough to Groq
-      }
+    if (!googleModel) {
+      throw new Error('Serviço de IA não inicializado (Gemini faltando).');
     }
 
-    // 2. Try Groq (Llama) - Fallback
-    if (groqClient) {
-      try {
-        console.log('[AI Service] 🔄 Tentando resposta via Groq (Llama 3 Fallback)...');
-        const chatCompletion = await groqClient.chat.completions.create({
-          messages: [{ role: 'user', content: prompt }],
-          model: 'llama-3.3-70b-versatile',
-          temperature: 0.2,
-        });
-        return chatCompletion.choices[0]?.message?.content || '';
-      } catch (err: any) {
-        console.error('❌ Erro no Groq/Llama:', err.message);
-        throw err; // If both fail
+    try {
+      console.log(`[AI Service] 🚀 Processando via Gemini (${currentModelName || 'desconhecido'})...`);
+      const result = await googleModel.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (err: any) {
+      console.error('❌ Erro no Gemini:', err?.message || err, {
+        code: err?.code || err?.status || err?.statusCode,
+      });
+
+      if (err.message?.includes('429') || err?.status === 429 || err?.statusCode === 429) {
+        throw new AppError('Limite de requisições da IA atingido. Tente novamente em instantes.', 429);
       }
+
+      throw new Error(`Falha na IA: ${err.message}`);
     }
-
-    // If we get here, neither worked
-    throw new Error('Falha em ambos serviços de IA (Gemini e Groq).');
-
-    throw new Error('Nenhum serviço de IA configurado ou disponível (Groq/Gemini).');
   },
 
   /**
@@ -111,7 +127,6 @@ export const aiAssistedValidationService = {
       `;
 
       let text = await this._generate(prompt);
-      // Clean up markdown code blocks if Llama adds them
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
       const parsed = JSON.parse(text);
@@ -131,7 +146,6 @@ export const aiAssistedValidationService = {
    */
   async answerSystemQuery(question: string, contextData: any, history?: any[]): Promise<string> {
     try {
-      // Format history (if available) for the prompt
       let historyContext = "";
       if (history && history.length > 0) {
         historyContext = "\nHISTÓRICO RECENTE DA CONVERSA:\n" +
@@ -141,7 +155,7 @@ export const aiAssistedValidationService = {
       const prompt = `
         Voce é o assistente virtual do SISGPO (Sistema de Gestão do Poder Operacional) do Corpo de Bombeiros Militar de Goiás (CBMGO).
         
-        GLOSSÁRIO DE PATENTES MILITARES (ignore maiúsculas/minúsculas - SGT = Sgt = sgt):
+        GLOSSÁRIO DE PATENTES MILITARES (ignore maiúsculas/minúsculas):
         - SD ou Soldado = Soldado
         - CB ou Cabo = Cabo
         - 3º Sgt ou Terceiro Sargento = 3º Sargento
@@ -167,10 +181,10 @@ export const aiAssistedValidationService = {
       return await this._generate(prompt);
     } catch (error: any) {
       console.error('Erro Chat AI:', error);
-      if (error && (error.status === 429 || (error.message && error.message.includes('429')))) {
-        return "Desculpe, limite de IA atingido por hoje.";
+      if (error instanceof AppError && error.statusCode === 429) {
+        return "Desculpe, limite de requisições da IA atingido por agora. Tente novamente em 1 minuto.";
       }
-      return `Erro técnico na IA: ${error.message || error}`;
+      return `Erro técnico na infraestrutura de IA: ${error.message || error}`;
     }
   }
 };

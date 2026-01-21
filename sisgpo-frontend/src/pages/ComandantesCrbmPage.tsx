@@ -5,8 +5,9 @@ import api from '@/services/api';
 import toast from 'react-hot-toast';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { PencilIcon, TrashIcon, PlusIcon, SearchIcon, PhoneIcon, MailIcon, CalendarIcon, UserIcon } from 'lucide-react';
+import { PencilIcon, TrashIcon, PlusIcon, SearchIcon, PhoneIcon, MailIcon, CalendarIcon, UserIcon, Share2 } from 'lucide-react';
 import { getWhatsappLink } from '@/utils/formatters';
+import BatchWhatsAppModal from '@/components/ui/BatchWhatsAppModal';
 
 interface ComandanteCrbm {
     id: number;
@@ -45,6 +46,7 @@ export default function ComandantesCrbmPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ComandanteCrbm | null>(null);
+    const [isBatchShareOpen, setIsBatchShareOpen] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -259,12 +261,22 @@ export default function ComandantesCrbmPage() {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <p className="text-white/70">Gerencie os comandantes dos Comandos Regionais de Bombeiros Militares</p>
-                {isAdmin && (
-                    <Button onClick={() => openModal()} className="!bg-green-600 hover:!bg-green-700">
-                        <PlusIcon className="w-4 h-4 mr-2" />
-                        Adicionar Comandante
+                <div className="flex gap-3">
+                    <Button
+                        onClick={() => setIsBatchShareOpen(true)}
+                        className="!bg-emerald-600 hover:!bg-emerald-700"
+                        title="Compartilhar dashboard com todos os comandantes"
+                    >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Compartilhar em Lote
                     </Button>
-                )}
+                    {isAdmin && (
+                        <Button onClick={() => openModal()} className="!bg-green-600 hover:!bg-green-700">
+                            <PlusIcon className="w-4 h-4 mr-2" />
+                            Adicionar Comandante
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Mobile Cards View */}
@@ -732,6 +744,17 @@ export default function ComandantesCrbmPage() {
                     </div>
                 </div>
             )}
+            {/* Batch Share Modal */}
+            <BatchWhatsAppModal
+                isOpen={isBatchShareOpen}
+                onClose={() => setIsBatchShareOpen(false)}
+                comandantes={comandantes.map(c => ({
+                    id: c.id,
+                    crbm: c.crbm,
+                    nome_comandante: c.nome_comandante,
+                    telefone: c.telefone
+                }))}
+            />
         </div>
     );
 }

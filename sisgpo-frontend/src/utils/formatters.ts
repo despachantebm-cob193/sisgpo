@@ -34,9 +34,10 @@ export function formatarTelefone(telefone: string | null | undefined): string {
  * Adiciona o código do país (55) se necessário.
  * 
  * @param telefone - O número de telefone.
+ * @param message - Mensagem opcional para pré-preencher o chat.
  * @returns A URL do WhatsApp (https://wa.me/...) ou null se inválido.
  */
-export function getWhatsappLink(telefone: string | null | undefined): string | undefined {
+export function getWhatsappLink(telefone: string | null | undefined, message?: string): string | undefined {
   if (!telefone) return undefined;
 
   // Remove tudo que não é dígito
@@ -51,5 +52,10 @@ export function getWhatsappLink(telefone: string | null | undefined): string | u
     limpo = `55${limpo}`;
   }
 
-  return `https://wa.me/${limpo}`;
+  const base = `https://wa.me/${limpo}`;
+  if (message) {
+    return `${base}?text=${encodeURIComponent(message)}`;
+  }
+
+  return base;
 }

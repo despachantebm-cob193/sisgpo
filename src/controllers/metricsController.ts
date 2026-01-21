@@ -187,28 +187,51 @@ export const metricsController = {
 
     // 3. Generate AI Summary
     const prompt = `
-      Você é um Analista SRE/DevOps. Analise o relatório de performance do sistema SISGPO:
+      Você é um Engenheiro SRE Sênior especializado em Performance Web. 
+      Analise o relatório de performance do sistema SISGPO e forneça um diagnóstico PRECISO:
+      
       Período: ${startDate} a ${endDate}
       
-      WEB VITALS (Médias):
+      CRITÉRIOS DE AVALIAÇÃO OBRIGATÓRIOS (CORE WEB VITALS):
+      1. LCP (Largest Contentful Paint):
+         - Bom: < 2500ms (2.5s)
+         - Aceitável: < 4000ms (4.0s)
+         - Ruim: > 4000ms
+         (Importante: Se o valor for > 100, considere milissegundos. Ex: 2500 = 2.5s).
+
+      2. CLS (Cumulative Layout Shift):
+         - Bom: < 0.1 (Estabilidade visual ideal)
+         - Aceitável: < 0.25 (Instabilidade perceptível)
+         - Ruim: > 0.25 (Instabilidade CRÍTICA - Exige correção urgente)
+
+      3. INP (Interaction to Next Paint):
+         - Bom: < 200ms
+         - Aceitável: < 500ms
+         - Ruim: > 500ms
+
+      WEB VITALS DO SISTEMA (MÉDIAS):
       - LCP: ${wvAverages.LCP}
       - CLS: ${wvAverages.CLS}
       - FID: ${wvAverages.FID}
       - INP: ${wvAverages.INP}
       - FCP: ${wvAverages.FCP}
-      - Amostras: ${wvAverages.totalSamples}
+      - Amostras coletadas: ${wvAverages.totalSamples}
       
-      LATÊNCIA DE API:
-      - Total Requests: ${apiStats.totalRequests}
-      - Latência Média: ${apiStats.avgLatency}
-      - Taxa de Erro: ${apiStats.errorRate}
+      LATÊNCIA E ERROS DE API:
+      - Total de Requisições: ${apiStats.totalRequests}
+      - Latência Média Geral: ${apiStats.avgLatency}
+      - Taxa de Erro HTTP: ${apiStats.errorRate}
       
-      ROTAS MAIS LENTAS:
+      ROTAS MAIS LENTAS (BACKEND):
       ${topSlowRoutes.map(r => `- ${r.route}: ${r.avg}ms (${r.count} chamadas)`).join('\n')}
       
-      Tarefa: Escreva um resumo executivo descritivo sobre a saúde do sistema. Seja técnico mas claro. 
-      Identifique se o sistema está saudável ou se precisa de atenção imediata.
-      Use Português do Brasil. Marque pontos positivos e negativos.
+      TAREFA:
+      Escreva um resumo executivo descritivo. 
+      - NÃO apresente valores altos como positivos se eles violarem os critérios acima.
+      - Seja severo se o CLS estiver acima de 0.25 ou LCP acima de 4s.
+      - Identifique se o problema é Frontend (Web Vitals) ou Backend (Latência/Erros).
+      - Conclua se o sistema está "Saudável", "Em Alerta" ou "Em Estado Crítico".
+      - Use Português do Brasil e seja técnico e direto.
     `;
 
     const aiSummary = await aiAssistedValidationService._generate(prompt);
