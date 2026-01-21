@@ -54,18 +54,8 @@ export const SupabaseAuthStateListener = () => {
                                 navigate('/pending-approval', { replace: true });
                             }
                         } else {
-                            // Fallback: Create/Use minimal profile from JWT
-                            console.warn('[SupabaseAuth] User not found in DB. Using session fallback.');
-                            const fallbackUser = {
-                                id: 0, // Temp ID
-                                login: userEmail?.split('@')[0] || 'user',
-                                nome: session.user.user_metadata?.full_name || 'Usuário',
-                                email: userEmail,
-                                perfil: session.user.user_metadata?.perfil || 'user',
-                                ativo: true,
-                                status: 'approved' as const
-                            };
-                            login(session.access_token, fallbackUser);
+                            console.error('[SupabaseAuth] Usuário não encontrado no banco de dados. Encerrando sessão.');
+                            logout();
                         }
                     } catch (e) {
                         console.error('[SupabaseAuth] Critical hydration error:', e);

@@ -154,14 +154,15 @@ export const accessRequestController = {
     await UserRepository.create({
       login: loginTrimmed,
       nome_completo: fullName.trim(),
+      nome: fullName.trim().split(' ')[0], // Primeiro nome
       email: emailLower,
       whatsapp: whatsapp.trim(),
       unidade: obmCity.trim(),
       status: 'pending',
       ativo: false,
       perfil: 'user',
-      // senha_hash tera o default da migration se nao passado, 
-      // mas como o login sera via Google SSO, o login por senha nao sera prioritario
+      senha_hash: 'ACCOUNT_PENDING_APPROVAL', // Senha será definida após aprovação pelo administrador
+      // created_at e updated_at sao gerados pelo repositorio
     });
 
     console.log('[AccessRequest] Nova solicitação registrada no banco:', { emailLower, loginTrimmed });

@@ -1,6 +1,8 @@
+
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import AppError from '../utils/AppError';
+import { supabaseAdmin } from '../config/supabase';
 import UserRepository, { UserRow } from '../repositories/UserRepository';
 import {
   ChangePasswordDTO,
@@ -212,10 +214,29 @@ const userController = {
   delete: async (req: Request, res: Response) => {
     const { id } = req.params;
     const userId = Number(id);
+
+    // 1. Busca o usuário para obter o supabase_id antes de deletar
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      throw new AppError('Usuario nao encontrado.', 404);
+    }
+
+    // 2. Se o usuário tiver um ID no Supabase Auth, deleta lá também
+    if (user.supabase_id) {
+      console.log(`[Admin] Removendo usuário ${user.email} do Supabase Auth (${user.supabase_id})...`);
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user.supabase_id);
+
+      if (authError) {
+        console.error(`[Admin] Erro ao deletar no Auth: ${authError.message}`);
+      }
+    }
+
+    // 3. Deleta do banco de dados local (tabela usuarios)
     const success = await UserRepository.delete(userId);
     if (!success) {
-      throw new AppError('Usuario nao encontrado ou erro ao deletar.', 404);
+      throw new AppError('Erro ao deletar usuario do banco de dados.', 500);
     }
+
     return res.status(204).send();
   },
 };

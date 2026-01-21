@@ -10,6 +10,7 @@ import {
   Shield,
   UserCheck,
   Users,
+  CheckCircle2,
 } from 'lucide-react';
 import { TfiJoomla } from 'react-icons/tfi';
 import { GiSiren } from 'react-icons/gi';
@@ -197,21 +198,23 @@ export default function Sidebar() {
               className={`space-y-2 font-medium ${!isCollapsed ? 'pl-4' : ''
                 }`}
             >
-              <li>
-                <NavLink
-                  to="/app/servico-dia"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<ClipboardList className="mr-3 h-6 w-6" />}
-                    text="Serviço do Dia"
-                  />
-                </NavLink>
-              </li>
+              {user?.perfil === 'admin' && (
+                <li>
+                  <NavLink
+                    to="/app/servico-dia"
+                    onClick={handleLinkClick}
+                    className={({ isActive }) =>
+                      `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                    }
+                  >
+                    <NavLinkContent
+                      isCollapsed={isCollapsed}
+                      icon={<ClipboardList className="mr-3 h-6 w-6" />}
+                      text="Serviço do Dia"
+                    />
+                  </NavLink>
+                </li>
+              )}
               <li>
                 <NavLink
                   to="/app/militares"
@@ -317,61 +320,84 @@ export default function Sidebar() {
                   />
                 </NavLink>
               </li>
-              <li>
-                <NavLink
-                  to="/app/usuarios"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<UserCheck className="mr-3 h-6 w-6" />}
-                    text="Usuários"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/metricas"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<Shield className="mr-3 h-6 w-6" />}
-                    text="Métricas"
-                  />
-                </NavLink>
-              </li>
+              {user?.perfil === 'admin' && (
+                <>
+                  <li>
+                    <NavLink
+                      to="/app/usuarios"
+                      onClick={handleLinkClick}
+                      className={({ isActive }) =>
+                        `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                      }
+                    >
+                      <NavLinkContent
+                        isCollapsed={isCollapsed}
+                        icon={<UserCheck className="mr-3 h-6 w-6" />}
+                        text="Usuários"
+                      />
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      to="/app/metricas"
+                      onClick={handleLinkClick}
+                      className={({ isActive }) =>
+                        `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                      }
+                    >
+                      <NavLinkContent
+                        isCollapsed={isCollapsed}
+                        icon={<Shield className="mr-3 h-6 w-6" />}
+                        text="Métricas"
+                      />
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      to="/app/saude"
+                      onClick={handleLinkClick}
+                      className={({ isActive }) =>
+                        `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                      }
+                    >
+                      <NavLinkContent
+                        isCollapsed={isCollapsed}
+                        icon={<CheckCircle2 className="mr-3 h-6 w-6" />}
+                        text="Saúde do Sistema"
+                      />
+                    </NavLink>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
 
-          <p
-            className={`px-2 pt-2 text-white ${isCollapsed ? 'hidden' : ''
-              }`}
-          >
-            RELATÓRIOS
-          </p>
-          <li>
-            <NavLink
-              to="/app/relatorio"
-              onClick={handleLinkClick}
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <NavLinkContent
-                isCollapsed={isCollapsed}
-                icon={<FileText className="mr-3 h-6 w-6" />}
-                text="Relatório de Escala"
-              />
-            </NavLink>
-          </li>
+          {user?.perfil === 'admin' && (
+            <>
+              <p
+                className={`px-2 pt-2 text-white ${isCollapsed ? 'hidden' : ''
+                  }`}
+              >
+                RELATÓRIOS
+              </p>
+              <li>
+                <NavLink
+                  to="/app/relatorio"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <NavLinkContent
+                    isCollapsed={isCollapsed}
+                    icon={<FileText className="mr-3 h-6 w-6" />}
+                    text="Relatório de Escala"
+                  />
+                </NavLink>
+              </li>
+            </>
+          )}
         </ul>
       </div>
 

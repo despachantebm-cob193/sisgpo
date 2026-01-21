@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
 import AppError from '../utils/AppError';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { buildSsoAuthHeaders } = require('../utils/signSsoJwt');
+// Remoção do SSO conforme solicitado
+const buildSsoAuthHeaders = (_opts: any) => ({});
 
 const OCORRENCIAS_API_URL = process.env.OCORRENCIAS_API_URL || 'http://localhost:3001';
 
@@ -10,12 +10,8 @@ const estatisticasExternasController = {
   getDashboardOcorrencias: async (request: Request, response: Response) => {
     try {
       console.log('OCORRENCIAS_API_URL:', OCORRENCIAS_API_URL);
-      const headers = buildSsoAuthHeaders({
-        issuer: 'sisgpo',
-        audience: 'ocorrencias',
-        expiresInSeconds: 120,
-      });
-      console.log('SSO Headers gerados:', headers);
+      const headers = {}; // SSO desativado
+      console.log('SSO Headers desativados (Removido)');
 
       const requestedDate = request.query?.data as string | undefined;
       const targetDate =

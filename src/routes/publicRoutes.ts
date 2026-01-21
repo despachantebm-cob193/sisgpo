@@ -3,12 +3,13 @@ import { Router } from 'express';
 import accessRequestController from '../controllers/accessRequestController';
 import metricsController from '../controllers/metricsController';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController') as string);
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const estatisticasExternasController = require(
-  path.join(__dirname, '..', 'controllers', 'estatisticasExternasController') as string,
-);
+const load = (relativePath: string) => {
+  const mod = require(path.join(__dirname, relativePath));
+  return mod?.default || mod;
+};
+
+const dashboardController = load('../controllers/dashboardController');
+const estatisticasExternasController = load('../controllers/estatisticasExternasController');
 
 const router = Router();
 

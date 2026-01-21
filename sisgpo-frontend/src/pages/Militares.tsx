@@ -65,27 +65,27 @@ const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDelet
       }}
       className="border-b border-borderDark/60"
     >
-      <div className="px-6 py-4 whitespace-nowrap text-sm text-textMain" style={{ width: '10%' }}>
+      <div className="px-6 py-4 whitespace-nowrap text-sm text-textMain" style={{ width: isAdmin ? '10%' : '10%' }}>
         {militar.posto_graduacao}
       </div>
-      <div className="px-6 py-4 text-sm text-textMain" style={{ width: '20%' }}>{militar.nome_completo}</div>
-      <div className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary" style={{ width: '10%' }}>
+      <div className="px-6 py-4 text-sm text-textMain" style={{ width: isAdmin ? '20%' : '25%' }}>{militar.nome_completo}</div>
+      <div className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary" style={{ width: isAdmin ? '10%' : '12%' }}>
         {militar.nome_guerra || 'Nao informado'}
       </div>
-      <div className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary" style={{ width: '10%' }}>
+      <div className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary" style={{ width: isAdmin ? '10%' : '11%' }}>
         {militar.matricula}
       </div>
-      <div className="px-6 py-4 text-sm text-textSecondary" style={{ width: '15%' }}>{militar.obm_nome || 'N/A'}</div>
-      <div className="px-6 py-4 text-sm" style={{ width: '10%' }}>
+      <div className="px-6 py-4 text-sm text-textSecondary" style={{ width: isAdmin ? '15%' : '19%' }}>{militar.obm_nome || 'N/A'}</div>
+      <div className="px-6 py-4 text-sm" style={{ width: isAdmin ? '10%' : '11%' }}>
         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${status.classes}`}>
           {status.label}
         </span>
       </div>
-      <div className="px-6 py-4 text-sm text-textSecondary" style={{ width: '10%' }}>
+      <div className="px-6 py-4 text-sm text-textSecondary" style={{ width: isAdmin ? '10%' : '12%' }}>
         {militar.telefone || 'Nao informado'}
       </div>
-      <div className="px-6 py-4 text-sm" style={{ width: '15%' }}>
-        {isAdmin && (
+      {isAdmin && (
+        <div className="px-6 py-4 text-sm" style={{ width: '15%' }}>
           <div className="flex items-center justify-end gap-4">
             <button
               onClick={() => handleOpenFormModal(militar)}
@@ -100,8 +100,8 @@ const MilitarRow = memo(({ militar, virtualRow, handleOpenFormModal, handleDelet
               <Trash2 size={18} />
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 });
@@ -417,25 +417,25 @@ export default function Militares() {
               <table className="min-w-full table-fixed">
                 <thead className="bg-searchbar">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '10%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '10%' : '10%' }}>
                       Posto/Grad.
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>
                       Nome Completo
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '10%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '10%' : '12%' }}>
                       Nome de Guerra
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '10%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '10%' : '11%' }}>
                       Matricula
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '15%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '15%' : '19%' }}>
                       Lotacao (OBM)
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '10%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '10%' : '11%' }}>
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '10%' }}>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '10%' : '12%' }}>
                       Telefone
                     </th>
                     {isAdmin && (

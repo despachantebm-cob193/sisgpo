@@ -631,10 +631,10 @@ export default function Viaturas() {
           <table className="min-w-full table-fixed">
             <thead className="bg-background/40">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Prefixo</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>OBM</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Cidade</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>Prefixo</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>OBM</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>Cidade</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>Status</th>
                 {isAdmin && <th scope="col" className="relative px-6 py-3" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>}
               </tr>
             </thead>
@@ -663,26 +663,24 @@ export default function Viaturas() {
                       }}
                       className={`border-b border-borderDark/60 ${(!viatura.obm_abreviatura || !viatura.cidade) ? 'bg-red-500/10 border-l-4 border-red-500' : ''}`}
                     >
-                      <div className="px-6 py-2 text-sm font-medium text-textMain" style={{ width: '20%' }}>{viatura.prefixo}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '20%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '20%' }}>{viatura.cidade || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm" style={{ width: '20%' }}>
+                      <div className="px-6 py-2 text-sm font-medium text-textMain" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.prefixo}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.cidade || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-sm" style={{ width: isAdmin ? '20%' : '25%' }}>
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}>
                           {status.label}
                         </span>
                       </div>
-                      <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2" style={{ width: '20%' }}>
-                        {isAdmin && (
-                          <>
-                            <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                      {isAdmin && (
+                        <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2" style={{ width: '20%' }}>
+                          <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

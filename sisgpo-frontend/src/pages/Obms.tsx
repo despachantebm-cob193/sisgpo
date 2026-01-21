@@ -626,7 +626,7 @@ export default function Obms() {
           >
             <thead className="bg-searchbar">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '35%' }}>Nome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: isAdmin ? '30%' : '40%' }}>Nome</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Sigla</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>CRBM</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Cidade</th>
@@ -659,7 +659,7 @@ export default function Obms() {
                       }}
                       className="border-b border-borderDark/60"
                     >
-                      <div className="px-6 py-2 text-sm font-medium text-textMain break-words" style={{ width: '35%' }}>{obm.nome}</div>
+                      <div className="px-6 py-2 text-sm font-medium text-textMain break-words" style={{ width: isAdmin ? '30%' : '40%' }}>{obm.nome}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.abreviatura}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.crbm || 'N/A'}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: '15%' }}>{obm.cidade || 'N/A'}</div>

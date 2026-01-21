@@ -12,7 +12,6 @@ export type UserRow = {
     nome_completo?: string | null;
     nome?: string | null;
     email?: string | null;
-    google_id?: string | null;
     perfil_desejado?: string | null;
     aprovado_por?: number | null;
     aprovado_em?: Date | string | null;

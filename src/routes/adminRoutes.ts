@@ -22,24 +22,24 @@ const escalaAeronaveValidator = load('../validators/escalaAeronaveValidator');
 const escalaCodecValidator = load('../validators/escalaCodecValidator');
 const escalaMedicoValidator = load('../validators/escalaMedicoValidator');
 
-const obmController = require(path.join(__dirname, '..', 'controllers', 'obmController'));
-const viaturaController = require(path.join(__dirname, '..', 'controllers', 'viaturaController'));
-const militarController = require(path.join(__dirname, '..', 'controllers', 'militarController'));
-const userController = require(path.join(__dirname, '..', 'controllers', 'userController'));
-const plantaoController = require(path.join(__dirname, '..', 'controllers', 'plantaoController'));
-const relatorioController = require(path.join(__dirname, '..', 'controllers', 'relatorioController'));
-const escalaController = require(path.join(__dirname, '..', 'controllers', 'escalaController'));
-const servicoDiaController = require(path.join(__dirname, '..', 'controllers', 'servicoDiaController'));
-const medicoController = require(path.join(__dirname, '..', 'controllers', 'medicoController'));
-const aeronaveController = require(path.join(__dirname, '..', 'controllers', 'aeronaveController'));
-const escalaAeronaveController = require(path.join(__dirname, '..', 'controllers', 'escalaAeronaveController'));
-const escalaCodecController = require(path.join(__dirname, '..', 'controllers', 'escalaCodecController'));
-const escalaMedicoController = require(path.join(__dirname, '..', 'controllers', 'escalaMedicoController'));
-const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController'));
+const obmController = load('../controllers/obmController');
+const viaturaController = load('../controllers/viaturaController');
+const militarController = load('../controllers/militarController');
+const userController = load('../controllers/userController');
+const plantaoController = load('../controllers/plantaoController');
+const relatorioController = load('../controllers/relatorioController');
+const escalaController = load('../controllers/escalaController');
+const servicoDiaController = load('../controllers/servicoDiaController');
+const medicoController = load('../controllers/medicoController');
+const aeronaveController = load('../controllers/aeronaveController');
+const escalaAeronaveController = load('../controllers/escalaAeronaveController');
+const escalaCodecController = load('../controllers/escalaCodecController');
+const escalaMedicoController = load('../controllers/escalaMedicoController');
+const dashboardController = load('../controllers/dashboardController');
 
-const viaturaFileController = require(path.join(__dirname, '..', 'controllers', 'viaturaFileController'));
-const militarFileController = require(path.join(__dirname, '..', 'controllers', 'militarFileController'));
-const obmFileController = require(path.join(__dirname, '..', 'controllers', 'obmFileController'));
+const viaturaFileController = load('../controllers/viaturaFileController');
+const militarFileController = load('../controllers/militarFileController');
+const obmFileController = load('../controllers/obmFileController');
 
 const router = Router();
 
