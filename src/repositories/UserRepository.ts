@@ -19,6 +19,8 @@ export type UserRow = {
     created_at?: Date;
     updated_at?: Date;
     supabase_id?: string | null;
+    unidade?: string | null;
+    whatsapp?: string | null;
 };
 
 export class UserRepository {

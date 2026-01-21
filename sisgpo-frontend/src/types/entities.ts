@@ -81,6 +81,8 @@ export type UserRecord = {
   perfil: 'admin' | 'user';
   ativo: boolean;
   status?: 'pending' | 'pendente' | 'approved' | 'rejected';
+  whatsapp?: string | null;
+  unidade?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -93,6 +95,8 @@ export type FormState = {
   senha: string;
   confirmarSenha: string;
   perfil: 'admin' | 'user';
+  whatsapp?: string;
+  unidade?: string;
 };
 
 export type ValidationErrors = Record<string, string>;

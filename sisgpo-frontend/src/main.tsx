@@ -10,6 +10,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { router } from './router';
 import './index.css';
 import { palette } from './theme/palette';
+import initWebVitalsReporting from './utils/reportWebVitals';
 
 const rootElement = document.getElementById('root');
 
@@ -21,6 +22,9 @@ if (!rootElement) {
 const queryClient = new QueryClient();
 
 const root = ReactDOM.createRoot(rootElement);
+
+// Inicia coleta de Web Vitals para métricas internas
+initWebVitalsReporting();
 
 root.render(
   <React.StrictMode>
@@ -43,4 +47,3 @@ root.render(
     </GoogleOAuthProvider>
   </React.StrictMode>,
 );
-

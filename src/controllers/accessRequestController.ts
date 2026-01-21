@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import AppError from '../utils/AppError';
 import nodemailer from 'nodemailer';
+import UserRepository from '../repositories/UserRepository';
 
 type PendingCode = {
   code: string;
@@ -135,12 +136,37 @@ export const accessRequestController = {
       throw new AppError('Dados incompletos.', 400);
     }
 
-    // Nesta versão de protótipo, apenas logamos o pedido.
-    console.log('[AccessRequest] Nova solicitação:', { fullName, email, login, whatsapp, obmCity });
+    const emailLower = email.trim().toLowerCase();
+    const loginTrimmed = login.trim();
 
-    // Opcional: persistir em tabela "access_requests" aqui.
+    // Verifica se ja existe usuario com este email ou login
+    const existingEmail = await UserRepository.findByEmail(emailLower);
+    if (existingEmail) {
+      throw new AppError('Este e-mail já possui uma solicitação ou cadastro.', 400);
+    }
 
-    return res.status(200).json({ message: 'Solicitação registrada com sucesso.' });
+    const existingLogin = await UserRepository.findByLogin(loginTrimmed);
+    if (existingLogin) {
+      throw new AppError('Este login/nome já está em uso.', 400);
+    }
+
+    // Persiste na tabela usuarios com status 'pending'
+    await UserRepository.create({
+      login: loginTrimmed,
+      nome_completo: fullName.trim(),
+      email: emailLower,
+      whatsapp: whatsapp.trim(),
+      unidade: obmCity.trim(),
+      status: 'pending',
+      ativo: false,
+      perfil: 'user',
+      // senha_hash tera o default da migration se nao passado, 
+      // mas como o login sera via Google SSO, o login por senha nao sera prioritario
+    });
+
+    console.log('[AccessRequest] Nova solicitação registrada no banco:', { emailLower, loginTrimmed });
+
+    return res.status(200).json({ message: 'Solicitação registrada com sucesso. Aguarde aprovação.' });
   },
 };
 

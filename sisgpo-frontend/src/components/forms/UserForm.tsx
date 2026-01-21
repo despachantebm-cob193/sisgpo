@@ -12,6 +12,8 @@ const initialForm: FormState = {
   nome: '',
   nome_completo: '',
   email: '',
+  whatsapp: '',
+  unidade: '',
   senha: '',
   confirmarSenha: '',
   perfil: 'user',
@@ -36,6 +38,8 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
         nome: editingUser.nome ?? '',
         nome_completo: editingUser.nome_completo ?? '',
         email: editingUser.email ?? '',
+        whatsapp: editingUser.whatsapp ?? '',
+        unidade: editingUser.unidade ?? '',
         senha: '',
         confirmarSenha: '',
         perfil: editingUser.perfil,
@@ -126,6 +130,14 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
           payload.email = trimmedEmail;
         }
 
+        if (formData.whatsapp !== (editingUser.whatsapp ?? '')) {
+          payload.whatsapp = formData.whatsapp;
+        }
+
+        if (formData.unidade !== (editingUser.unidade ?? '')) {
+          payload.unidade = formData.unidade;
+        }
+
         if (formData.senha) {
           payload.senha = formData.senha;
           payload.confirmarSenha = formData.confirmarSenha;
@@ -148,6 +160,8 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
           nome: trimmedNome,
           nome_completo: trimmedNomeCompleto,
           email: trimmedEmail,
+          whatsapp: formData.whatsapp,
+          unidade: formData.unidade,
         });
         toast.success('Usuario criado com sucesso!');
       }
@@ -213,6 +227,28 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
       </div>
 
       <div>
+        <Label htmlFor="whatsapp">WhatsApp</Label>
+        <Input
+          id="whatsapp"
+          name="whatsapp"
+          value={formData.whatsapp}
+          onChange={handleInputChange}
+          placeholder="(62) 9 9999-9999"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="unidade">Unidade/Cidade</Label>
+        <Input
+          id="unidade"
+          name="unidade"
+          value={formData.unidade}
+          onChange={handleInputChange}
+          placeholder="Ex: 1º BBM / Goiânia"
+        />
+      </div>
+
+      <div>
         <Label htmlFor="login">Login</Label>
         <Input
           ref={loginInputRef}
@@ -271,13 +307,13 @@ export default function UserForm({ editingUser, onSave, onCancel }: UserFormProp
 
       <div className="flex justify-end gap-4">
         <Button
-            type="button"
-            onClick={onCancel}
-            variant="danger"
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
+          type="button"
+          onClick={onCancel}
+          variant="danger"
+          disabled={isSubmitting}
+        >
+          Cancelar
+        </Button>
         <Button type="submit" disabled={isSubmitting} className="!bg-emerald-500 hover:!bg-emerald-600 text-white">
           {isSubmitting ? 'Salvando...' : editingUser ? 'Salvar alteracoes' : 'Criar usuario'}
         </Button>

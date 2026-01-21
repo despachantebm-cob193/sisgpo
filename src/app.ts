@@ -4,6 +4,7 @@ import express, { ErrorRequestHandler, Request, RequestHandler, Response } from 
 import 'express-async-errors';
 import cors from 'cors';
 import path from 'path';
+import { supabaseAdmin } from './config/supabase';
 
 import env from './config/env';
 import authRoutes from './routes/authRoutes';
@@ -63,6 +64,25 @@ app.use(
 );
 
 app.use(express.json());
+
+// Middleware simples para métricas de API (latência/status) - apenas rotas /api
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    if (!req.url.startsWith('/api')) return;
+    const duration = Date.now() - start;
+    // Fire-and-forget (não bloqueia request)
+    supabaseAdmin.from('api_metrics').insert({
+      method: req.method,
+      route: req.path,
+      status: res.statusCode,
+      duration_ms: duration,
+    }).then(({ error }) => {
+      if (error) console.warn('[metrics] erro ao salvar api_metrics:', error.message);
+    });
+  });
+  next();
+});
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({

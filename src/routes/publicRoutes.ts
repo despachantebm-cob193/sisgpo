@@ -1,6 +1,7 @@
 import path from 'path';
 import { Router } from 'express';
 import accessRequestController from '../controllers/accessRequestController';
+import metricsController from '../controllers/metricsController';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController') as string);
@@ -33,5 +34,8 @@ router.get('/estatisticas-externas', safeHandler(estatisticasExternasController,
 router.post('/access-request/send-code', accessRequestController.sendCode);
 router.post('/access-request/verify-code', accessRequestController.verifyCode);
 router.post('/access-request/submit', accessRequestController.submitRequest);
+
+// Coleta de Web Vitals
+router.post('/vitals', metricsController.storeWebVital);
 
 export default router;

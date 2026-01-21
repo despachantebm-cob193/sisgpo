@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { validate } from 'express-validation';
 import fileUpload from 'express-fileupload';
 import path from 'path';
+import metricsController from '../controllers/metricsController';
 
 const ensureAdmin = require(path.join(__dirname, '..', 'middlewares', 'ensureAdmin'));
 const validationMiddleware = require(path.join(__dirname, '..', 'middlewares', 'validationMiddleware'));
@@ -147,5 +148,9 @@ router.delete('/servico-dia', ensureAdmin, servicoDiaController.deleteServicoDia
 router.get('/relatorio/diario', relatorioController.getRelatorioDiario);
 router.get('/relatorio-diario', relatorioController.getRelatorioDiario);
 router.get('/metadata/:key', dashboardController.getMetadataByKey);
+
+// Métricas (admin)
+router.get('/metrics/web-vitals', ensureAdmin, metricsController.getWebVitalsSummary);
+router.get('/metrics/api', ensureAdmin, metricsController.getApiMetricsSummary);
 
 export default router;

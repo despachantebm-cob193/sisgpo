@@ -18,6 +18,8 @@ const sanitizeUser = (user: UserRow) => ({
   nome_completo: user.nome_completo,
   nome: user.nome,
   email: user.email,
+  whatsapp: user.whatsapp,
+  unidade: user.unidade,
   created_at: user.created_at,
   updated_at: user.updated_at,
 });

@@ -26,6 +26,7 @@ const UsersManagement = lazy(() => import('../pages/Users'));
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
 const SsoLogin = lazy(() => import('../pages/SsoLogin'));
 const SubjectPendingPage = lazy(() => import('../pages/SubjectPendingPage'));
+const Metrics = lazy(() => import('../pages/Metrics'));
 const RequestAccess = lazy(() => import('../pages/RequestAccess'));
 
 const RootLayout = () => (
@@ -171,6 +172,7 @@ export const router = createBrowserRouter([
           // Rotas comuns
           { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> },
           { path: 'perfil', element: <Suspended><Profile /></Suspended> },
+          { path: 'metricas', element: <Suspended><Metrics /></Suspended> },
         ],
       },
       {

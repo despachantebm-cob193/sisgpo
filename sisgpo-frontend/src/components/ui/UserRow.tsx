@@ -101,6 +101,14 @@ export default function UserRow({
               <p className="text-textMain">{user.perfil}</p>
             </div>
             <div>
+              <p className="font-semibold text-textSecondary">WhatsApp</p>
+              <p className="text-textMain">{user.whatsapp ?? '-'}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-textSecondary">Unidade/Cidade</p>
+              <p className="text-textMain">{user.unidade ?? '-'}</p>
+            </div>
+            <div>
               <p className="font-semibold text-textSecondary">Criado em</p>
               <p className="text-textMain">{formatDate(user.created_at)}</p>
             </div>

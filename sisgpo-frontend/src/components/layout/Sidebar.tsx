@@ -332,6 +332,21 @@ export default function Sidebar() {
                   />
                 </NavLink>
               </li>
+              <li>
+                <NavLink
+                  to="/app/metricas"
+                  onClick={handleLinkClick}
+                  className={({ isActive }) =>
+                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
+                  }
+                >
+                  <NavLinkContent
+                    isCollapsed={isCollapsed}
+                    icon={<Shield className="mr-3 h-6 w-6" />}
+                    text="Métricas"
+                  />
+                </NavLink>
+              </li>
             </ul>
           </div>
 
