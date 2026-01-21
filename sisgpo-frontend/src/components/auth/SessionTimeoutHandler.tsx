@@ -4,7 +4,9 @@ import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 
 export const SessionTimeoutHandler = () => {
-    const { logout, isAuthenticated } = useAuthStore();
+    const logout = useAuthStore(state => state.logout);
+    const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+    const token = useAuthStore(state => state.token);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     // 20 minutes in milliseconds
@@ -13,9 +15,14 @@ export const SessionTimeoutHandler = () => {
     const handleLogout = useCallback(() => {
         if (isAuthenticated()) {
             logout();
-            toast('Sessão expirada por inatividade.', {
+            toast('Sessão expirada por inatividade (20m).', {
                 icon: '🔒',
-                duration: 5000,
+                duration: 6000,
+                style: {
+                    borderRadius: '10px',
+                    background: '#333',
+                    color: '#fff',
+                },
             });
         }
     }, [logout, isAuthenticated]);
@@ -28,22 +35,25 @@ export const SessionTimeoutHandler = () => {
         if (isAuthenticated()) {
             timerRef.current = setTimeout(handleLogout, TIMEOUT_MS);
         }
-    }, [isAuthenticated, handleLogout]);
+    }, [isAuthenticated, handleLogout, TIMEOUT_MS]);
 
     useEffect(() => {
-        const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+        // Monitor standard user activities
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove', 'click'];
 
         const handleActivity = () => {
             resetTimer();
         };
 
-        // Initialize timer
-        resetTimer();
+        // Initialize timer if authenticated
+        if (token) {
+            resetTimer();
 
-        // Add listeners
-        events.forEach((event) => {
-            window.addEventListener(event, handleActivity);
-        });
+            // Add listeners
+            events.forEach((event) => {
+                window.addEventListener(event, handleActivity, { passive: true });
+            });
+        }
 
         return () => {
             // Cleanup
@@ -54,7 +64,8 @@ export const SessionTimeoutHandler = () => {
                 window.removeEventListener(event, handleActivity);
             });
         };
-    }, [resetTimer]);
+    }, [resetTimer, token]);
 
+    // This component doesn't render anything
     return null;
 };

@@ -1,14 +1,36 @@
-
 import { useNavigate, Link } from 'react-router-dom';
-import { Menu, X, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Settings, LogOut, UserCheck } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../config/supabase';
+import api from '../../services/api';
+import React, { useState, useEffect } from 'react';
 
 const Header: React.FC = () => {
   const { pageTitle, isSidebarCollapsed, lastUpdate } = useUiStore();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const isAdmin = user?.perfil === 'admin';
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const fetchPending = async () => {
+      try {
+        const response = await api.get('/api/admin/users/pending');
+        setPendingCount(response.data.users?.length || 0);
+      } catch (err) {
+        console.error('Erro ao buscar solicitações pendentes:', err);
+      }
+    };
+
+    fetchPending();
+    const interval = setInterval(fetchPending, 60000); // Atualiza a cada minuto
+
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   const handleLogout = async () => {
     console.log('Logout iniciado...');
@@ -65,6 +87,19 @@ const Header: React.FC = () => {
         <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
 
         <div className="flex items-center gap-4">
+          {isAdmin && pendingCount > 0 && (
+            <Link
+              to="/app/usuarios"
+              className="relative flex items-center justify-center rounded-full bg-premiumOrange/10 p-2 text-premiumOrange transition hover:bg-premiumOrange/20 active:scale-95"
+              title={`${pendingCount} solicitações pendentes`}
+            >
+              <UserCheck size={20} />
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-premiumOrange text-[10px] font-bold text-white shadow-sm ring-2 ring-background">
+                {pendingCount}
+              </span>
+            </Link>
+          )}
+
           <Link to="/app/perfil" className="flex items-center gap-2 text-sm hover:text-tagBlue transition-colors group">
             <Settings size={18} className="text-gray-300 group-hover:text-tagBlue" />
             <span className="font-medium hidden sm:block">{user?.nome}</span>

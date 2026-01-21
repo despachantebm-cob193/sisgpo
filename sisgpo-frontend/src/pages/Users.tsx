@@ -221,6 +221,7 @@ export default function Users() {
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Usuário</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Email</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Telefone</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Perfil</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
                       {isAdmin && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>}
@@ -234,6 +235,7 @@ export default function Users() {
                           <div className="text-sm text-textSecondary">{user.login}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{user.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{user.whatsapp || '-'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textSecondary">{user.perfil}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {/* Status logic from UserRow */}

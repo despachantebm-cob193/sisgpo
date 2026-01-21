@@ -152,5 +152,6 @@ router.get('/metadata/:key', dashboardController.getMetadataByKey);
 // Métricas (admin)
 router.get('/metrics/web-vitals', ensureAdmin, metricsController.getWebVitalsSummary);
 router.get('/metrics/api', ensureAdmin, metricsController.getApiMetricsSummary);
+router.get('/metrics/report', ensureAdmin, metricsController.getMetricsReport);
 
 export default router;
