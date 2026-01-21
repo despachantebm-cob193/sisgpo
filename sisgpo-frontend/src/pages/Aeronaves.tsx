@@ -47,9 +47,8 @@ const Aeronaves: React.FC = () => {
 
   const renderStatusBadge = (ativa: boolean, className = '') => (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        ativa ? 'bg-cardGreen/20 text-cardGreen' : 'bg-searchbar text-textSecondary'
-      } ${className}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ativa ? 'bg-cardGreen/20 text-cardGreen' : 'bg-searchbar text-textSecondary'
+        } ${className}`}
     >
       {ativa ? 'Ativa' : 'Inativa'}
     </span>
@@ -57,9 +56,8 @@ const Aeronaves: React.FC = () => {
 
   const renderTipoAsaBadge = (tipo: Aeronave['tipo_asa'], className = '') => (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        tipo === 'fixa' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-      } ${className}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tipo === 'fixa' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+        } ${className}`}
     >
       {tipo === 'fixa' ? 'Asa fixa' : 'Asa rotativa'}
     </span>
@@ -102,9 +100,11 @@ const Aeronaves: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
-                      Ações
-                    </th>
+                    {isAdmin && (
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                        Ações
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-cardSlate divide-y divide-borderDark/60">

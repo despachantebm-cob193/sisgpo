@@ -100,7 +100,7 @@ export default function Medicos() {
               <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Função</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Telefone</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Observações</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Ações</th>
+              {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Ações</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-borderDark/60 md:divide-y-0">

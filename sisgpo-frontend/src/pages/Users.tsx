@@ -30,12 +30,7 @@ export default function Users() {
     setPageTitle('Usuarios');
   }, [setPageTitle]);
 
-  useEffect(() => {
-    if (loggedUser && !isAdmin) {
-      toast.error('Acesso restrito aos administradores.');
-      navigate('/app/dashboard');
-    }
-  }, [loggedUser, isAdmin, navigate]);
+
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -52,10 +47,8 @@ export default function Users() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-  }, [isAdmin]);
+    fetchUsers();
+  }, []);
 
   const handleSave = async () => {
     setIsFormModalOpen(false);
@@ -216,6 +209,7 @@ export default function Users() {
                     isOwnAccount={isOwnAccount(user.id)}
                     rowActionLoading={rowActionLoading}
                     isDeleting={isDeleting}
+                    isAdmin={isAdmin}
                   />
                 ))}
               </div>
@@ -229,7 +223,7 @@ export default function Users() {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Email</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Perfil</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider">Status</th>
-                      <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+                      {isAdmin && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>}
                     </tr>
                   </thead>
                   <tbody className="bg-cardSlate divide-y divide-borderDark/60">
@@ -259,20 +253,22 @@ export default function Users() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           {/* Action buttons logic from UserRow */}
-                          <div className="flex items-center justify-end gap-2">
-                            {user.status === 'pending' || user.status === 'pendente' ? (
-                              <>
-                                <button onClick={() => handleApprove(user)} title="Aprovar" className="text-green-400 hover:text-green-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Check className="h-5 w-5" /></button>
-                                <button onClick={() => handleReject(user)} title="Rejeitar" className="text-red-400 hover:text-red-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><X className="h-5 w-5" /></button>
-                              </>
-                            ) : (
-                              <>
-                                <button onClick={() => startEdit(user)} title="Editar" className="text-sky-400 hover:text-sky-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Pencil className="h-5 w-5" /></button>
-                                <button onClick={() => handleToggleStatus(user)} title={user.ativo ? 'Bloquear' : 'Reativar'} className="text-amber-400 hover:text-amber-300 disabled:opacity-50" disabled={rowActionLoading === user.id || isOwnAccount(user.id)}>{user.ativo ? <Ban className="h-5 w-5" /> : <RotateCcw className="h-5 w-5" />}</button>
-                                <button onClick={() => openDeleteModal(user)} title="Excluir" className="text-rose-400 hover:text-rose-300 disabled:opacity-50" disabled={rowActionLoading === user.id || isOwnAccount(user.id)}><Trash2 className="h-5 w-5" /></button>
-                              </>
-                            )}
-                          </div>
+                          {isAdmin && (
+                            <div className="flex items-center justify-end gap-2">
+                              {user.status === 'pending' || user.status === 'pendente' ? (
+                                <>
+                                  <button onClick={() => handleApprove(user)} title="Aprovar" className="text-green-400 hover:text-green-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Check className="h-5 w-5" /></button>
+                                  <button onClick={() => handleReject(user)} title="Rejeitar" className="text-red-400 hover:text-red-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><X className="h-5 w-5" /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => startEdit(user)} title="Editar" className="text-sky-400 hover:text-sky-300 disabled:opacity-50" disabled={rowActionLoading === user.id}><Pencil className="h-5 w-5" /></button>
+                                  <button onClick={() => handleToggleStatus(user)} title={user.ativo ? 'Bloquear' : 'Reativar'} className="text-amber-400 hover:text-amber-300 disabled:opacity-50" disabled={rowActionLoading === user.id || isOwnAccount(user.id)}>{user.ativo ? <Ban className="h-5 w-5" /> : <RotateCcw className="h-5 w-5" />}</button>
+                                  <button onClick={() => openDeleteModal(user)} title="Excluir" className="text-rose-400 hover:text-rose-300 disabled:opacity-50" disabled={rowActionLoading === user.id || isOwnAccount(user.id)}><Trash2 className="h-5 w-5" /></button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}

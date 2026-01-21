@@ -635,7 +635,7 @@ export default function Viaturas() {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>OBM</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Cidade</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '20%' }}>Status</th>
-                <th scope="col" className="relative px-6 py-3" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>
+                {isAdmin && <th scope="col" className="relative px-6 py-3" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>}
               </tr>
             </thead>
           </table>

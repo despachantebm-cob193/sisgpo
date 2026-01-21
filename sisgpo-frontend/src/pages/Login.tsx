@@ -1,4 +1,4 @@
-﻿import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
 import Input from '../components/ui/Input';
 import Label from '../components/ui/Label';
+import { Link } from 'react-router-dom';
 
 interface LoginResponse {
   token: string;
@@ -52,23 +53,6 @@ export default function Login() {
       return () => window.clearTimeout(id);
     }
   }, [bgLoaded]);
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/login`
-        }
-      });
-      if (error) throw error;
-      // Redirect happens automatically
-    } catch (err: any) {
-      toast.error('Erro ao iniciar login com Google: ' + err.message);
-      setIsLoading(false);
-    }
-  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -137,54 +121,9 @@ export default function Login() {
           >
             <h2 className="text-center text-2xl font-bold text-textMain mb-6">Acesso ao Sistema</h2>
 
-            <div
-              className={`flex flex-col items-center justify-center mb-6 transform transition-all duration-700 ease-out ${intro ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-                }`}
-              style={{ transitionDelay: intro ? '700ms' : '0ms' }}
-            >
-              <Button
-                onClick={handleGoogleLogin}
-                disabled={isLoading}
-                className="w-full bg-cardSlate text-white hover:bg-cardSlate/80 flex items-center justify-center gap-2"
-              >
-                {!isLoading && (
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                    className="inline-block"
-                  >
-                    <path
-                      fill="#EA4335"
-                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.5 2.3 30.23 0 24 0 14.62 0 6.51 5.4 2.56 13.22l7.98 6.19C12.5 13.17 17.73 9.5 24 9.5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M46.5 24.5c0-1.57-.14-3.08-.39-4.54H24v9.09h12.65c-.55 3-2.23 5.53-4.76 7.23l7.73 6c4.52-4.17 7.13-10.3 7.13-17.78z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M10.54 28.41a14.5 14.5 0 0 1 0-8.82l-7.98-6.19A24 24 0 0 0 0 24c0 3.82.92 7.43 2.56 10.6l7.98-6.19z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M24 48c6.48 0 11.92-2.13 15.9-5.79l-7.73-6c-2.14 1.45-4.9 2.29-8.17 2.29-6.27 0-11.5-3.67-13.46-8.86l-7.98 6.19C6.51 42.6 14.62 48 24 48z"
-                    />
-                    <path fill="none" d="M0 0h48v48H0z" />
-                  </svg>
-                )}
-                {isLoading ? 'Carregando...' : 'Continuar com Google'}
-              </Button>
-            </div>
-
-            <div
-              className={`flex items-center my-6 transform transition-all duration-700 ease-out ${intro ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-                }`}
-              style={{ transitionDelay: intro ? '850ms' : '0ms' }}
-            >
+            <div className="flex items-center my-6 transform transition-all duration-700 ease-out">
               <div className="flex-grow border-t border-borderDark/60"></div>
-              <span className="mx-4 text-textSecondary text-sm">OU</span>
+              <span className="mx-4 text-textSecondary text-sm">Acesse com usuário e senha</span>
               <div className="flex-grow border-t border-borderDark/60"></div>
             </div>
 
@@ -248,6 +187,21 @@ export default function Login() {
                 >
                   {isLoading ? 'Entrando...' : 'Entrar'}
                 </Button>
+              </div>
+              <div
+                className={`transform transition-all duration-700 ease-out ${intro ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                  }`}
+                style={{ transitionDelay: intro ? '1350ms' : '0ms' }}
+              >
+                <Link to="/solicitar-acesso" className="block">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full bg-white/5 hover:bg-white/10 text-textSecondary border border-white/10"
+                  >
+                    Solicitar acesso
+                  </Button>
+                </Link>
               </div>
             </form>
           </div>

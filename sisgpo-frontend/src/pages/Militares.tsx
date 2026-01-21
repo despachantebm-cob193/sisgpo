@@ -438,9 +438,11 @@ export default function Militares() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '10%' }}>
                       Telefone
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '15%' }}>
-                      Acoes
-                    </th>
+                    {isAdmin && (
+                      <th className="px-6 py-3 text-right text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: '15%' }}>
+                        Acoes
+                      </th>
+                    )}
                   </tr>
                 </thead>
               </table>

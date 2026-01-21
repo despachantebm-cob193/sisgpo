@@ -7,6 +7,7 @@ import { supabaseAdmin } from '../config/supabase'; // Admin Client
 // Como o backend é "privilegiado", podemos usar o Admin para TUDO exceto login password que exige contexto?
 // Não, o Admin pode fazer tudo, mas signInWithPassword gera sessão para o user.
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 
 import AppError from '../utils/AppError';
 import UserRepository from '../repositories/UserRepository';
@@ -27,19 +28,76 @@ const authController = {
     }
 
     // PASSO 2: Segurança (Prevenção de Enumeração)
-    // Tentamos o login diretamente no Supabase assumindo o login como email
-    // Se o sistema usa username, o frontend deve enviar o email ou o backend deve ter uma estratégia 
-    // que não revele se o usuário existe antes da senha.
-    // Aqui, vamos tentar o login com o email fornecido (ou login se for email).
+    // Resolva o email real a partir do login, mas sem vazar a existência do usuário.
+    const userByEmail = await UserRepository.findByEmail(rawLogin);
+    const userByLogin = userByEmail ? null : await UserRepository.findByLogin(rawLogin);
+    const candidateUser = userByEmail || userByLogin;
+    const candidateEmail = userByEmail?.email || userByLogin?.email || rawLogin;
 
-    // Tentativa direta no Supabase
-    const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-      email: rawLogin,
-      password: senha
-    });
+    // Tentativas de login no Supabase (email deduzido + valor informado)
+    const loginCandidates = Array.from(new Set([candidateEmail, rawLogin].filter(Boolean)));
+    let authData: any = null;
+    let lastError: any = null;
 
-    if (authError) {
-      console.warn(`[Auth] Falha login Supabase para ${rawLogin}: ${authError.message}`);
+    const trySupabaseSignIn = async () => {
+      for (const email of loginCandidates) {
+        const attempt = await supabasePublic.auth.signInWithPassword({
+          email,
+          password: senha
+        });
+        if (!attempt.error) {
+          authData = attempt.data;
+          return;
+        }
+        lastError = attempt.error;
+      }
+    };
+
+    await trySupabaseSignIn();
+
+    // Fallback de migração: se o usuário existir no banco legado e a senha bater, cria/atualiza no Auth e tenta de novo.
+    if (!authData && candidateUser?.senha_hash && candidateUser?.email) {
+      const senhaConfere = await bcrypt.compare(senha, candidateUser.senha_hash);
+      if (senhaConfere) {
+        if (candidateUser.supabase_id) {
+          // Atualiza senha do usuário já existente no Auth
+          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(candidateUser.supabase_id, {
+            password: senha,
+            email: candidateUser.email,
+            email_confirm: true,
+            user_metadata: { login: candidateUser.login }
+          });
+          if (updateError) {
+            console.warn('[Auth] Falha ao atualizar senha no Auth:', updateError.message);
+          } else {
+            console.log(`[Auth] Senha atualizada no Auth para ${candidateUser.email}.`);
+          }
+        } else {
+          // Cria usuário no Auth e vincula ao legado
+          const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email: candidateUser.email,
+            password: senha,
+            email_confirm: true,
+            user_metadata: { login: candidateUser.login }
+          });
+
+          if (createError) {
+            console.warn('[Auth] Falha ao criar usuário no Auth:', createError.message);
+          } else {
+            console.log(`[Auth] Usuário ${candidateUser.email} criado no Supabase Auth via fallback.`);
+            if (created?.user?.id && candidateUser.id) {
+              await UserRepository.update(candidateUser.id, { supabase_id: created.user.id });
+              loginCandidates.unshift(candidateUser.email); // garante tentativa com email correto
+            }
+          }
+        }
+
+        await trySupabaseSignIn();
+      }
+    }
+
+    if (!authData) {
+      console.warn(`[Auth] Falha login Supabase para ${rawLogin}: ${lastError?.message || 'unknown'}`);
       // Resposta genérica para evitar enumeração
       throw new AppError('Credenciais inválidas.', 401);
     }
@@ -53,6 +111,9 @@ const authController = {
 
     // Só após sucesso no Supabase buscamos os dados no DB Local
     let user = await UserRepository.findByEmail(userAuth.email || '');
+    if (!user && candidateUser) {
+      user = candidateUser;
+    }
     if (!user) {
       user = await UserRepository.findByLogin(rawLogin);
     }
@@ -106,10 +167,6 @@ const authController = {
     return res.status(200).json({
       user: userResponse
     });
-  },
-
-  googleLogin: async (req: Request, res: Response) => {
-    throw new AppError('Google Login deve ser feito via Frontend Supabase Client nesta versao.', 501);
   },
 
   ssoLogin: async (req: Request, res: Response) => {

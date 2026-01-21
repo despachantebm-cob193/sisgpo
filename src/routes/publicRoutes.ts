@@ -1,5 +1,6 @@
 import path from 'path';
 import { Router } from 'express';
+import accessRequestController from '../controllers/accessRequestController';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const dashboardController = require(path.join(__dirname, '..', 'controllers', 'dashboardController') as string);
@@ -27,5 +28,10 @@ router.get('/dashboard/escala-aeronaves', safeHandler(dashboardController, 'getE
 router.get('/dashboard/escala-codec', safeHandler(dashboardController, 'getEscalaCodec'));
 
 router.get('/estatisticas-externas', safeHandler(estatisticasExternasController, 'getDashboardOcorrencias'));
+
+// Solicitação de acesso - verificação WhatsApp
+router.post('/access-request/send-code', accessRequestController.sendCode);
+router.post('/access-request/verify-code', accessRequestController.verifyCode);
+router.post('/access-request/submit', accessRequestController.submitRequest);
 
 export default router;

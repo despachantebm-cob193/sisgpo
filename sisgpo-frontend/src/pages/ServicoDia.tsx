@@ -11,6 +11,7 @@ import Label from '../components/ui/Label';
 import Spinner from '../components/ui/Spinner';
 import { Trash2 } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import ConfirmationModal from '../components/ui/ConfirmationModal'; // Importe o modal
 
 // Interfaces
@@ -58,6 +59,8 @@ const customSelectStyles = {
 
 export default function ServicoDia() {
   const { setPageTitle } = useUiStore();
+  const user = useAuthStore(state => state.user);
+  const isAdmin = user?.perfil === 'admin';
 
   useEffect(() => {
     setPageTitle("Gerenciar Serviço de Dia");
@@ -192,11 +195,11 @@ export default function ServicoDia() {
       <div className="my-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
         <div>
           <Label htmlFor="data-inicio">Início do Plantão</Label>
-          <Input id="data-inicio" type="datetime-local" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+          <Input id="data-inicio" type="datetime-local" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} disabled={!isAdmin} />
         </div>
         <div>
           <Label htmlFor="data-fim">Fim do Plantão</Label>
-          <Input id="data-fim" type="datetime-local" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+          <Input id="data-fim" type="datetime-local" value={dataFim} onChange={(e) => setDataFim(e.target.value)} disabled={!isAdmin} />
         </div>
       </div>
 
@@ -220,7 +223,8 @@ export default function ServicoDia() {
                     cacheOptions
                     loadOptions={loadOptions}
                     defaultOptions
-                    isClearable
+                    isClearable={isAdmin}
+                    isDisabled={!isAdmin}
                     placeholder={placeholder}
                     value={selectValue}
                     onChange={(options) => handleSelectChange(funcao, options as any)}
@@ -230,20 +234,22 @@ export default function ServicoDia() {
               );
             })}
           </div>
-          <div className="mt-8 flex justify-end gap-4">
-            {/* Botão de Limpar */}
-            <Button
-              onClick={handleOpenClearModal}
-              disabled={isSaving || isDeleting}
-              className="!bg-rose-500 hover:!bg-rose-600 text-white"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? <Spinner /> : 'Limpar Escala'}
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving || isDeleting} className="!bg-emerald-500 hover:!bg-emerald-600 text-white">
-              {isSaving ? <Spinner /> : 'Salvar Alterações'}
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="mt-8 flex justify-end gap-4">
+              {/* Botão de Limpar */}
+              <Button
+                onClick={handleOpenClearModal}
+                disabled={isSaving || isDeleting}
+                className="!bg-rose-500 hover:!bg-rose-600 text-white"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {isDeleting ? <Spinner /> : 'Limpar Escala'}
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving || isDeleting} className="!bg-emerald-500 hover:!bg-emerald-600 text-white">
+                {isSaving ? <Spinner /> : 'Salvar Alterações'}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

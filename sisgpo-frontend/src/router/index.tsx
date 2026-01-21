@@ -13,6 +13,7 @@ import { SessionTimeoutHandler } from '../components/auth/SessionTimeoutHandler'
 const Login = lazy(() => import('../pages/Login'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Obms = lazy(() => import('../pages/Obms'));
+const ComandantesCrbm = lazy(() => import('../pages/ComandantesCrbmPage'));
 const Viaturas = lazy(() => import('../pages/Viaturas'));
 const Aeronaves = lazy(() => import('../pages/Aeronaves'));
 const Militares = lazy(() => import('../pages/Militares'));
@@ -25,8 +26,7 @@ const UsersManagement = lazy(() => import('../pages/Users'));
 const DashboardOcorrencias = lazy(() => import('../pages/DashboardOcorrencias'));
 const SsoLogin = lazy(() => import('../pages/SsoLogin'));
 const SubjectPendingPage = lazy(() => import('../pages/SubjectPendingPage'));
-
-import ChatWidget from '../components/ui/ChatWidget';
+const RequestAccess = lazy(() => import('../pages/RequestAccess'));
 
 const RootLayout = () => (
   <>
@@ -34,7 +34,6 @@ const RootLayout = () => (
     {/* Monitora inatividade e faz logout automatico */}
     <SessionTimeoutHandler />
     <Outlet />
-    <ChatWidget />
   </>
 );
 
@@ -122,22 +121,15 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <PublicOnlyLayout />,
-        errorElement: <NotFound />,
-        children: [
-          {
-            index: true,
-            element: <Suspended><Dashboard /></Suspended>,
-          },
-          {
-            path: 'dashboard-ocorrencias',
-            element: <PublicDashboardOcorrencias />,
-          },
-        ],
+        element: <Navigate to="/login" replace />,
       },
       {
         path: '/login',
         element: <Suspended><Login /></Suspended>,
+      },
+      {
+        path: '/solicitar-acesso',
+        element: <Suspended><RequestAccess /></Suspended>,
       },
       {
         path: '/sso/login',
@@ -167,13 +159,14 @@ export const router = createBrowserRouter([
 
           // Rotas de Administração protegidas com AdminRoute
           { path: 'obms', element: <Suspended><Obms /></Suspended> },
+          { path: 'comandantes-crbm', element: <Suspended><ComandantesCrbm /></Suspended> },
           { path: 'viaturas', element: <Suspended><Viaturas /></Suspended> },
           { path: 'aeronaves', element: <Suspended><Aeronaves /></Suspended> },
           { path: 'militares', element: <Suspended><Militares /></Suspended> },
           { path: 'medicos', element: <Suspended><Medicos /></Suspended> },
           { path: 'plantoes', element: <Suspended><Plantoes /></Suspended> },
           { path: 'servico-dia', element: <Suspended><ServicoDia /></Suspended> },
-          { path: 'usuarios', element: <AdminRoute><Suspended><UsersManagement /></Suspended></AdminRoute> },
+          { path: 'usuarios', element: <Suspended><UsersManagement /></Suspended> },
 
           // Rotas comuns
           { path: 'relatorio', element: <Suspended><Relatorio /></Suspended> },

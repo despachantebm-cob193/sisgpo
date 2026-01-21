@@ -6,6 +6,7 @@ import { useUiStore } from '../../store/uiStore';
 import Header from './Header';
 
 import OfflineIndicator from '../ui/OfflineIndicator';
+import ChatWidget from '../ui/ChatWidget';
 
 const AppLayout: React.FC = () => {
   const { isSidebarCollapsed, toggleMobileMenu, isMobileMenuOpen } = useUiStore();
@@ -38,8 +39,8 @@ const AppLayout: React.FC = () => {
         </div>
 
         {/* Mobile Header */}
-        <div className="md:hidden flex-shrink-0 fixed top-0 left-0 right-0 z-60">
-          <div className="flex items-center justify-between bg-searchbar px-4 py-3 text-textMain border-b border-borderDark shadow-md">
+        <div className="md:hidden flex-shrink-0 fixed top-0 left-0 right-0 z-50">
+          <div className="flex items-center justify-between bg-searchbar/95 backdrop-blur-md px-4 py-3 text-textMain border-b border-borderDark shadow-md">
             <button onClick={toggleMobileMenu} className="p-2">
               <Menu size={24} />
             </button>
@@ -48,11 +49,12 @@ const AppLayout: React.FC = () => {
         </div>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 pt-16 md:pt-0 pb-8 w-full">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 pt-20 md:pt-0 pb-8 w-full">
           <Outlet />
         </main>
 
         <OfflineIndicator />
+        <ChatWidget />
       </div>
     </div>
   );

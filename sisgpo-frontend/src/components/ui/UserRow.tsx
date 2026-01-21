@@ -12,6 +12,7 @@ interface UserRowProps {
   isOwnAccount: boolean;
   rowActionLoading: number | null;
   isDeleting: boolean;
+  isAdmin: boolean;
 }
 
 export default function UserRow({
@@ -24,6 +25,7 @@ export default function UserRow({
   isOwnAccount,
   rowActionLoading,
   isDeleting,
+  isAdmin,
 }: UserRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -116,65 +118,69 @@ export default function UserRow({
 
           <div className="mt-4 flex flex-wrap gap-3">
             {user.status === 'pending' || user.status === 'pendente' ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onApprove(user)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded bg-green-500 text-white shadow hover:bg-green-600 transition disabled:opacity-60"
-                  disabled={rowActionLoading === user.id || isDeleting}
-                  aria-label={`Aprovar ${user.login}`}
-                  title={`Aprovar ${user.login}`}
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onReject(user)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded bg-red-500 text-white shadow hover:bg-red-600 transition disabled:opacity-60"
-                  disabled={rowActionLoading === user.id || isDeleting}
-                  aria-label={`Rejeitar ${user.login}`}
-                  title={`Rejeitar ${user.login}`}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </>
+              isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onApprove(user)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded bg-green-500 text-white shadow hover:bg-green-600 transition disabled:opacity-60"
+                    disabled={rowActionLoading === user.id || isDeleting}
+                    aria-label={`Aprovar ${user.login}`}
+                    title={`Aprovar ${user.login}`}
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReject(user)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded bg-red-500 text-white shadow hover:bg-red-600 transition disabled:opacity-60"
+                    disabled={rowActionLoading === user.id || isDeleting}
+                    aria-label={`Rejeitar ${user.login}`}
+                    title={`Rejeitar ${user.login}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              )
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onEdit(user)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
-                  disabled={rowActionLoading === user.id || isDeleting}
-                  aria-label={`Editar ${user.login}`}
-                  title={`Editar ${user.login}`}
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onToggleStatus(user)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded bg-amber-500 text-white shadow hover:bg-amber-600 transition disabled:opacity-60"
-                  disabled={
-                    rowActionLoading === user.id ||
-                    isDeleting ||
-                    (isOwnAccount && user.ativo)
-                  }
-                  aria-label={user.ativo ? `Bloquear ${user.login}` : `Reativar ${user.login}`}
-                  title={user.ativo ? `Bloquear ${user.login}` : `Reativar ${user.login}`}
-                >
-                  {user.ativo ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(user)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
-                  disabled={rowActionLoading === user.id || isDeleting || isOwnAccount}
-                  aria-label={`Excluir ${user.login}`}
-                  title={`Excluir ${user.login}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </>
+              isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onEdit(user)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60"
+                    disabled={rowActionLoading === user.id || isDeleting}
+                    aria-label={`Editar ${user.login}`}
+                    title={`Editar ${user.login}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onToggleStatus(user)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded bg-amber-500 text-white shadow hover:bg-amber-600 transition disabled:opacity-60"
+                    disabled={
+                      rowActionLoading === user.id ||
+                      isDeleting ||
+                      (isOwnAccount && user.ativo)
+                    }
+                    aria-label={user.ativo ? `Bloquear ${user.login}` : `Reativar ${user.login}`}
+                    title={user.ativo ? `Bloquear ${user.login}` : `Reativar ${user.login}`}
+                  >
+                    {user.ativo ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(user)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60"
+                    disabled={rowActionLoading === user.id || isDeleting || isOwnAccount}
+                    aria-label={`Excluir ${user.login}`}
+                    title={`Excluir ${user.login}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </>
+              )
             )}
           </div>
         </div>

@@ -439,7 +439,7 @@ export default function Plantoes() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Viatura</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">OBM</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Guarnicao</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      {isAdmin && <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -522,7 +522,7 @@ export default function Plantoes() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Entrada</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Saída</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      {isAdmin && <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -556,7 +556,7 @@ export default function Plantoes() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">1º Piloto</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">2º Piloto</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Status</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      {isAdmin && <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
@@ -594,7 +594,7 @@ export default function Plantoes() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Turno</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Plantonista</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Nome</th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>
+                      {isAdmin && <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase">Ações</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-borderDark/60 md:divide-y-0">

@@ -177,10 +177,10 @@ export default function Obms() {
 
       const options = Array.isArray(optionsRes.data)
         ? optionsRes.data.map((option: any) => ({
-            value: option.value || option.obm || option.nome,
-            label: option.label || option.value || option.obm,
-            cidade: option.cidade ? String(option.cidade) : '',
-          }))
+          value: option.value || option.obm || option.nome,
+          label: option.label || option.value || option.obm,
+          cidade: option.cidade ? String(option.cidade) : '',
+        }))
         : [];
       setObmOptions(options);
 
@@ -509,9 +509,8 @@ export default function Obms() {
                                   <p className="text-lg font-semibold text-textMain">{cidade}</p>
                                 </div>
                                 <ChevronDown
-                                  className={`h-5 w-5 text-textSecondary transition-transform ${
-                                    isCityOpen ? 'rotate-180' : ''
-                                  }`}
+                                  className={`h-5 w-5 text-textSecondary transition-transform ${isCityOpen ? 'rotate-180' : ''
+                                    }`}
                                 />
                               </button>
 
@@ -535,9 +534,8 @@ export default function Obms() {
                                             <p className="text-base font-semibold text-textMain">{sigla}</p>
                                           </div>
                                           <ChevronDown
-                                            className={`h-5 w-5 text-textSecondary transition-transform ${
-                                              isSiglaOpen ? 'rotate-180' : ''
-                                            }`}
+                                            className={`h-5 w-5 text-textSecondary transition-transform ${isSiglaOpen ? 'rotate-180' : ''
+                                              }`}
                                           />
                                         </button>
                                         <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isSiglaOpen ? 'max-h-screen' : 'max-h-0'}`}>
@@ -633,7 +631,7 @@ export default function Obms() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>CRBM</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Cidade</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase" style={{ width: '15%' }}>Telefone</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>Acoes</th>
+                {isAdmin && <th className="px-6 py-3 text-center text-xs font-medium text-textSecondary uppercase" style={{ width: '10%' }}>Acoes</th>}
               </tr>
             </thead>
           </table>

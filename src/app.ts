@@ -15,6 +15,8 @@ import authMiddleware from './middlewares/authMiddleware';
 import errorMiddleware from './middlewares/errorMiddleware';
 import aiRoutes from './routes/aiRoutes';
 
+import comandantesCrbmRoutes from './routes/comandantesCrbmRoutes';
+
 const app = express();
 
 const frontendPath = path.join(__dirname, '..', 'sisgpo-frontend', 'dist');
@@ -81,6 +83,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', authHandler, dashboardRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/ai', authHandler, aiRoutes); // Protected route
+app.use('/api/comandantes-crbm', authHandler, comandantesCrbmRoutes); // Nova rota
 app.use('/api', estatisticasExternasRoutes);
 app.use('/api/admin', authHandler, adminRoutes);
 

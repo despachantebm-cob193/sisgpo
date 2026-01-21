@@ -17,15 +17,39 @@ export function formatarTelefone(telefone: string | null | undefined): string {
   //    Ex: "(62) 3201-2169" se torna "6232012169".
   const apenasDigitos = telefone.replace(/\D/g, '');
 
-  // 3. Verifica se o número de telefone contém exatamente 10 dígitos, que é o padrão para telefones fixos no Brasil.
+  // 3. Verifica se o número de telefone contém 10 ou 11 dígitos
   if (apenasDigitos.length === 10) {
-    // Aplica a máscara de formatação (XX) XXXX-XXXX.
-    // Ex: "6232012169" se torna "(62) 3201-6169".
+    // Fixo: (XX) XXXX-XXXX
     return `(${apenasDigitos.substring(0, 2)}) ${apenasDigitos.substring(2, 6)}-${apenasDigitos.substring(6, 10)}`;
+  } else if (apenasDigitos.length === 11) {
+    // Celular: (XX) XXXXX-XXXX
+    return `(${apenasDigitos.substring(0, 2)}) ${apenasDigitos.substring(2, 7)}-${apenasDigitos.substring(7, 11)}`;
   }
-  
-  // 4. Se a string, após a limpeza, não tiver 10 dígitos, consideramos que não é um telefone fixo válido
-  //    para o formato desejado. Retornamos o valor original, o que é útil para números especiais como "193".
-  //    Se a consistência visual for mais importante, você pode alterar para retornar "N/A" aqui também.
+
   return telefone;
+}
+
+/**
+ * Gera um link para iniciar conversa no WhatsApp.
+ * Adiciona o código do país (55) se necessário.
+ * 
+ * @param telefone - O número de telefone.
+ * @returns A URL do WhatsApp (https://wa.me/...) ou null se inválido.
+ */
+export function getWhatsappLink(telefone: string | null | undefined): string | undefined {
+  if (!telefone) return undefined;
+
+  // Remove tudo que não é dígito
+  let limpo = telefone.replace(/\D/g, '');
+
+  // Se tiver menos de 10 dígitos, provavelmente não é um número completo válido para zap
+  if (limpo.length < 10) return undefined;
+
+  // Se não começar com 55 (DDI Brasil), adiciona
+  // Assumindo que números com 10 ou 11 dígitos são locais sem DDI
+  if (limpo.length <= 11) {
+    limpo = `55${limpo}`;
+  }
+
+  return `https://wa.me/${limpo}`;
 }
