@@ -19,6 +19,7 @@ import { IoMedicalSharp } from 'react-icons/io5';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
+import { supabase } from '../../config/supabase';
 
 interface NavLinkContentProps {
   isCollapsed: boolean;
@@ -62,6 +63,31 @@ export default function Sidebar() {
     if (isMobileMenuOpen) {
       toggleMobileMenu();
     }
+  };
+
+  const handleLogout = async () => {
+    // Limpa store e storage local
+    logout();
+    try {
+      localStorage.removeItem('auth-storage');
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch (e) {
+      console.error('Erro ao limpar localStorage:', e);
+    }
+
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Erro ao fazer signOut no Supabase:', e);
+    }
+
+    handleLinkClick();
+    window.location.href = '/login';
   };
 
   const handleMouseEnter = () => {
@@ -352,11 +378,7 @@ export default function Sidebar() {
             />
           </NavLink>
           <button
-            onClick={() => {
-              logout();
-              navigate('/login');
-              handleLinkClick();
-            }}
+            onClick={handleLogout}
             className={`${navLinkClass} justify-start w-full bg-red-600/10 hover:bg-red-600/20 text-red-200 border border-red-600/30`}
           >
             <LogOut className="mr-3 h-6 w-6" />
