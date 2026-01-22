@@ -104,14 +104,43 @@ export function useOfflineCRUD<T extends { id?: number, synced?: boolean }>(
           // Update the local item with the new ID from the server
           await table.where({ id: item.body.tempId }).modify({ id: response.data.id, synced: true });
         } else if (item.method === 'PUT') {
+          // Optimistic Locking / Conflict Detection
+          // 1. Fetch current server state
+          try {
+            const currentRemote = await api.get(item.url).then(r => r.data);
+
+            // Check timestamps if available
+            // Assumes body has updated_at from when it was edited
+            const localBaseTime = new Date(item.body.updated_at || 0).getTime();
+            const remoteTime = new Date(currentRemote.updated_at || 0).getTime();
+
+            // Allow 2 seconds clock skew/grace
+            if (remoteTime > localBaseTime + 2000) {
+              console.warn(`[Sync] Conflict detected for ${item.url}. Server has newer version.`);
+              // Mark as conflict locally (pseudo-code: modify local DB entry to flagged)
+              // We won't overwrite. We delete outbox item so it doesn't loop, but user needs to know.
+              // For now, logging and skipping the write.
+              // TODO: Add UI notification for conflict.
+              await db.outbox.delete(item.id!);
+              continue;
+            }
+          } catch (fetchErr) {
+            // If fetch fails (e.g. 404), maybe proceed or abort? Proceeding might be safe if it's just not found yet?
+            // If 404, invalid PUT.
+            console.warn('Could not verify remote version', fetchErr);
+          }
+
+          // If safe, proceed
           await api.put(item.url, item.body);
           await table.where({ id: item.body.id }).modify({ synced: true });
+
         } else if (item.method === 'DELETE') {
           await api.delete(item.url);
         }
         await db.outbox.delete(item.id!);
       } catch (error) {
         console.error('Failed to sync outbox item', item, error);
+        // Do not delete from outbox if it's a transient network error, retry later.
       }
     }
   };

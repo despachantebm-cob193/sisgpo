@@ -13,18 +13,55 @@ const dashboardController = {
     return res.status(200).json(data);
   },
 
-  getStats: async (_req: Request, res: Response) => {
+  getStats: async (req: Request, res: Response) => {
     try {
+      const FORCE_REFRESH = req.query.refresh === 'true';
+      const CACHE_KEY = 'dashboard_stats';
+      const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+      // 1. Try Cache
+      if (!FORCE_REFRESH) {
+        const { data: cached } = await supabaseAdmin
+          .from('dashboard_cache')
+          .select('*')
+          .eq('key', CACHE_KEY)
+          .single();
+
+        if (cached && cached.data) {
+          const updatedAt = new Date(cached.updated_at).getTime();
+          const now = Date.now();
+          if (now - updatedAt < CACHE_TTL_MS) {
+            console.log('[Dashboard] Serving general stats from cache');
+            return res.status(200).json(cached.data);
+          }
+        }
+      }
+
+      // 2. Calculate Fresh
+      console.log('[Dashboard] Calculating general stats (Miss/Stale/Forced)...');
       const [mil, vtr, obm] = await Promise.all([
         supabaseAdmin.from('militares').select('id', { count: 'exact', head: true }).eq('ativo', true),
         supabaseAdmin.from('viaturas').select('id', { count: 'exact', head: true }).eq('ativa', true),
         supabaseAdmin.from('obms').select('id', { count: 'exact', head: true }),
       ]);
-      return res.status(200).json({
+
+      const freshData = {
         total_militares_ativos: mil.count || 0,
         total_viaturas_disponiveis: vtr.count || 0,
         total_obms: obm.count || 0,
-      });
+        cache_timestamp: new Date().toISOString()
+      };
+
+      // 3. Update Cache (Async/Fire-and-forget or Await)
+      await supabaseAdmin
+        .from('dashboard_cache')
+        .upsert({
+          key: CACHE_KEY,
+          data: freshData,
+          updated_at: new Date().toISOString()
+        });
+
+      return res.status(200).json(freshData);
     } catch (error) {
       console.error('ERRO AO BUSCAR ESTATISTICAS GERAIS:', error);
       throw new AppError('Nao foi possivel carregar as estatisticas do dashboard.', 500);

@@ -40,8 +40,9 @@ export class PlantaoService {
 
   async list(query: Record<string, unknown>): Promise<PlantaoListResult> {
     const filters: PlantaoListFilters = {
-      data_inicio: typeof query.data_inicio === 'string' ? query.data_inicio : undefined,
-      data_fim: typeof query.data_fim === 'string' ? query.data_fim : undefined,
+      // Mapping legacy query params to strict repository filters
+      data_plantao_inicio: typeof query.data_inicio === 'string' ? query.data_inicio : undefined,
+      data_plantao_fim: typeof query.data_fim === 'string' ? query.data_fim : undefined,
       obm_id: parsePositiveInt(query.obm_id),
       viatura_prefixo: typeof query.viatura_prefixo === 'string' ? query.viatura_prefixo : undefined,
       page: parsePositiveInt(query.page) || 1,

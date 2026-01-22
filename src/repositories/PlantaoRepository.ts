@@ -27,8 +27,8 @@ export type PlantaoRow = {
 };
 
 export type PlantaoListFilters = {
-  data_inicio?: string;
-  data_fim?: string;
+  data_plantao_inicio?: string;
+  data_plantao_fim?: string;
   obm_id?: number | null;
   viatura_prefixo?: string;
   page: number;
@@ -65,10 +65,8 @@ export class PlantaoRepository {
   }
 
   async list(filters: PlantaoListFilters): Promise<PlantaoListResult> {
-    const { data_inicio, data_fim, obm_id, viatura_prefixo, page, limit } = filters;
+    const { data_plantao_inicio, data_plantao_fim, obm_id, viatura_prefixo, page, limit } = filters;
 
-    // Supabase join syntax: table!fk(columns)
-    // Precisamos selecionar colunas de relações
     // Supabase join syntax: table!fk(columns)
     // Precisamos selecionar colunas de relações
     let query = this.supabase
@@ -89,11 +87,11 @@ export class PlantaoRepository {
         )
       `, { count: 'exact' });
 
-    if (data_inicio) {
-      query = query.gte('data_plantao', data_inicio);
+    if (data_plantao_inicio) {
+      query = query.gte('data_plantao', data_plantao_inicio);
     }
-    if (data_fim) {
-      query = query.lte('data_plantao', data_fim);
+    if (data_plantao_fim) {
+      query = query.lte('data_plantao', data_plantao_fim);
     }
     if (obm_id) {
       query = query.eq('obm_id', obm_id);

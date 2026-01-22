@@ -91,54 +91,66 @@ export const aiAssistedValidationService = {
   },
 
   /**
-   * Corrects a given text string based on a specific context.
+   * Corrects a given text string based on a specific context using deterministic logic.
+   * Replaces expensive AI calls with simple regex normalization.
    */
   async correctText(input: string, contextDescription: string): Promise<string> {
-    try {
-      const prompt = `
-        Voce é um assistente especialista em corrigir erros de digitação para um sistema do Corpo de Bombeiros Militar (CBM).
-        O texto de entrada é um campo do tipo: "${contextDescription}".
-        A entrada atual é: "${input}".
-        Tarefa: Se houver erro de digitação (ex: "CRMB" em vez de "CRBM"), corrija. Se nao, mantenha.
-        Retorne APENAS o texto corrigido.
-      `;
+    if (!input) return input;
 
-      return (await this._generate(prompt)).trim().replace(/^"|"$/g, '');
-    } catch (error) {
-      console.error('Erro ao corrigir texto via AI:', error);
-      return input;
+    // Normalização básica: remove espaços extras, CRMB -> CRBM
+    let corrected = input.trim();
+
+    // Correções específicas de domínio (Hardening)
+    // Ex: "CRMB" ou "C R B M" -> "CRBM"
+    if (corrected.match(/c\s*r\s*m\s*b/i) || corrected.match(/c\s*r\s*b\s*m/i)) {
+      corrected = corrected.replace(/c\s*r\s*m\s*b/gi, 'CRBM').replace(/c\s*r\s*b\s*m/gi, 'CRBM');
     }
+
+    // "OBM" ou "O B M" -> "OBM"
+    if (corrected.match(/o\s*b\s*m/i)) {
+      corrected = corrected.replace(/o\s*b\s*m/gi, 'OBM');
+    }
+
+    // Capitalização simples se for muito curto (ex: sigla)
+    if (corrected.length <= 4) {
+      corrected = corrected.toUpperCase();
+    }
+
+    return corrected;
   },
 
   /**
-   * Specific correction for OBM/CRBM fields logic.
+   * Specific correction for OBM/CRBM fields logic using deterministic validation.
    */
   async correctObmData(nome: string, abreviatura: string, crbm?: string | null): Promise<{ nome: string; abreviatura: string; crbm?: string | null }> {
-    try {
-      const prompt = `
-        Analise e corrija typos nestes dados de bombeiros (OBM).
-        Siglas Corretas: CRBM (não CRMB), BBM, OBM.
-        Dados:
-        Nome: "${nome}"
-        Abreviatura: "${abreviatura}"
-        CRBM: "${crbm || ''}"
-        
-        Responda APENAS um JSON válido com chaves: "nome", "abreviatura", "crbm".
-      `;
-
-      let text = await this._generate(prompt);
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
-      const parsed = JSON.parse(text);
-      return {
-        nome: parsed.nome || nome,
-        abreviatura: parsed.abreviatura || abreviatura,
-        crbm: parsed.crbm || crbm
-      };
-    } catch (error) {
-      console.warn('Falha AI OBM:', error);
-      return { nome, abreviatura, crbm };
+    // 1. Normalização de CRBM
+    let finalCrbm = crbm ? crbm.trim().toUpperCase() : undefined;
+    if (finalCrbm) {
+      // Correção de typos comuns: CRMB -> CRBM
+      if (finalCrbm.includes('CRMB')) finalCrbm = finalCrbm.replace('CRMB', 'CRBM');
+      // Remove espaços internos em siglas conhecidas se necessário, ou formata
     }
+
+    // 2. Normalização de Abreviatura
+    let finalAbreviatura = abreviatura.trim().toUpperCase();
+    // Ex: "1 BBM" -> "1º BBM" se for o padrão, ou apenas trim.
+    // Aqui assumimos apenas upper case e trim para consistência.
+
+    // 3. Normalização de Nome
+    // Capitalizar primeira letra de cada palavra (Title Case) para nomes de OBM, se estiver tudo minusculo/maiusculo
+    let finalNome = nome.trim();
+    if (finalNome === finalNome.toLowerCase() || finalNome === finalNome.toUpperCase()) {
+      finalNome = finalNome.replace(/\w\S*/g, (txt) => {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+      });
+    }
+
+    // Retorno imediato (sem delay de rede)
+    return {
+      nome: finalNome,
+      abreviatura: finalAbreviatura,
+      crbm: finalCrbm
+    };
   },
 
   /**

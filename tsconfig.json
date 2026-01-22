@@ -22,7 +22,7 @@
     "node_modules",
     "__tests__",
     "dist",
-    "knexfile.js",
+    "knexfile.ts",
     "jest.config.js",
     "updateAdminPassword.js",
     "updatePassword.js",

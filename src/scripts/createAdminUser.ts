@@ -2,8 +2,8 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import db from '../config/database';
 
-const login = (process.env.ADMIN_LOGIN || 'admin').trim();
-const senhaPlana = process.env.ADMIN_PASSWORD || 'cbmgo@2025';
+const login = (process.env.ADMIN_LOGIN || '').trim();
+const senhaPlana = process.env.ADMIN_PASSWORD || '';
 const nomeCompletoConfig = process.env.ADMIN_FULL_NAME || 'Administrador do Sistema';
 const nomeCurtoEnv = process.env.ADMIN_NOME;
 const emailConfig = process.env.ADMIN_EMAIL || `${login}@sisgpo.com`;
@@ -15,15 +15,16 @@ const email = emailConfig.trim().toLowerCase();
 
 async function ensureAdminUser() {
   console.log('--- Iniciando criacao de usuario admin ---');
-  console.log(`Login alvo: ${login}`);
 
   if (!login) {
-    throw new Error('ADMIN_LOGIN invalido. Defina uma credencial valida antes de prosseguir.');
+    throw new Error('CONFIG ERROR: ADMIN_LOGIN nao definido no .env. O script foi abortado por seguranca.');
   }
 
   if (!senhaPlana) {
-    throw new Error('ADMIN_PASSWORD vazio. Defina uma senha para o administrador.');
+    throw new Error('CONFIG ERROR: ADMIN_PASSWORD nao definido no .env. O script foi abortado por seguranca.');
   }
+
+  console.log(`Login alvo: ${login}`);
 
   try {
     const existingUser = await db('usuarios').where({ login }).first();
@@ -47,7 +48,7 @@ async function ensureAdminUser() {
     });
 
     console.log('Usuario administrador criado com sucesso!');
-    console.log(`Credenciais:\n  - login: ${login}\n  - senha: ${senhaPlana}`);
+    console.log(`Credenciais:\n  - login: ${login}\n  - senha: [PROTEGUIDA]`);
   } catch (error) {
     console.error('Falha ao criar o usuario admin:', error);
     process.exitCode = 1;
