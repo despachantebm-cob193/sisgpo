@@ -12,6 +12,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'login-bg.jpg', 'logo cbmgo.png'],
+      // Ativa o PWA também em modo de desenvolvimento para testes
+      devOptions: {
+        enabled: true,
+      },
       manifest: {
         name: 'SISGPO',
         short_name: 'SISGPO',
@@ -36,22 +40,8 @@ export default defineConfig({
         navigateFallbackAllowlist: [/^\/app\//],
         // Evita interceptar chamadas de API
         navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\/admin\/(viaturas|obms|aeronaves)/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
+        // OPÇÃO 1: Cache estritamente estático.
+        // Removido runtimeCaching de API para evitar dados desatualizados.
       },
     }),
   ],
