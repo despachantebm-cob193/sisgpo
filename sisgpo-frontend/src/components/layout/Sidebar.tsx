@@ -6,7 +6,6 @@ import {
   LogOut,
   BellElectric,
   ChevronDown,
-  ChevronsLeftRight,
   Shield,
   UserCheck,
   Users,
@@ -31,7 +30,7 @@ interface NavLinkContentProps {
 const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
   <div className="flex items-center">
     {icon}
-    {!isCollapsed && <span className="ml-3">{text}</span>}
+    {!isCollapsed && <span className="ml-3 tracking-wide">{text}</span>}
   </div>
 );
 
@@ -39,7 +38,6 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const {
-    isSidebarCollapsed,
     sidebarMode,
     setSidebarCollapsed,
     setSidebarMode,
@@ -47,18 +45,7 @@ export default function Sidebar() {
     toggleMobileMenu,
   } = useUiStore();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
-  /* Removed useState isControlOpen */
-  /* Removed useState isControlOpen */
   const timerRef = useRef<number | null>(null);
-
-  /* Simple toggle function */
-  const handleToggleMode = () => {
-    if (sidebarMode === 'expanded') {
-      setSidebarMode('hover');
-    } else {
-      setSidebarMode('expanded');
-    }
-  };
 
   const handleLinkClick = () => {
     if (isMobileMenuOpen) {
@@ -67,7 +54,6 @@ export default function Sidebar() {
   };
 
   const handleLogout = async () => {
-    // Limpa store e storage local
     logout();
     try {
       localStorage.removeItem('auth-storage');
@@ -77,25 +63,17 @@ export default function Sidebar() {
         if (key && key.startsWith('sb-')) keysToRemove.push(key);
       }
       keysToRemove.forEach((k) => localStorage.removeItem(k));
-    } catch (e) {
-      console.error('Erro ao limpar localStorage:', e);
-    }
-
-    try {
       await supabase.auth.signOut();
     } catch (e) {
-      console.error('Erro ao fazer signOut no Supabase:', e);
+      console.error('Logout error:', e);
     }
-
     handleLinkClick();
     window.location.href = '/login';
   };
 
   const handleMouseEnter = () => {
     if (sidebarMode !== 'hover') return;
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
+    if (timerRef.current) clearTimeout(timerRef.current);
     setSidebarCollapsed(false);
   };
 
@@ -103,343 +81,184 @@ export default function Sidebar() {
     if (sidebarMode !== 'hover') return;
     timerRef.current = window.setTimeout(() => {
       setSidebarCollapsed(true);
-    }, 20000); // 20 seconds delay
+    }, 20000);
   };
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
+  // Sci-Fi Button Styles
   const navLinkClass =
-    'flex items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-tagBlue/20 hover:text-tagBlue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tagBlue focus-visible:ring-offset-2 focus-visible:ring-offset-background';
-  const activeNavLinkClass = 'bg-tagBlue/30 text-tagBlue border border-tagBlue/40 shadow-inner';
+    'flex items-center gap-3 rounded-md px-3 py-2.5 text-slate-400 transition-all duration-200 hover:text-cyan-300 hover:bg-cyan-500/5 hover:translate-x-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500/50 relative overflow-hidden group';
 
-  // Always expanded, except on mobile when menu is closed
-  const resolvedCollapsed = isMobileMenuOpen ? false : false;
+  const activeNavLinkClass =
+    '!text-cyan-400 !bg-cyan-500/10 font-medium shadow-[inset_2px_0_0_0_#22d3ee] shadow-cyan-500/20';
+
+  const resolvedCollapsed = false; // Always expanded for this design
 
   const renderSidebarContent = (isCollapsed: boolean) => (
-    <div className="flex h-full flex-col bg-transparent text-white border-r border-borderDark/60 backdrop-filter backdrop-blur-sm">
-      <div className="px-3">
-        <div
-          className={`relative flex h-16 items-center ${isCollapsed ? 'justify-center' : 'justify-center'
-            }`}>
-          {isCollapsed ? (
-            <TfiJoomla className="text-white text-3xl" />
-          ) : (
-            <div className="flex items-center justify-center w-full">
-              <h1 className="text-xl font-bold text-white">SISGPO</h1>
-            </div>
-          )}
+    <div className="flex h-full flex-col bg-[#0a0d14]/95 backdrop-blur-xl border-r border-cyan-500/10 text-slate-300">
+
+      {/* Metallic Header Section */}
+      <div className="relative flex h-20 items-center justify-center border-b border-cyan-500/20 bg-gradient-to-b from-white/5 to-transparent">
+        {/* Inner Glow Line */}
+        <div className="absolute bottom-0 inset-x-0 h-[1px] bg-cyan-500/30 shadow-[0_0_10px_#22d3ee]" />
+
+        {isCollapsed ? (
+          <TfiJoomla className="text-cyan-400 text-3xl animate-pulse-slow" />
+        ) : (
+          <div className="flex flex-col items-center justify-center w-full group cursor-default">
+            <h1 className="text-2xl font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 group-hover:to-cyan-200 transition-colors">
+              SISGPO
+            </h1>
+            <div className="h-0.5 w-12 bg-cyan-500/50 mt-1 rounded-full group-hover:w-24 group-hover:bg-cyan-400 transition-all duration-500 shadow-[0_0_8px_cyan]" />
+          </div>
+        )}
+      </div>
+
+      {/* Menu List */}
+      <div className="flex-1 px-4 overflow-y-auto custom-scrollbar py-6 space-y-1">
+        <p className="px-2 text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold mb-2">Principal</p>
+        <ul className="space-y-1">
+          <li>
+            <NavLink to="/app/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLinkContent isCollapsed={isCollapsed} icon={<Home className="w-5 h-5" />} text="Dashboard" />
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/app/dashboard-ocorrencias" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLinkContent isCollapsed={isCollapsed} icon={<GiSiren className="w-5 h-5" />} text="Ocorrências" />
+            </NavLink>
+          </li>
+        </ul>
+
+        <div className="pt-4 pb-2">
+          <div className="h-[1px] bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
         </div>
-      </div>
 
-      <div className="px-3">
-        <div className="border-t border-gray-600"></div>
-      </div>
+        <button
+          onClick={() => setIsAdminOpen(!isAdminOpen)}
+          className="w-full flex justify-between items-center px-2 py-2 text-[10px] uppercase tracking-[0.2em] text-slate-500 hover:text-cyan-400 transition-colors font-bold mb-1"
+        >
+          Administração
+          <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isAdminOpen ? 'rotate-180' : ''}`} />
+        </button>
 
-      <div className="flex-1 px-3 overflow-y-auto">
-        <ul className="space-y-2 pt-4 font-medium pb-24">
-          <li>
-            <NavLink
-              to="/app/dashboard"
-              onClick={handleLinkClick}
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <NavLinkContent
-                isCollapsed={isCollapsed}
-                icon={<Home className="mr-3 h-6 w-6" />}
-                text="Dashboard"
-              />
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/app/dashboard-ocorrencias"
-              onClick={handleLinkClick}
-              className={({ isActive }) =>
-                `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-              }
-            >
-              <NavLinkContent
-                isCollapsed={isCollapsed}
-                icon={<GiSiren className="mr-3 h-6 w-6" />}
-                text="Ocorrências"
-              />
-            </NavLink>
-          </li>
-
-
-          <button
-            onClick={() => setIsAdminOpen(!isAdminOpen)}
-            className={`w-full flex justify-between items-center p-2 text-xs text-white ${isCollapsed ? 'hidden' : ''
-              }`}
-          >
-            ADMINISTRAÇÃO
-            <ChevronDown
-              className={`transition-transform duration-200 ${isAdminOpen ? 'rotate-180' : ''
-                }`}
-            />
-          </button>
-          <div
-            className={`transition-all duration-300 overflow-hidden ${!isCollapsed
-              ? isAdminOpen
-                ? 'max-h-screen'
-                : 'max-h-0'
-              : 'max-h-screen'
-              }`}
-          >
-            <ul
-              className={`space-y-2 font-medium ${!isCollapsed ? 'pl-4' : ''
-                }`}
-            >
-              {user?.perfil === 'admin' && (
+        <div className={`transition-all duration-300 overflow-hidden ${isAdminOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <ul className="space-y-1">
+            {user?.perfil === 'admin' && (
+              <li>
+                <NavLink to="/app/servico-dia" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                  <NavLinkContent isCollapsed={isCollapsed} icon={<ClipboardList className="w-5 h-5" />} text="Serviço do Dia" />
+                </NavLink>
+              </li>
+            )}
+            <li>
+              <NavLink to="/app/militares" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<Users className="w-5 h-5" />} text="Militares" />
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/app/medicos" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<IoMedicalSharp className="w-5 h-5" />} text="Médicos" />
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/app/viaturas" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<MdFireTruck className="w-5 h-5" />} text="Viaturas" />
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/app/aeronaves" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<FaHelicopter className="w-5 h-5" />} text="Aeronaves" />
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/app/obms" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<BellElectric className="w-5 h-5" />} text="OBMs" />
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/app/comandantes-crbm" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<Shield className="w-5 h-5" />} text="Comandantes CRBM" />
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/app/plantoes" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLinkContent isCollapsed={isCollapsed} icon={<Shield className="w-5 h-5" />} text="Plantões" />
+              </NavLink>
+            </li>
+            {user?.perfil === 'admin' && (
+              <>
+                <div className="pt-2"></div>
                 <li>
-                  <NavLink
-                    to="/app/servico-dia"
-                    onClick={handleLinkClick}
-                    className={({ isActive }) =>
-                      `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                    }
-                  >
-                    <NavLinkContent
-                      isCollapsed={isCollapsed}
-                      icon={<ClipboardList className="mr-3 h-6 w-6" />}
-                      text="Serviço do Dia"
-                    />
+                  <NavLink to="/app/usuarios" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                    <NavLinkContent isCollapsed={isCollapsed} icon={<UserCheck className="w-5 h-5" />} text="Usuários" />
                   </NavLink>
                 </li>
-              )}
-              <li>
-                <NavLink
-                  to="/app/militares"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<Users className="mr-3 h-6 w-6" />}
-                    text="Militares"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/medicos"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<IoMedicalSharp className="mr-3 h-6 w-6" />}
-                    text="Médicos"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/viaturas"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<MdFireTruck className="mr-3 h-6 w-6" />}
-                    text="Viaturas"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/aeronaves"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<FaHelicopter className="mr-3 h-6 w-6" />}
-                    text="Aeronaves"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/obms"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<BellElectric className="mr-3 h-6 w-6" />}
-                    text="OBMs"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/comandantes-crbm"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<Shield className="mr-3 h-6 w-6" />}
-                    text="Comandantes CRBM"
-                  />
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/app/plantoes"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<Shield className="mr-3 h-6 w-6" />}
-                    text="Plantões"
-                  />
-                </NavLink>
-              </li>
-              {user?.perfil === 'admin' && (
-                <>
-                  <li>
-                    <NavLink
-                      to="/app/usuarios"
-                      onClick={handleLinkClick}
-                      className={({ isActive }) =>
-                        `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                      }
-                    >
-                      <NavLinkContent
-                        isCollapsed={isCollapsed}
-                        icon={<UserCheck className="mr-3 h-6 w-6" />}
-                        text="Usuários"
-                      />
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink
-                      to="/app/metricas"
-                      onClick={handleLinkClick}
-                      className={({ isActive }) =>
-                        `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                      }
-                    >
-                      <NavLinkContent
-                        isCollapsed={isCollapsed}
-                        icon={<Shield className="mr-3 h-6 w-6" />}
-                        text="Métricas"
-                      />
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink
-                      to="/app/saude"
-                      onClick={handleLinkClick}
-                      className={({ isActive }) =>
-                        `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                      }
-                    >
-                      <NavLinkContent
-                        isCollapsed={isCollapsed}
-                        icon={<CheckCircle2 className="mr-3 h-6 w-6" />}
-                        text="Saúde do Sistema"
-                      />
-                    </NavLink>
-                  </li>
-                </>
-              )}
-            </ul>
-          </div>
-
-
-          {user?.perfil === 'admin' && (
-            <>
-              <p
-                className={`px-2 pt-2 text-white ${isCollapsed ? 'hidden' : ''
-                  }`}
-              >
-                RELATÓRIOS
-              </p>
-              <li>
-                <NavLink
-                  to="/app/relatorio"
-                  onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-                  }
-                >
-                  <NavLinkContent
-                    isCollapsed={isCollapsed}
-                    icon={<FileText className="mr-3 h-6 w-6" />}
-                    text="Relatório de Escala"
-                  />
-                </NavLink>
-              </li>
-            </>
-          )}
-        </ul>
+                <li>
+                  <NavLink to="/app/metricas" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                    <NavLinkContent isCollapsed={isCollapsed} icon={<Shield className="w-5 h-5" />} text="Métricas" />
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/app/saude" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                    <NavLinkContent isCollapsed={isCollapsed} icon={<CheckCircle2 className="w-5 h-5" />} text="Saúde do Sistema" />
+                  </NavLink>
+                </li>
+              </>
+            )}
+            {user?.perfil === 'admin' && (
+              <>
+                <div className="pt-4 pb-2">
+                  <div className="h-[1px] bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+                </div>
+                <p className="px-2 text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold mb-2">Relatórios</p>
+                <li>
+                  <NavLink to="/app/relatorio" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                    <NavLinkContent isCollapsed={isCollapsed} icon={<FileText className="w-5 h-5" />} text="Escalas" />
+                  </NavLink>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
       </div>
 
-
-      {/* Ações rápidas (mobile) */}
-      <div className="px-3 pb-4 md:hidden border-t border-borderDark/60">
-        <div className="mt-3 space-y-2">
-          <NavLink
-            to="/app/perfil"
-            onClick={handleLinkClick}
-            className={({ isActive }) =>
-              `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`
-            }
-          >
-            <NavLinkContent
-              isCollapsed={false}
-              icon={<UserCheck className="mr-3 h-6 w-6" />}
-              text="Meu perfil"
-            />
-          </NavLink>
-          <button
-            onClick={handleLogout}
-            className={`${navLinkClass} justify-start w-full bg-red-600/10 hover:bg-red-600/20 text-red-200 border border-red-600/30`}
-          >
-            <LogOut className="mr-3 h-6 w-6" />
-            <span>Sair</span>
-          </button>
-        </div>
+      {/* User / Footer Section */}
+      <div className="p-4 border-t border-cyan-500/10 bg-gradient-to-t from-black/40 to-transparent">
+        <NavLink
+          to="/app/perfil"
+          onClick={handleLinkClick}
+          className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''} mb-2`}
+        >
+          <NavLinkContent isCollapsed={false} icon={<UserCheck className="w-5 h-5" />} text="Meu perfil" />
+        </NavLink>
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-red-400 hover:text-red-200 hover:bg-red-500/10 transition-colors group"
+        >
+          <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="tracking-wide">Sair</span>
+        </button>
       </div>
 
     </div>
   );
 
   return (
-    <>
-      <aside
-        className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col fixed left-0 z-50 transition-all duration-300 ${resolvedCollapsed ? 'w-20' : 'w-64'
-          } border-r border-borderDark/60 bg-[#0b0f1a]/95 backdrop-filter backdrop-blur-strong top-16 md:top-0 bottom-0`}
-        aria-label="Sidebar"
-      >
-        {renderSidebarContent(resolvedCollapsed)}
-      </aside>
-    </>
+    <aside
+      className={`
+        ${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col 
+        fixed left-0 z-50 transition-all duration-300 w-64
+        h-full
+      `}
+      aria-label="Sidebar"
+    >
+      {renderSidebarContent(resolvedCollapsed)}
+    </aside>
   );
 }

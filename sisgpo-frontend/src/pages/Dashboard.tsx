@@ -110,15 +110,30 @@ export default function Dashboard() {
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <p className="text-white mt-2">Visão geral do poder operacional em tempo real.</p>
+            <p className="text-slate-400 mt-2 font-mono text-sm tracking-wide">
+              <span className="text-cyan-400 mr-2">::</span>
+              Visão geral do poder operacional em tempo real
+            </p>
           </div>
           {isLoggedInArea && (
             <div className="flex items-center gap-4 w-full md:w-auto">
-              <select id="obm-filter" value={selectedObm} onChange={(e) => setSelectedObm(e.target.value)} className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                <option value="">Todas as OBMs</option>
-                {Array.isArray(obms) && obms.map((obm) => (<option key={obm.id || obm.nome} value={obm.id || ''}>{obm.abreviatura} - {obm.nome}</option>))}
-              </select>
-              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto !bg-emerald-500 hover:!bg-emerald-600 text-white">
+              <div className="relative w-full md:w-64 group">
+                <select
+                  id="obm-filter"
+                  value={selectedObm}
+                  onChange={(e) => setSelectedObm(e.target.value)}
+                  className="w-full appearance-none bg-[#0f141e] text-slate-200 border border-slate-700 rounded px-4 py-2 font-mono text-sm shadow-[0_0_10px_rgba(0,0,0,0.3)] focus:outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all"
+                >
+                  <option value="">Todas as OBMs</option>
+                  {Array.isArray(obms) && obms.map((obm) => (<option key={obm.id || obm.nome} value={obm.id || ''}>{obm.abreviatura} - {obm.nome}</option>))}
+                </select>
+                {/* Custom Arrow */}
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-cyan-500/50 group-hover:text-cyan-400 transition-colors">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                </div>
+              </div>
+
+              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto !bg-emerald-500/10 !border !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/20 hover:!shadow-[0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold">
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </Button>
@@ -164,8 +179,8 @@ export default function Dashboard() {
       <ServicoDiaCard data={servicoDia} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        <AeronavesCard data={escalaAeronaves} isLoading={isLoading} />
-        <CodecCard data={escalaCodec} isLoading={isLoading} />
+        <AeronavesCard data={escalaAeronaves} isLoading={isLoading} lastUpdated={lastUpload} />
+        <CodecCard data={escalaCodec} isLoading={isLoading} lastUpdated={lastUpload} />
       </div>
 
       <ViaturaByObmTable data={viaturaPorObmStats} isLoading={isLoading} empenhadasViaturas={empenhadasViaturasSet} />

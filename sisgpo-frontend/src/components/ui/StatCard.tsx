@@ -10,44 +10,73 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoading, variant = 'default' }) => {
-  let cardClasses = `flex flex-col justify-between gap-3 p-6 rounded-lg shadow-sm`;
-  let titleClasses = `text-sm font-medium uppercase tracking-wide text-center`;
-  let valueClasses = `mt-1 text-3xl font-semibold text-center`;
-  let spinnerClasses = ``;
+  // Base Container - Metallic/Dark Industrial
+  let containerClasses = `relative overflow-hidden rounded-xl transition-all duration-300 group hover:translate-y-[-2px] hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)]`;
+
+  // Inner Content
+  let contentClasses = `relative z-10 flex flex-col items-center justify-center p-6 bg-[#0e121b]/90 backdrop-blur-sm border-t border-white/5 h-full`;
+
+  // Dynamic Accents based on variant
+  let accentColor = 'cyan'; // default
+  let valueColorClass = 'text-cyan-400';
+  let titleColorClass = 'text-slate-400';
 
   if (variant === 'highlight') {
-    cardClasses += ' bg-tagBlue/20 border border-tagBlue text-white';
-    titleClasses += ' text-white';
-    valueClasses += ' text-white';
-    spinnerClasses += ' text-white';
+    // Blue/Cyan Theme
+    containerClasses += ` bg-gradient-to-br from-cyan-900/20 to-[#0b0f1a] border border-cyan-500/30`;
+    valueColorClass = 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]';
+    accentColor = 'cyan';
   } else if (variant === 'highlight-secondary') {
-    cardClasses += ' bg-emerald-500/20 border border-emerald-500 text-white';
-    titleClasses += ' text-white';
-    valueClasses += ' text-white';
-    spinnerClasses += ' text-white';
-  } else if (variant === 'transparent') {
-    cardClasses += ' bg-white/10 backdrop-blur-[2px] border border-white/20 text-white';
-  }
-  else { // default
-    cardClasses += ' bg-cardSlate border border-borderDark/60';
-    titleClasses += ' text-textSecondary';
-    valueClasses += ' text-textMain';
-    spinnerClasses += ' text-tagBlue';
+    // Emerald/Green Theme (Success/Good Status)
+    containerClasses += ` bg-gradient-to-br from-emerald-900/20 to-[#0b0f1a] border border-emerald-500/30`;
+    valueColorClass = 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]';
+    accentColor = 'emerald';
+  } else {
+    // Default Metallic
+    containerClasses += ` bg-[#0e121b] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]`;
+    valueColorClass = 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]';
   }
 
   return (
-    <div className={cardClasses}>
-      <div>
-        <h3 className={titleClasses}>{title}</h3>
-        {isLoading ? (
-          <div className="mt-2 flex justify-center">
-            <Spinner className={spinnerClasses} />
-          </div>
-        ) : (
-          <p className={valueClasses}>{value}</p>
+    <div className={containerClasses}>
+      {/* Top Metallic Highlight Line */}
+      <div className={`absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-${accentColor}-500/50 to-transparent opacity-50`} />
+
+      {/* Corner Accents (Sci-Fi brackets) */}
+      <div className={`absolute top-0 left-0 w-2 h-2 border-t border-l border-${accentColor}-500/30 rounded-tl-sm`} />
+      <div className={`absolute top-0 right-0 w-2 h-2 border-t border-r border-${accentColor}-500/30 rounded-tr-sm`} />
+      <div className={`absolute bottom-0 left-0 w-2 h-2 border-b border-l border-${accentColor}-500/30 rounded-bl-sm`} />
+      <div className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r border-${accentColor}-500/30 rounded-br-sm`} />
+
+      {/* Content */}
+      <div className="p-5 flex flex-col items-center justify-between h-full relative z-10">
+        <h3 className={`text-[10px] uppercase tracking-[0.25em] font-bold mb-3 ${titleColorClass}`}>
+          {title}
+        </h3>
+
+        {/* Digital Readout Box */}
+        <div className="bg-[#050608] rounded border border-white/5 w-full py-3 flex items-center justify-center shadow-inner relative overflow-hidden">
+          {/* Scanline effect */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[size:100%_4px] opacity-20 pointer-events-none" />
+
+          {isLoading ? (
+            <Spinner className={`w-6 h-6 text-${accentColor}-500`} />
+          ) : (
+            <span className={`text-3xl md:text-4xl font-mono font-bold tracking-tighter ${valueColorClass}`}>
+              {value}
+            </span>
+          )}
+        </div>
+
+        {description && (
+          <p className="text-xs text-slate-500 mt-3 text-center font-mono tracking-tight">
+            {description}
+          </p>
         )}
       </div>
-      {description && <p className="text-sm text-textSecondary text-center">{description}</p>}
+
+      {/* Background Glow */}
+      <div className={`absolute -bottom-10 inset-x-0 h-20 bg-${accentColor}-500/5 blur-xl pointer-events-none`} />
     </div>
   );
 };

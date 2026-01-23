@@ -1,13 +1,13 @@
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Menu, X, Settings, LogOut, UserCheck } from 'lucide-react';
+import { Menu, X, Settings, LogOut, UserCheck, Bell, ShieldAlert } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../config/supabase';
 import api from '../../services/api';
-import React, { useState, useEffect } from 'react';
 
 const Header: React.FC = () => {
-  const { pageTitle, isSidebarCollapsed, lastUpdate } = useUiStore();
+  const { pageTitle, lastUpdate } = useUiStore();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [pendingCount, setPendingCount] = useState(0);
@@ -27,24 +27,15 @@ const Header: React.FC = () => {
     };
 
     fetchPending();
-    const interval = setInterval(fetchPending, 60000); // Atualiza a cada minuto
+    const interval = setInterval(fetchPending, 60000);
 
     return () => clearInterval(interval);
   }, [isAdmin]);
 
   const handleLogout = async () => {
-    console.log('Logout iniciado...');
-
-    // Limpa o store local primeiro
     logout();
-    console.log('Store local limpo');
-
-    // Força limpeza COMPLETA do localStorage
     try {
-      // Remove auth-storage do Zustand
       localStorage.removeItem('auth-storage');
-
-      // Remove TODAS as chaves do Supabase
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -53,65 +44,72 @@ const Header: React.FC = () => {
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
+    } catch (e) { console.error(e); }
 
-      console.log('localStorage completamente limpo:', keysToRemove);
-    } catch (e) {
-      console.error('Erro ao limpar localStorage:', e);
-    }
-
-    // Aguarda o signOut do Supabase completar
     try {
       await supabase.auth.signOut();
-      console.log('Supabase signOut completo');
-    } catch (err) {
-      console.error('Erro ao desconectar do Supabase:', err);
-    }
+    } catch (err) { console.error(err); }
 
-    // Força reload completo da página para /login
-    console.log('Redirecionando para /login com reload completo');
     window.location.href = '/login';
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-borderDark bg-[#1f2658] px-6 text-white w-full flex-shrink-0 z-30">
-      <h1 className="text-lg font-semibold text-white">{pageTitle}</h1>
+    <header className="flex h-20 items-center justify-between border-b border-cyan-500/10 bg-[#0a0d14]/80 backdrop-blur-md px-8 w-full flex-shrink-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.3)] relative">
+
+      {/* Top subtle highlight */}
+      <div className="absolute top-0 inset-x-0 h-[1px] bg-white/5 pointer-events-none" />
+
+      {/* Title Section */}
+      <div className="flex flex-col">
+        <h1 className="text-xl font-bold text-white tracking-wide uppercase font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+          {pageTitle}
+        </h1>
+        {lastUpdate && (
+          <p className="text-[10px] text-cyan-500/60 uppercase tracking-widest mt-0.5 font-bold animate-pulse-slow">
+            • SISTEMA ONLINE • {lastUpdate}
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center gap-6">
-        {lastUpdate && (
-          <p className="text-sm text-gray-300 hidden sm:block">
-            Atualizado {lastUpdate}
-          </p>
+
+        {/* Admin Alerts */}
+        {isAdmin && pendingCount > 0 && (
+          <Link
+            to="/app/usuarios"
+            className="relative group flex items-center justify-center p-2 rounded-lg bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 hover:border-orange-500 transition-all duration-300"
+            title={`${pendingCount} solicitações pendentes`}
+          >
+            <ShieldAlert size={20} className="text-orange-400 group-hover:text-orange-200 transition-colors animate-pulse" />
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] font-bold text-black shadow ring-2 ring-[#0a0d14]">
+              {pendingCount}
+            </span>
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-orange-500/20 blur-[10px] opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+          </Link>
         )}
 
         {/* Separator */}
-        <div className="h-6 w-px bg-white/20 hidden sm:block"></div>
+        <div className="h-8 w-[1px] bg-gradient-to-b from-transparent via-slate-700 to-transparent mx-2 hidden sm:block"></div>
 
-        <div className="flex items-center gap-4">
-          {isAdmin && pendingCount > 0 && (
-            <Link
-              to="/app/usuarios"
-              className="relative flex items-center justify-center rounded-full bg-premiumOrange/10 p-2 text-premiumOrange transition hover:bg-premiumOrange/20 active:scale-95"
-              title={`${pendingCount} solicitações pendentes`}
-            >
-              <UserCheck size={20} />
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-premiumOrange text-[10px] font-bold text-white shadow-sm ring-2 ring-background">
-                {pendingCount}
-              </span>
-            </Link>
-          )}
-
-          <Link to="/app/perfil" className="flex items-center gap-2 text-sm hover:text-tagBlue transition-colors group">
-            <Settings size={18} className="text-gray-300 group-hover:text-tagBlue" />
-            <span className="font-medium hidden sm:block">{user?.nome}</span>
+        {/* User Actions */}
+        <div className="flex items-center gap-5">
+          <Link to="/app/perfil" className="flex items-center gap-3 group">
+            <div className="p-2 rounded-full bg-slate-800/50 border border-slate-700 group-hover:border-cyan-500/50 transition-colors">
+              <Settings size={18} className="text-slate-400 group-hover:text-cyan-300 transition-colors" />
+            </div>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-sm font-medium text-slate-200">{user?.nome?.split(' ')[0]}</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider">{user?.perfil}</span>
+            </div>
           </Link>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+            className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:text-red-200 hover:bg-red-500/10 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all duration-300 border border-transparent hover:border-red-500/30"
             title="Sair do sistema"
           >
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Sair</span>
+            <LogOut size={20} />
           </button>
         </div>
       </div>

@@ -68,12 +68,12 @@ type ActiveTab = 'plantoes' | 'escalaMedicos' | 'escalaAeronaves' | 'escalaCodec
 const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: React.ElementType; label: string }) => (
   <button
     onClick={onClick}
-    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${active
-      ? 'bg-tagBlue text-textMain shadow-md'
-      : 'bg-cardSlate text-textSecondary hover:bg-background'
+    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all duration-300 border ${active
+      ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]'
+      : 'bg-[#0f141e] border-white/5 text-slate-500 hover:text-slate-200 hover:border-white/20 hover:bg-[#1a1f2e]'
       }`}
   >
-    <Icon size={16} />
+    <Icon size={16} className={active ? 'drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]' : ''} />
     <span>{label}</span>
   </button>
 );
@@ -400,7 +400,7 @@ export default function Plantoes() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 p-4 bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 p-6 bg-[#0a0d14]/80 backdrop-blur-md border border-white/10 rounded-2xl shadow-lg">
         <div>
           <Label htmlFor="data_inicio">Data Início</Label>
           <Input id="data_inicio" type="date" value={filters.data_inicio} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, data_inicio: e.target.value }))} />
@@ -410,7 +410,7 @@ export default function Plantoes() {
           <Input id="data_fim" type="date" value={filters.data_fim} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilters(prev => ({ ...prev, data_fim: e.target.value }))} />
         </div>
         <div className="flex items-end">
-          <Button onClick={() => setFilters({ data_inicio: '', data_fim: '' })} className="w-full bg-searchbar hover:bg-searchbar/80 text-textMain">Limpar Filtros</Button>
+          <Button onClick={() => setFilters({ data_inicio: '', data_fim: '' })} className="w-full !bg-slate-800 !text-slate-400 hover:!bg-slate-700 hover:!text-slate-200 border border-slate-700 font-mono text-xs uppercase tracking-wider">Limpar Filtros</Button>
         </div>
       </div>
 

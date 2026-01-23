@@ -42,6 +42,26 @@
     background-color: theme('colors.tagBlue');
     color: theme('colors.textMain');
   }
+
+  /* Custom Sci-Fi Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0d14; 
+  }
+  ::-webkit-scrollbar-corner {
+    background: #0a0d14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155; 
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #22d3ee; 
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

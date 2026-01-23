@@ -92,39 +92,42 @@ export default function Medicos() {
         {isAdmin && <Button onClick={() => handleOpenFormModal()} variant="primary">Adicionar Médico</Button>}
       </div>
 
-      <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 shadow-md rounded-lg overflow-hidden">
+      <div className="bg-[#0a0d14]/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden relative">
+        {/* Decorative Top Line */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-50 pointer-events-none" />
+
         <table className="min-w-full">
-          <thead className="bg-searchbar hidden md:table-header-group">
+          <thead className="bg-white/5 decoration-clone">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Função</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Telefone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Observações</th>
-              {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase">Ações</th>}
+              <th className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5">Nome</th>
+              <th className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5">Função</th>
+              <th className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5">Telefone</th>
+              <th className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5">Observações</th>
+              {isAdmin && <th className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5">Ações</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-borderDark/60 md:divide-y-0">
+          <tbody className="divide-y divide-white/5">
             {isLoading ? (
-              <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto" /></td></tr>
+              <tr><td colSpan={5} className="text-center py-10"><Spinner className="h-10 w-10 mx-auto text-cyan-500" /></td></tr>
             ) : medicos.length > 0 ? (
               medicos.map((medico) => (
-                <tr key={medico.id} className="block md:table-row border-b md:border-none p-4 md:p-0">
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium text-textMain" data-label="Nome:">{medico.nome_completo}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Função:">{medico.funcao}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm text-textSecondary" data-label="Telefone:">{formatarTelefone(medico.telefone)}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 text-sm text-textSecondary truncate max-w-xs" data-label="Obs:">{medico.observacoes || '-'}</td>
-                  <td className="block md:table-cell px-6 py-2 md:py-4 whitespace-nowrap text-sm font-medium space-x-4 mt-2 md:mt-0 text-center md:text-left">
+                <tr key={medico.id} className="group border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white font-mono" data-label="Nome:">{medico.nome_completo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-400 font-mono uppercase tracking-wide" data-label="Função:">{medico.funcao}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-400 font-mono" data-label="Telefone:">{formatarTelefone(medico.telefone)}</td>
+                  <td className="px-6 py-4 text-xs text-slate-500 font-mono truncate max-w-xs" data-label="Obs:">{medico.observacoes || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4 mt-2 md:mt-0 text-center md:text-left opacity-0 group-hover:opacity-100 transition-opacity">
                     {isAdmin && (
-                      <>
-                        <button onClick={() => handleOpenFormModal(medico)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-sky-500 text-white shadow hover:bg-sky-600 transition disabled:opacity-60" title="Editar"><Edit className="w-5 h-5 inline-block" /></button>
-                        <button onClick={() => handleDeleteClick(medico.id)} className="inline-flex h-9 w-9 items-center justify-center rounded bg-rose-500 text-white shadow hover:bg-rose-600 transition disabled:opacity-60" title="Excluir"><Trash2 className="w-5 h-5 inline-block" /></button>
-                      </>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleOpenFormModal(medico)} className="p-1.5 rounded-md text-sky-500 hover:bg-sky-500/10 hover:shadow-[0_0_10px_rgba(14,165,233,0.2)] transition-all" title="Editar"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeleteClick(medico.id)} className="p-1.5 rounded-md text-rose-500 hover:bg-rose-500/10 hover:shadow-[0_0_10px_rgba(244,63,94,0.2)] transition-all" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     )}
                   </td>
                 </tr>
               ))
             ) : (
-              <tr><td colSpan={5} className="text-center py-10 text-textSecondary">Nenhum registro encontrado.</td></tr>
+              <tr><td colSpan={5} className="text-center py-10 text-slate-500 font-mono uppercase tracking-widest text-xs">Nenhum registro encontrado.</td></tr>
             )}
           </tbody>
         </table>

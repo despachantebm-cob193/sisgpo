@@ -492,7 +492,7 @@ export default function Viaturas() {
       </div>
 
       {/* Barra de filtros posicionada abaixo dos cards */}
-      <div className="flex flex-wrap items-center gap-4 mb-6 bg-gray-800 shadow-lg p-4 rounded-lg">
+      <div className="flex flex-wrap items-center gap-4 mb-8 bg-[#0a0d14]/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         <Input
           type="text"
           placeholder="Filtrar por prefixo, cidade, obm..."
@@ -543,8 +543,8 @@ export default function Viaturas() {
           handleFilterChange('obm', '');
           handleFilterChange('cidade', '');
           handleFilterChange('q', '');
-        }} variant="secondary" className="w-full md:w-auto">
-          Limpar Filtros
+        }} className="!bg-slate-800 !text-slate-400 hover:!bg-slate-700 hover:!text-slate-200 border border-slate-700 w-full md:w-auto font-mono text-xs uppercase tracking-wider">
+          Limpar
         </Button>
       </div>
 
@@ -553,7 +553,7 @@ export default function Viaturas() {
         <div className="viaturas-detalhamento space-y-3 md:hidden">
           {isLoading ? (
             <div className="flex justify-center py-6">
-              <Spinner className="h-10 w-10" />
+              <Spinner className="h-10 w-10 text-cyan-500" />
             </div>
           ) : filteredViaturas.length > 0 ? (
             filteredViaturas.map((viatura) => {
@@ -563,7 +563,7 @@ export default function Viaturas() {
               return (
                 <div
                   key={viatura.id}
-                  className={`rounded-lg border border-white/20 p-4 shadow-sm transition bg-white/10 backdrop-blur-[2px]`}
+                  className={`rounded-xl border border-white/10 p-4 shadow-lg transition bg-[#0e121b]`}
                 >
                   <button
                     type="button"
@@ -571,47 +571,41 @@ export default function Viaturas() {
                     className="flex w-full items-center justify-between text-left"
                   >
                     <div>
-                      <p className="text-lg font-bold text-textMain">{viatura.prefixo}</p>
-                      <p className={`text-sm font-semibold tracking-wide ${hasSigla ? 'text-tagBlue' : 'text-spamRed'}`}>
-                        {viatura.obm_abreviatura || 'Sem sigla'}
+                      <p className="text-lg font-bold text-white font-mono">{viatura.prefixo}</p>
+                      <p className={`text-xs font-bold tracking-widest uppercase ${hasSigla ? 'text-cyan-400' : 'text-red-400'}`}>
+                        {viatura.obm_abreviatura || 'SEM SIGLA'}
                       </p>
                     </div>
                     <ChevronDown
-                      className={`h-5 w-5 text-textSecondary transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      className={`h-5 w-5 text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     />
                   </button>
                   {isExpanded && (
-                    <div className="mt-4 space-y-3 text-sm text-textSecondary">
-                      <div>
-                        <p className="text-xs font-semibold uppercase">Sigla</p>
-                        <p className={`${hasSigla ? '' : 'text-spamRed font-semibold'}`}>{viatura.obm_abreviatura || 'N/A'}</p>
+                    <div className="mt-4 space-y-3 text-sm text-slate-400 font-mono">
+                      <div className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-[10px] uppercase font-bold text-slate-500">Cidade</span>
+                        <span className="text-white">{viatura.cidade || 'N/A'}</span>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase">Cidade</p>
-                        <p>{viatura.cidade || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase">Status</p>
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-500">Status</span>
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider border ${status.classes}`}
                         >
                           {status.label}
                         </span>
                       </div>
                       {isAdmin && (
-                        <div className="flex items-center gap-3 pt-2">
+                        <div className="flex items-center gap-3 pt-3 border-t border-white/5 mt-2">
                           <button
                             onClick={() => handleOpenFormModal(viatura)}
-                            className="inline-flex flex-1 items-center justify-center rounded bg-sky-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-sky-600"
+                            className="flex-1 py-2 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 text-xs font-bold uppercase transition-colors"
                           >
-                            <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </button>
                           <button
                             onClick={() => handleDeleteClick(viatura.id)}
-                            className="inline-flex flex-1 items-center justify-center rounded bg-rose-500 px-3 py-2 text-sm font-medium text-white shadow hover:bg-rose-600"
+                            className="flex-1 py-2 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold uppercase transition-colors"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
                           </button>
                         </div>
@@ -622,26 +616,30 @@ export default function Viaturas() {
               );
             })
           ) : (
-            <p className="py-6 text-center text-textSecondary">Nenhuma viatura encontrada.</p>
+            <p className="py-6 text-center text-slate-500 font-mono text-sm tracking-widest uppercase">Nenhuma viatura encontrada.</p>
           )}
         </div>
 
         {/* Table View for Desktop */}
-        <div className="hidden md:block bg-white/10 backdrop-blur-[2px] border border-white/20 rounded-lg shadow-sm overflow-hidden">
+        <div className="hidden md:block bg-[#0a0d14]/80 backdrop-blur-md border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden relative">
+
+          {/* Decorative Top Line */}
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-50 pointer-events-none" />
+
           <table className="min-w-full table-fixed">
-            <thead className="bg-background/40">
+            <thead className="bg-white/5 decoration-clone">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>Prefixo</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>OBM</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>Cidade</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-textSecondary uppercase tracking-wider" style={{ width: isAdmin ? '20%' : '25%' }}>Status</th>
-                {isAdmin && <th scope="col" className="relative px-6 py-3" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>}
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Prefixo</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>OBM</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Cidade</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Status</th>
+                {isAdmin && <th scope="col" className="relative px-6 py-4 border-b border-white/5" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>}
               </tr>
             </thead>
           </table>
-          <div ref={parentRef} className="overflow-auto" style={{ height: '600px' }}>
+          <div ref={parentRef} className="overflow-auto custom-scrollbar" style={{ height: '600px' }}>
             {isLoading ? (
-              <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10" /></div>
+              <div className="flex justify-center items-center h-full"><Spinner className="h-10 w-10 text-cyan-500" /></div>
             ) : filteredViaturas.length > 0 ? (
               <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -661,22 +659,22 @@ export default function Viaturas() {
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      className={`border-b border-borderDark/60 ${(!viatura.obm_abreviatura || !viatura.cidade) ? 'bg-red-500/10 border-l-4 border-red-500' : ''}`}
+                      className={`border-b border-white/5 hover:bg-white/5 transition-colors group ${(!viatura.obm_abreviatura || !viatura.cidade) ? 'bg-red-500/5' : ''}`}
                     >
-                      <div className="px-6 py-2 text-sm font-medium text-textMain" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.prefixo}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-sm text-textSecondary" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.cidade || 'N/A'}</div>
+                      <div className="px-6 py-2 text-sm font-bold font-mono text-white" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.prefixo}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.cidade || 'N/A'}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm" style={{ width: isAdmin ? '20%' : '25%' }}>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${status.classes}`}>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${status.classes}`}>
                           {status.label}
                         </span>
                       </div>
                       {isAdmin && (
-                        <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2" style={{ width: '20%' }}>
-                          <Button onClick={() => handleOpenFormModal(viatura)} variant="icon" size="sm" className="text-sky-500 hover:text-sky-400">
+                        <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ width: '20%' }}>
+                          <Button onClick={() => handleOpenFormModal(viatura)} className="p-1.5 !bg-transparent text-sky-500 hover:text-sky-300 hover:!bg-sky-500/10 !border-0 shadow-none">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button onClick={() => handleDeleteClick(viatura.id)} variant="icon" size="sm" className="text-rose-500 hover:text-rose-400">
+                          <Button onClick={() => handleDeleteClick(viatura.id)} className="p-1.5 !bg-transparent text-rose-500 hover:text-rose-300 hover:!bg-rose-500/10 !border-0 shadow-none">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -686,7 +684,7 @@ export default function Viaturas() {
                 })}
               </div>
             ) : (
-              <div className="flex justify-center items-center h-full"><p className="text-textSecondary">Nenhuma viatura encontrada.</p></div>
+              <div className="flex justify-center items-center h-full"><p className="text-slate-500 font-mono uppercase tracking-widest text-xs">Nenhuma viatura encontrada.</p></div>
             )}
           </div>
         </div>

@@ -36,25 +36,62 @@ const FUNCOES_CIVIS = ["Regulador"];
 const TODAS_AS_FUNCOES = [...FUNCOES_MILITARES, ...FUNCOES_CIVIS];
 
 const customSelectStyles = {
-  placeholder: (provided: any) => ({
+  control: (provided: any, state: any) => ({
     ...provided,
-    color: '#5A6470',
-  }),
-  singleValue: (provided: any) => ({
-    ...provided,
-    color: '#333333',
-  }),
-  multiValueLabel: (provided: any) => ({
-    ...provided,
-    color: '#333333',
+    backgroundColor: '#0f141e',
+    borderColor: state.isFocused ? '#22d3ee' : 'rgba(51, 65, 85, 0.5)',
+    boxShadow: state.isFocused ? '0 0 0 1px #22d3ee' : 'none',
+    color: '#e2e8f0',
+    '&:hover': {
+      borderColor: state.isFocused ? '#22d3ee' : 'rgba(34, 211, 238, 0.3)',
+    },
   }),
   menu: (provided: any) => ({
     ...provided,
-    color: '#333333',
+    backgroundColor: '#0f141e',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+  }),
+  option: (provided: any, state: any) => ({
+    ...provided,
+    backgroundColor: state.isFocused ? 'rgba(34, 211, 238, 0.1)' : 'transparent',
+    color: state.isFocused ? '#22d3ee' : '#e2e8f0',
+    cursor: 'pointer',
+  }),
+  placeholder: (provided: any) => ({
+    ...provided,
+    color: '#64748b',
+    fontSize: '0.875rem',
+    fontFamily: 'monospace'
+  }),
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: '#e2e8f0',
+    fontFamily: 'monospace'
+  }),
+  multiValue: (provided: any) => ({
+    ...provided,
+    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+    border: '1px solid rgba(34, 211, 238, 0.2)',
+  }),
+  multiValueLabel: (provided: any) => ({
+    ...provided,
+    color: '#22d3ee',
+    fontWeight: 'bold',
+    fontSize: '0.75rem',
+    textTransform: 'uppercase'
+  }),
+  multiValueRemove: (provided: any) => ({
+    ...provided,
+    color: '#22d3ee',
+    ':hover': {
+      backgroundColor: 'rgba(34, 211, 238, 0.2)',
+      color: '#22d3ee',
+    },
   }),
   input: (provided: any) => ({
     ...provided,
-    color: '#333333',
+    color: '#e2e8f0',
   }),
 };
 
@@ -190,10 +227,13 @@ export default function ServicoDia() {
 
   return (
     <div>
-      <p className="text-textSecondary mt-2">Defina os militares e civis para as funções especiais do dia.</p>
+      <p className="text-slate-400 mt-2 font-mono text-sm max-w-3xl">
+        <span className="text-cyan-400 mr-2">::</span>
+        Defina os militares e civis para as funções especiais do dia. Use os seletores abaixo.
+      </p>
 
       {/* Campos de Data de Início e Fim */}
-      <div className="my-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+      <div className="my-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl bg-[#0a0d14]/50 p-6 rounded-xl border border-white/5">
         <div>
           <Label htmlFor="data-inicio">Início do Plantão</Label>
           <Input id="data-inicio" type="datetime-local" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} disabled={!isAdmin} />
@@ -205,10 +245,13 @@ export default function ServicoDia() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64"><Spinner className="h-12 w-12" /></div>
+        <div className="flex justify-center items-center h-64"><Spinner className="h-12 w-12 text-cyan-500" /></div>
       ) : (
-        <div className="bg-white/10 backdrop-blur-[2px] border border-white/20 p-6 rounded-lg shadow-md">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-[#0a0d14]/80 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          {/* Decorative Top Line */}
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent mb-8" />
+
+          <div className="grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
             {servicos.map(({ funcao, pessoas }) => {
               const isCivil = FUNCOES_CIVIS.includes(funcao);
               const loadOptions = isCivil ? loadCivilOptions : loadMilitarOptions;
@@ -217,7 +260,7 @@ export default function ServicoDia() {
 
               return (
                 <div key={funcao}>
-                  <Label htmlFor={funcao}>{funcao}</Label>
+                  <Label htmlFor={funcao} className="text-cyan-500/80 mb-2 block text-xs font-bold uppercase tracking-wider">{funcao}</Label>
                   <AsyncSelect
                     id={funcao}
                     isMulti
@@ -236,17 +279,17 @@ export default function ServicoDia() {
             })}
           </div>
           {isAdmin && (
-            <div className="mt-8 flex justify-end gap-4">
+            <div className="mt-10 pt-6 border-t border-white/5 flex justify-end gap-4">
               {/* Botão de Limpar */}
               <Button
                 onClick={handleOpenClearModal}
                 disabled={isSaving || isDeleting}
-                className="!bg-rose-500 hover:!bg-rose-600 text-white"
+                className="!bg-rose-500/10 !border !border-rose-500/30 !text-rose-400 hover:!bg-rose-500/20"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? <Spinner /> : 'Limpar Escala'}
               </Button>
-              <Button onClick={handleSave} disabled={isSaving || isDeleting} className="!bg-emerald-500 hover:!bg-emerald-600 text-white">
+              <Button onClick={handleSave} disabled={isSaving || isDeleting} className="!bg-cyan-500/10 !border !border-cyan-500/50 !text-cyan-400 hover:!bg-cyan-500/20 hover:!shadow-[0_0_15px_rgba(34,211,238,0.4)]">
                 {isSaving ? <Spinner /> : 'Salvar Alterações'}
               </Button>
             </div>
