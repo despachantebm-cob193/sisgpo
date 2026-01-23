@@ -70,9 +70,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['lucide-react', 'react-hot-toast', 'react-select', 'framer-motion'],
+          'ui-vendor': ['lucide-react', 'react-hot-toast', 'react-select'],
           'charts-vendor': ['recharts'],
-          'utils-vendor': ['date-fns', 'clsx', 'tailwind-merge'],
+          'utils-vendor': ['date-fns'],
           'supabase-vendor': ['@supabase/supabase-js'],
         },
       },
