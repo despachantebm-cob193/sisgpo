@@ -5,6 +5,7 @@ import 'express-async-errors';
 import cors from 'cors';
 import path from 'path';
 import { supabaseAdmin } from './config/supabase';
+import helmet from 'helmet';
 
 import env from './config/env';
 import authRoutes from './routes/authRoutes';
@@ -65,6 +66,17 @@ app.use(
 );
 
 app.use(express.json());
+app.use(helmet());
+
+// Cache middleware for public dashboard routes
+const publicCache = (req: Request, res: Response, next: any) => {
+  if (req.method === 'GET' && req.url.includes('/api/public/dashboard')) {
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=300'); // Cache for 5 minutes
+  }
+  next();
+};
+
+app.use('/api/public', publicCache);
 
 // Middleware simples para métricas de API (latência/status) - apenas rotas /api
 app.use((req, res, next) => {

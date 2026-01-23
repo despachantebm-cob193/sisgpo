@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import AppError from '../utils/AppError';
 import { normalizeText } from '../utils/textUtils';
+import { fetchAll, fetchAllKeyset } from '../utils/supabasePagination';
 
 const normalize = (value: string | null | undefined) => (value ? String(value).trim().toUpperCase() : '');
 
@@ -16,7 +17,9 @@ const dashboardController = {
   getStats: async (req: Request, res: Response) => {
     try {
       const FORCE_REFRESH = req.query.refresh === 'true';
-      const CACHE_KEY = 'dashboard_stats';
+      const obm_id = req.query.obm_id as string;
+
+      const CACHE_KEY = obm_id ? `dashboard_stats_${obm_id}` : 'dashboard_stats';
       const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
       // 1. Try Cache
@@ -31,17 +34,31 @@ const dashboardController = {
           const updatedAt = new Date(cached.updated_at).getTime();
           const now = Date.now();
           if (now - updatedAt < CACHE_TTL_MS) {
-            console.log('[Dashboard] Serving general stats from cache');
             return res.status(200).json(cached.data);
           }
         }
       }
 
+      // Resolve OBM Name if filtering
+      let obmName: string | null = null;
+      if (obm_id) {
+        const { data } = await supabaseAdmin.from('obms').select('nome').eq('id', obm_id).single();
+        obmName = data?.nome || null;
+      }
+
       // 2. Calculate Fresh
-      console.log('[Dashboard] Calculating general stats (Miss/Stale/Forced)...');
+      // Separate queries to apply filters
+      let qMil = supabaseAdmin.from('militares').select('id', { count: 'exact', head: true }).eq('ativo', true);
+      let qVtr = supabaseAdmin.from('viaturas').select('id', { count: 'exact', head: true }).eq('ativa', true);
+
+      if (obmName) {
+        qMil = qMil.eq('obm_nome', obmName);
+        qVtr = qVtr.eq('obm', obmName);
+      }
+
       const [mil, vtr, obm] = await Promise.all([
-        supabaseAdmin.from('militares').select('id', { count: 'exact', head: true }).eq('ativo', true),
-        supabaseAdmin.from('viaturas').select('id', { count: 'exact', head: true }).eq('ativa', true),
+        qMil,
+        qVtr,
         supabaseAdmin.from('obms').select('id', { count: 'exact', head: true }),
       ]);
 
@@ -52,7 +69,7 @@ const dashboardController = {
         cache_timestamp: new Date().toISOString()
       };
 
-      // 3. Update Cache (Async/Fire-and-forget or Await)
+      // 3. Update Cache
       await supabaseAdmin
         .from('dashboard_cache')
         .upsert({
@@ -68,24 +85,20 @@ const dashboardController = {
     }
   },
 
-  getViaturaStatsPorTipo: async (_req: Request, res: Response) => {
+  getViaturaStatsPorTipo: async (req: Request, res: Response) => {
     try {
-      let allViaturas: any[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data, error } = await supabaseAdmin
-          .from('viaturas')
-          .select('prefixo')
-          .eq('ativa', true)
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allViaturas = allViaturas.concat(data);
-        if (data.length < pageSize) break;
-        page++;
+      const obm_id = req.query.obm_id as string;
+      let obmName: string | null = null;
+      if (obm_id) {
+        const { data } = await supabaseAdmin.from('obms').select('nome').eq('id', obm_id).single();
+        obmName = data?.nome || null;
       }
+
+      const allViaturas = await fetchAll<any>((from, to) => {
+        let q = supabaseAdmin.from('viaturas').select('prefixo').eq('ativa', true);
+        if (obmName) q = q.eq('obm', obmName);
+        return q.range(from, to);
+      });
 
       const stats = (allViaturas || []).reduce((acc: any, v: any) => {
         const p = normalize(v.prefixo);
@@ -94,10 +107,12 @@ const dashboardController = {
         else if (p.startsWith('ABT')) tipo = 'ABT';
         else if (p.startsWith('ASA')) tipo = 'ASA';
         else if (p.includes('-')) tipo = p.split('-')[0];
+
         if (!acc[tipo]) acc[tipo] = { name: tipo, value: 0 };
         acc[tipo].value += 1;
         return acc;
       }, {});
+
       return res.status(200).json(Object.values(stats).sort((a: any, b: any) => b.value - a.value));
     } catch (error) {
       console.error('ERRO AO BUSCAR ESTATISTICAS DE VIATURAS POR TIPO:', error);
@@ -105,63 +120,30 @@ const dashboardController = {
     }
   },
 
-  getMilitarStats: async (_req: Request, res: Response) => {
+  getMilitarStats: async (req: Request, res: Response) => {
     try {
-      // Fetch com paginação para garantir todos os registros (>1000)
-      let allMilitares: any[] = [];
-      let page = 0;
-      const pageSize = 500; // Reduzido para evitar timeouts ou limites ocultos
-
-      // Check count first
-      const { count } = await supabaseAdmin
-        .from('militares')
-        .select('*', { count: 'exact', head: true })
-        .eq('ativo', true);
-
-      let lastId = 0;
-      let totalFetched = 0;
-
-      console.log(`[Dashboard] Total de militares ativos no DB (count): ${count}`);
-      console.log('[Dashboard] Iniciando busca via KEYSET PAGINATION (ID > lastId)...');
-
-      while (true) {
-        const { data, error } = await supabaseAdmin
-          .from('militares')
-          .select('id, posto_graduacao') // ID is required for keyset
-          .eq('ativo', true)
-          .gt('id', lastId)
-          .order('id', { ascending: true })
-          .limit(pageSize);
-
-        if (error) {
-          console.error('[Dashboard] Erro na paginação de militares:', error);
-          throw error;
-        }
-
-        if (!data || data.length === 0) break;
-
-        allMilitares = allMilitares.concat(data);
-        const batchSize = data.length;
-        totalFetched += batchSize;
-        lastId = data[batchSize - 1].id; // Update cursor
-
-        console.log(`[Dashboard] Batch carregado. LastId: ${lastId}. Itens: ${batchSize}. Total: ${totalFetched}`);
-
-        if (batchSize < pageSize) break;
+      const obm_id = req.query.obm_id as string;
+      let obmName: string | null = null;
+      if (obm_id) {
+        const { data } = await supabaseAdmin.from('obms').select('nome').eq('id', obm_id).single();
+        obmName = data?.nome || null;
       }
 
-      console.log(`[Dashboard] Total de militares ativos recuperados: ${allMilitares.length}`);
+      const allMilitares = await fetchAllKeyset<any>(
+        supabaseAdmin,
+        'militares',
+        'id, posto_graduacao',
+        (q) => {
+          let query = q.eq('ativo', true);
+          if (obmName) query = query.eq('obm_nome', obmName);
+          return query;
+        }
+      );
 
       const normalizePosto = (str: string) => {
         if (!str) return 'N/A';
-        // Caso especial para normalizar "SGT" -> "Sgt", "PEL" -> "Pel", etc.
-        // Mantém "2º", "1º", "CB", "SD" se for padrão, ou converte tudo para Title Case.
-        // Title Case simples:
         return str.toLowerCase().split(' ').map(word => {
-          // Preserva numerais ordinais como estão se já estiverem ok, ou normaliza se precisar
-          // Mas o toLowerCase já resolveu SGT -> sgt. Agora capitalize.
-          if (word.length > 2 && word.includes('º')) return word; // 2º, 1º pode manter minúsculo se quiser ou não.
-          // Melhor forçar Title Case em tudo
+          if (word.length > 2 && word.includes('º')) return word;
           return word.charAt(0).toUpperCase() + word.slice(1);
         }).join(' ');
       };
@@ -169,7 +151,6 @@ const dashboardController = {
       const stats: Record<string, number> = {};
       (allMilitares || []).forEach((m: any) => {
         let pg = m.posto_graduacao || 'N/A';
-        // Normalização forçada para evitar duplicatas por Case Sensitivity
         pg = normalizePosto(pg);
         stats[pg] = (stats[pg] || 0) + 1;
       });
@@ -185,36 +166,31 @@ const dashboardController = {
     }
   },
 
-  getViaturaStatsDetalhado: async (_req: Request, res: Response) => {
+  getViaturaStatsDetalhado: async (req: Request, res: Response) => {
     try {
-      // Buscar todas as viaturas com paginação
-      let allViaturas: any[] = [];
-      let pageV = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data, error } = await supabaseAdmin
-          .from('viaturas')
-          .select('prefixo, obm') // obm aqui é string denormalizada
-          .eq('ativa', true)
-          .order('prefixo') // Order ajuda na paginação consistente
-          .range(pageV * pageSize, (pageV + 1) * pageSize - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allViaturas = allViaturas.concat(data);
-        if (data.length < pageSize) break;
-        pageV++;
+      const obm_id = req.query.obm_id as string;
+      let obmName: string | null = null;
+      if (obm_id) {
+        const { data } = await supabaseAdmin.from('obms').select('nome').eq('id', obm_id).single();
+        obmName = data?.nome || null;
       }
 
-      const { data: obms } = await supabaseAdmin.from('obms').select('nome, abreviatura').limit(2000);
+      // Parallel fetch: Viaturas + OBMs
+      const [allViaturas, { data: obms }] = await Promise.all([
+        fetchAll<any>((from, to) => {
+          let q = supabaseAdmin.from('viaturas').select('prefixo, obm').eq('ativa', true).order('prefixo');
+          if (obmName) q = q.eq('obm', obmName);
+          return q.range(from, to);
+        }),
+        supabaseAdmin.from('obms').select('nome, abreviatura').limit(2000)
+      ]);
 
-      const obmMap = new Map<string, string>(); // nome -> abreviatura
+      const obmMap = new Map<string, string>();
       (obms || []).forEach((o: any) => {
         if (o.nome) obmMap.set(o.nome.toLowerCase(), o.abreviatura);
       });
 
       const stats = (allViaturas || []).reduce((acc: any, vtr: any) => {
-        // Tenta resolver abreviatura da OBM
         let localFinal = vtr.obm;
         if (vtr.obm && obmMap.has(vtr.obm.toLowerCase())) {
           localFinal = obmMap.get(vtr.obm.toLowerCase());
@@ -230,8 +206,10 @@ const dashboardController = {
 
         if (!acc[tipo]) acc[tipo] = { tipo, quantidade: 0, obms: {} as Record<string, string[]> };
         acc[tipo].quantidade += 1;
+
         if (!acc[tipo].obms[nomeLocal]) acc[tipo].obms[nomeLocal] = [];
         acc[tipo].obms[nomeLocal].push(vtr.prefixo);
+
         return acc;
       }, {});
 
@@ -249,31 +227,26 @@ const dashboardController = {
     }
   },
 
-  getViaturaStatsPorObm: async (_req: Request, res: Response) => {
+  getViaturaStatsPorObm: async (req: Request, res: Response) => {
     try {
-      // Buscar viaturas com paginação
-      let allViaturas: any[] = [];
-      let pageV = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data, error } = await supabaseAdmin
-          .from('viaturas')
-          .select('prefixo, obm')
-          .eq('ativa', true)
-          .range(pageV * pageSize, (pageV + 1) * pageSize - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allViaturas = allViaturas.concat(data);
-        if (data.length < pageSize) break;
-        pageV++;
+      const obm_id = req.query.obm_id as string;
+      let obmName: string | null = null;
+      if (obm_id) {
+        const { data } = await supabaseAdmin.from('obms').select('nome').eq('id', obm_id).single();
+        obmName = data?.nome || null;
       }
 
-      const { data: obms } = await supabaseAdmin.from('obms').select('id, nome, abreviatura, crbm').limit(2000);
+      const [allViaturas, { data: obms }] = await Promise.all([
+        fetchAll<any>((from, to) => {
+          let q = supabaseAdmin.from('viaturas').select('prefixo, obm').eq('ativa', true);
+          if (obmName) q = q.eq('obm', obmName);
+          return q.range(from, to);
+        }),
+        supabaseAdmin.from('obms').select('id, nome, abreviatura, crbm').limit(2000)
+      ]);
 
       const resultStats: Record<string, any> = {};
 
-      // Helper simples para achar OBM do array
       const findObm = (nomeOrAbrev: string) => {
         if (!nomeOrAbrev) return null;
         const target = normalizeText(nomeOrAbrev);
@@ -284,7 +257,6 @@ const dashboardController = {
 
       (allViaturas || []).forEach((v: any) => {
         const obmMatch = findObm(v.obm);
-        // Usa o nome da OBM encontrada ou o valor da string v.obm ou 'Sem OBM'
         const key = obmMatch ? (obmMatch.abreviatura || obmMatch.nome) : (v.obm || 'Sem OBM');
 
         if (!resultStats[key]) {
@@ -317,18 +289,71 @@ const dashboardController = {
 
   getServicoDia: async (_req: Request, res: Response) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
+      // Busca servicos que estao ativos AGORA (start <= now <= end)
+      // OU servicos que comecam hoje (para garantir que aparecam antes de comecar tambem)
 
-      const { data, error } = await supabaseAdmin
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      // 1. Fetch Serviço - Lógica Corrigida para Overlap
+      const { data: servicos, error } = await supabaseAdmin
         .from('servico_dia')
         .select('*')
-        .lte('data_inicio', today) // Assumindo lógica <= hoje e >= hoje para pegar vigente?
-        .gte('data_fim', today)    // ou apenas data = hoje se for diário. O original usava intervalos.
-        .limit(10); // Segurança
+        // Lógica de "Sobreposição com o dia de hoje"
+        // (Start < TodayEnd) AND (End > TodayStart)
+        .lt('data_inicio', todayEnd.toISOString())
+        .gt('data_fim', todayStart.toISOString())
+        .order('data_inicio', { ascending: false })
+        .limit(50); // Aumentei limite para garantir
 
-      if (error) return res.status(200).json([]); // Retorna vazio se der erro ou tabela nao existir
-      return res.status(200).json(data || []);
+      if (error || !servicos) {
+        console.error('Erro ao buscar servico_dia:', error);
+        return res.status(200).json([]);
+      }
+
+      // Se houver duplicatas por funcao (ex: plantao acabando e outro comecando), pegar o mais recente
+      // Mas o frontend ja deve filtrar. Vamos mandar todos que batem com hoje.
+
+      // 2. Fetch Detalhes (Join Manual)
+      const militarIds = servicos
+        .filter((s: any) => s.pessoa_type === 'militar' && s.pessoa_id)
+        .map((s: any) => s.pessoa_id);
+
+      const militaresMap = new Map<number, any>();
+      if (militarIds.length > 0) {
+        const { data: militares, error: milError } = await supabaseAdmin
+          .from('militares')
+          .select('id, nome_guerra, nome_completo, posto_graduacao, telefone')
+          .in('id', militarIds);
+
+        if (milError) console.error('[getServicoDia] Error fetching militares:', milError);
+
+        militares?.forEach((m: any) => {
+          militaresMap.set(Number(m.id), m);
+        });
+      }
+
+      // 3. Montar Resposta Enriquecida
+      const result = servicos.map((s: any) => {
+        let det = null;
+        if (s.pessoa_type === 'militar') {
+          const lookupId = Number(s.pessoa_id);
+          det = militaresMap.get(lookupId);
+        }
+        return {
+          ...s,
+          nome_guerra: det?.nome_guerra || det?.nome_completo || 'N/A',
+          posto_graduacao: det?.posto_graduacao || '',
+          telefone: det?.telefone
+        };
+      });
+
+      return res.status(200).json(result);
     } catch (error) {
+      console.error('Erro critico servico_dia:', error);
       return res.status(200).json([]);
     }
   },
@@ -339,9 +364,6 @@ const dashboardController = {
   getMilitaresEscaladosCount: async (_req: Request, res: Response) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      // Count distinct via JS (puxa tabela de relação filtrada por data)
-      // Query original faz join.
-      // supabase: militar_plantao join plantoes
       const { data, error } = await supabaseAdmin
         .from('militar_plantao')
         .select('militar_id, plantoes!inner(data_plantao)')
@@ -355,6 +377,79 @@ const dashboardController = {
     } catch (error) {
       console.error('ERRO CONTAGEM ESCALADOS:', error);
       return res.status(200).json({ count: 0 });
+    }
+  },
+
+  getMilitarStatsPorCrbm: async (req: Request, res: Response) => {
+    try {
+      const obm_id = req.query.obm_id as string;
+      let obmName: string | null = null;
+      if (obm_id) {
+        const { data } = await supabaseAdmin.from('obms').select('nome').eq('id', obm_id).single();
+        obmName = data?.nome || null;
+      }
+
+      const allMilitares = await fetchAllKeyset<any>(
+        supabaseAdmin,
+        'militares',
+        'id, crbm',
+        (q) => {
+          let query = q.eq('ativo', true);
+          if (obmName) query = query.eq('obm_nome', obmName);
+          return query;
+        }
+      );
+
+      const stats: Record<string, number> = {};
+      (allMilitares || []).forEach((m: any) => {
+        const crbm = m.crbm || 'Sem CRBM';
+        stats[crbm] = (stats[crbm] || 0) + 1;
+      });
+
+      const data = Object.entries(stats)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => {
+          const numA = parseInt(a.name.match(/\d+/)?.[0] || '99');
+          const numB = parseInt(b.name.match(/\d+/)?.[0] || '99');
+          return numA - numB;
+        });
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error('ERRO ESTATISTICAS CRBM:', error);
+      throw new AppError('Erro ao buscar estatisticas por CRBM.', 500);
+    }
+  },
+
+  getViaturasEmpenhadasCount: async (_req: Request, res: Response) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Plantoes validos de hoje com viatura
+      // Usando fetchAll para garantir que pegamos todos se houver muitos
+      const allPlantoes = await fetchAll<any>((from, to) =>
+        supabaseAdmin
+          .from('plantoes')
+          .select('viatura_id, viaturas!inner(prefixo)')
+          .gte('data_plantao', today)
+          .not('viatura_id', 'is', null)
+          .range(from, to)
+      );
+
+      const engagedSet = new Set<string>();
+      allPlantoes.forEach((p: any) => {
+        if (p.viaturas?.prefixo) {
+          engagedSet.add(p.viaturas.prefixo);
+        }
+      });
+
+      return res.status(200).json({
+        count: engagedSet.size,
+        engagedSet: Array.from(engagedSet)
+      });
+    } catch (error) {
+      console.error('ERRO VIATURAS EMPENHADAS:', error);
+      return res.status(200).json({ count: 0, engagedSet: [] });
     }
   },
 };

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import db from '../config/database';
+import db from '../config/knex';
 
 const login = (process.env.ADMIN_LOGIN || '').trim();
 const senhaPlana = process.env.ADMIN_PASSWORD || '';

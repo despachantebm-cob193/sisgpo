@@ -58,17 +58,22 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
   // Função que renderiza uma linha de funções
   const renderLinha = (funcoes: string[]) => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-4 gap-y-6">
-      {funcoes.map(funcao => {
-        const profissionais = profissionaisPorFuncao[funcao] || [];
-        const config = funcoesConfig[funcao] || { icon: <User />, title: funcao };
+      {funcoes.map(keyConfig => {
+        // Encontra a chave nos dados que corresponde a esta configuração (ignorando case/trim)
+        const funcaoDataKey = Object.keys(profissionaisPorFuncao).find(
+          k => k.trim().toLowerCase() === keyConfig.trim().toLowerCase()
+        );
+
+        const profissionais = funcaoDataKey ? profissionaisPorFuncao[funcaoDataKey] : [];
+        const config = funcoesConfig[keyConfig];
 
         return (
-          <div key={funcao} className="text-center flex flex-col items-center p-2 rounded-lg hover:bg-searchbar transition-colors">
+          <div key={keyConfig} className="text-center flex flex-col items-center p-2 rounded-lg hover:bg-searchbar transition-colors">
             <div className="flex items-center gap-2 mb-1">
               {config.icon}
               <p className="text-sm text-textSecondary font-medium">{config.title}</p>
             </div>
-            
+
             <div className="font-bold text-md text-textMain w-full">
               {profissionais.length > 0 ? (
                 profissionais.map((p, index) => (

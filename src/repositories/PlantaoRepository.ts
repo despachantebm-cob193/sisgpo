@@ -261,26 +261,67 @@ export class PlantaoRepository {
   }
 
   async create(payload: Partial<PlantaoRow>): Promise<PlantaoRow> {
-    const { data, error } = await this.supabase
-      .from('plantoes')
-      .insert(payload)
-      .select()
-      .single();
+    try {
+      const [inserted] = await db('plantoes')
+        .insert(payload)
+        .returning('*');
 
-    if (error) throw new Error(`Erro ao criar plantão: ${error.message}`);
-    return data as PlantaoRow;
+      return inserted as PlantaoRow;
+    } catch (error: any) {
+      throw new Error(`Erro ao criar plantão (Knex): ${error.message}`);
+    }
+  }
+
+  async createWithGuarnicao(
+    payload: Partial<PlantaoRow>,
+    guarnicao: Array<{ militar_id: number; funcao?: string | null }>
+  ): Promise<PlantaoRow> {
+    try {
+      return await db.transaction(async (trx) => {
+        // 1. Create Plantao
+        const [inserted] = await trx('plantoes')
+          .insert(payload)
+          .returning('*');
+
+        if (!inserted?.id) throw new Error('ID do plantão não retornado após insert.');
+
+        // 2. Insert Guarnicao
+        if (guarnicao && guarnicao.length > 0) {
+          const guarnicaoPayload = guarnicao
+            .filter((m) => m.militar_id)
+            .map((m) => ({
+              plantao_id: inserted.id,
+              militar_id: m.militar_id,
+              funcao: m.funcao || null
+            }));
+
+          if (guarnicaoPayload.length > 0) {
+            await trx('militar_plantao').insert(guarnicaoPayload);
+          }
+        }
+
+        return inserted as PlantaoRow;
+      });
+    } catch (error: any) {
+      throw new Error(`Erro ao criar plantão com guarnição (Knex): ${error.message}`);
+    }
   }
 
   async update(id: number, payload: Partial<PlantaoRow>): Promise<PlantaoRow> {
-    const { data, error } = await this.supabase
-      .from('plantoes')
-      .update({ ...payload, updated_at: new Date() })
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const [updated] = await db('plantoes')
+        .where({ id })
+        .update({ ...payload, updated_at: new Date() })
+        .returning('*');
 
-    if (error) throw new Error(`Erro ao atualizar plantão: ${error.message}`);
-    return data as PlantaoRow;
+      if (!updated) {
+        throw new Error('Plantão não encontrado para atualização.');
+      }
+
+      return updated as PlantaoRow;
+    } catch (error: any) {
+      throw new Error(`Erro ao atualizar plantão (Knex): ${error.message}`);
+    }
   }
 
   async delete(id: number): Promise<number> {

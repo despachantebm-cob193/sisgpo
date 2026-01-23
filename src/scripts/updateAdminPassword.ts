@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import db from '../config/database';
+import db from '../config/knex';
 
 async function updateAdminPassword() {
   console.log('--- INICIANDO SCRIPT DE ATUALIZACAO DE SENHA DO ADMIN ---');

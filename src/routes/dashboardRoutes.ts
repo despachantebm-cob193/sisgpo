@@ -27,6 +27,8 @@ router.get('/viatura-stats-por-tipo', safeHandler(dashboardController, 'getViatu
 router.get('/militar-stats', safeHandler(dashboardController, 'getMilitarStats'));
 router.get('/viatura-stats-detalhado', safeHandler(dashboardController, 'getViaturaStatsDetalhado'));
 router.get('/viatura-stats-por-obm', safeHandler(dashboardController, 'getViaturaStatsPorObm'));
+router.get('/militar-stats-por-crbm', safeHandler(dashboardController, 'getMilitarStatsPorCrbm'));
+router.get('/viaturas-empenhadas-count', safeHandler(dashboardController, 'getViaturasEmpenhadasCount'));
 router.get('/servico-dia', safeHandler(dashboardController, 'getServicoDia'));
 router.get('/escala-aeronaves', safeHandler(dashboardController, 'getEscalaAeronaves'));
 router.get('/escala-codec', safeHandler(dashboardController, 'getEscalaCodec'));

@@ -94,7 +94,7 @@ export class PlantaoService {
     const { obmId, prefixo } = await this.resolveViaturaContext(viatura_id, obm_id);
     const plantaoNome = buildPlantaoNome(prefixo, data_plantao, viatura_id);
 
-    const created = await this.repository.create({
+    const created = await this.repository.createWithGuarnicao({
       nome: plantaoNome,
       tipo: 'VIATURA',
       data_plantao,
@@ -105,20 +105,7 @@ export class PlantaoService {
       observacoes: observacoes || null,
       hora_inicio: normalizeHorarioInput(hora_inicio),
       hora_fim: normalizeHorarioInput(hora_fim),
-    });
-
-    // PASSO 4: Integridade de Dados (Compensating Transaction)
-    if (Array.isArray(guarnicao) && guarnicao.length > 0) {
-      try {
-        await this.repository.replaceGuarnicao(created.id as number, guarnicao);
-      } catch (error) {
-        console.error(`[PlantaoService] Erro ao salvar guarnição. Cancelando plantão ${created.id}...`, error);
-        await this.repository.delete(created.id as number).catch(delErr =>
-          console.error('[PlantaoService] Erro crítico no rollback manual:', delErr)
-        );
-        throw new AppError('Falha ao salvar a guarnição do plantão. A operação foi cancelada.', 500);
-      }
-    }
+    }, guarnicao || []);
 
     return created;
   }

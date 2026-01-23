@@ -1,3 +1,3 @@
-import db from '../config/database';
+import db from '../config/knex';
 
-export = db;
+export default db;

@@ -259,19 +259,19 @@ export default function ComandantesCrbmPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <p className="text-white/70">Gerencie os comandantes dos Comandos Regionais de Bombeiros Militares</p>
-                <div className="flex gap-3">
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                     <Button
                         onClick={() => setIsBatchShareOpen(true)}
-                        className="!bg-emerald-600 hover:!bg-emerald-700"
+                        className="w-full md:w-auto !bg-emerald-600 hover:!bg-emerald-700 justify-center"
                         title="Compartilhar dashboard com todos os comandantes"
                     >
                         <Share2 className="w-4 h-4 mr-2" />
                         Compartilhar em Lote
                     </Button>
                     {isAdmin && (
-                        <Button onClick={() => openModal()} className="!bg-green-600 hover:!bg-green-700">
+                        <Button onClick={() => openModal()} className="w-full md:w-auto !bg-green-600 hover:!bg-green-700 justify-center">
                             <PlusIcon className="w-4 h-4 mr-2" />
                             Adicionar Comandante
                         </Button>

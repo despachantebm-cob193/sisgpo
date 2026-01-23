@@ -13,6 +13,7 @@ import { Trash2 } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import ConfirmationModal from '../components/ui/ConfirmationModal'; // Importe o modal
+import ServicoDiaCard from '../components/dashboard/ServicoDiaCard';
 
 // Interfaces
 interface SelectOption {
@@ -264,6 +265,39 @@ export default function ServicoDia() {
         isLoading={isDeleting}
       />
       {/* --- FIM DA CORREÇÃO --- */}
+
+      {/* --- PREVIEW DO DASHBOARD (ESPELHO) --- */}
+      <div className="mt-12">
+        <h2 className="text-lg font-semibold text-white mb-4">Pré-visualização do Dashboard</h2>
+        <div className="opacity-90 hover:opacity-100 transition-opacity">
+          <ServicoDiaCard
+            isLoading={isLoading}
+            data={servicos.flatMap(s =>
+              s.pessoas.map(p => {
+                // Tenta extrair posto e nome do label (ex: "MAJ FULANO")
+                // Se o label for "MAJ FULANO", posto="MAJ", nome="FULANO" aproximadamente
+                // Mas como é preview, usamos o label completo como nome_guerra se não conseguirmos separar
+                // O ideal seria ter o objeto militar completo, mas aqui temos apenas {id, label, type}
+                // Vamos tentar uma heuristica simples ou mostrar label inteiro
+
+                const parts = p.label.split(' ');
+                const posto = parts[0];
+                const nome = parts.slice(1).join(' ');
+
+                return {
+                  funcao: s.funcao,
+                  posto_graduacao: posto, // Aproximacao para preview
+                  nome_guerra: nome || p.label, // Fallback
+                  telefone: null // Nao temos telefone no select option
+                };
+              })
+            )}
+          />
+        </div>
+        <p className="text-xs text-center text-textSecondary mt-2">
+          * Esta é uma pré-visualização baseada nos dados do formulário. Telefones e detalhes adicionais aparecerão no Dashboard oficial após salvar.
+        </p>
+      </div>
     </div>
   );
 }

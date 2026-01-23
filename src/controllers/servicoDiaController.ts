@@ -38,12 +38,22 @@ const servicoDiaController = {
 
     try {
       // 1. Achar "último plantão" ou "plantão vigente" para a data
-      // O original buscava intervalo: data_inicio <= busca <= data_fim
+      // O original buscava intervalo: data_inicio <= busca <= data_fim (Ponto no tempo)
+      // MUDANÇA: Buscar INTERSEÇÃO (Overlap) com o dia da busca, igual ao Dashboard.
+
+      const requestDate = new Date(dataBusca);
+      requestDate.setHours(0, 0, 0, 0);
+      const startOfDay = requestDate.toISOString();
+
+      requestDate.setHours(23, 59, 59, 999);
+      const endOfDay = requestDate.toISOString();
+
       const { data: ultimoPlantao } = await supabaseAdmin
         .from('servico_dia')
         .select('data_inicio')
-        .lte('data_inicio', dataBusca)
-        .gte('data_fim', dataBusca)
+        // (Start < EndOfDay) AND (End > StartOfDay)
+        .lt('data_inicio', endOfDay)
+        .gt('data_fim', startOfDay)
         .order('data_inicio', { ascending: false })
         .limit(1)
         .single();
@@ -185,11 +195,19 @@ const servicoDiaController = {
 
     try {
       // Buscar data exata da escala vigente
+      // MUDANÇA: Buscar INTERSEÇÃO (Overlap) com o dia da busca, para garantir que encontre a escala visível
+      const requestDate = new Date(dataBusca);
+      requestDate.setHours(0, 0, 0, 0);
+      const startOfDay = requestDate.toISOString();
+
+      requestDate.setHours(23, 59, 59, 999);
+      const endOfDay = requestDate.toISOString();
+
       const { data: ultimoPlantao } = await supabaseAdmin
         .from('servico_dia')
         .select('data_inicio')
-        .lte('data_inicio', dataBusca)
-        .gte('data_fim', dataBusca)
+        .lt('data_inicio', endOfDay)
+        .gt('data_fim', startOfDay)
         .order('data_inicio', { ascending: false })
         .limit(1)
         .single();

@@ -3,37 +3,32 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-async function listModels() {
-    try {
-        const result = await genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).listModels();
-        // Wait, listModels is on the genAI object or a specific model?
-        // In @google/generative-ai, listModels is not easily accessible via genAI.
-        // Actually, I can just try different names.
-        console.log('Testing names...');
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-// Correct way to list models in @google/generative-ai is actually via the REST API or Vertex AI.
-// For the SDK, we usually just use the strings.
-// Common strings:
-// 'gemini-1.5-flash'
-// 'gemini-1.5-flash-latest'
-// 'gemini-1.5-pro'
-// 'gemini-2.0-flash-exp'
-// 'gemini-2.0-flash-lite'
+const apiKey = process.env.GEMINI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(apiKey);
 
 async function test() {
-    const models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-2.0-flash-lite-preview-02-05'];
+    const models = [
+        'gemini-2.0-flash',
+        'gemini-2.0-flash-001',
+        'gemini-2.0-flash-lite',
+        'gemini-2.0-flash-lite-001',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.5-pro'
+    ];
+
+    if (!apiKey) {
+        console.error('❌ GEMINI_API_KEY not set.');
+        return;
+    }
+
     for (const m of models) {
+        console.log(`Testing model: ${m}...`);
         try {
             const model = genAI.getGenerativeModel({ model: m });
-            const res = await model.generateContent('hi');
-            console.log(`✅ Model ${m} works!`);
-            break;
+            const result = await model.generateContent('Qual sua versao?');
+            const response = await result.response;
+            console.log(`✅ Model ${m} works! Response: ${response.text().substring(0, 30)}...`);
         } catch (err: any) {
             console.log(`❌ Model ${m} failed: ${err.message}`);
         }

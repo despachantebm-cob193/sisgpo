@@ -20,10 +20,17 @@
     height: 100%;
   }
 
-  /* Zoom adjustment for non-mobile screens (80%) */
+  /* Zoom adjustment for non-mobile screens */
   @media (min-width: 768px) {
     body {
       zoom: 0.8;
+    }
+  }
+
+  /* 90% scale for screens larger than 1366px (e.g. Full HD) */
+  @media (min-width: 1367px) {
+    body {
+      zoom: 0.9;
     }
   }
 

@@ -3,211 +3,104 @@ import { Request, Response } from 'express';
 import aiAssistedValidationService from '../services/aiAssistedValidationService';
 import { supabaseAdmin } from '../config/supabase';
 
-const RANGE_LIMIT = 20000; // garante busca completa para agregações (limite alto para evitar corte padrão de 1000)
+// Helper de busca via Supabase HTTP API (bypassing Knex port 5432 issues)
+const searchTools = {
+    async findMilitares(term: string) {
+        // Tenta buscar por nome ou matrícula
+        const isMatricula = /^\d+$/.test(term);
+        const query = supabaseAdmin.from('militares').select('*').limit(5);
+
+        if (isMatricula) {
+            query.ilike('matricula', `%${term}%`);
+        } else {
+            query.ilike('nome', `%${term}%`);
+        }
+        const { data } = await query;
+        return data || [];
+    },
+
+    async findViatura(prefixo: string) {
+        const { data } = await supabaseAdmin.from('viaturas').select('*').ilike('prefixo', `%${prefixo}%`).limit(5);
+        return data || [];
+    },
+
+    async findObm(term: string) {
+        const { data } = await supabaseAdmin.from('obms').select('*')
+            .or(`abreviatura.ilike.%${term}%,nome.ilike.%${term}%`)
+            .limit(5);
+        return data || [];
+    }
+};
 
 const aiController = {
     chat: async (req: Request, res: Response) => {
         try {
             const { question, history } = req.body;
             if (!question) {
-                return res.status(400).json({ message: 'Pergunta (question) é obrigatória.' });
+                return res.status(400).json({ message: 'Pergunta obrigatória.' });
             }
 
-            // 1. Intelligent Context Gathering
-            const contextResults: any = {
-                stats: {},
-                searchResults: []
-            };
+            console.log(`[AI Controller] Processing via HTTP Strategy: "${question}"`);
 
-            // A. Global Stats - Comprehensive Data Fetch
-            const hoje = new Date().toISOString().split('T')[0];
-
-            const [mil, vtr, obm, ranks, milObm, vtrTypes, aeronaves, plantoesHoje, escaladosHoje] = await Promise.all([
-                // Core counts
+            // 1. Coleta de Contexto Leve (Counts)
+            const [mil, vtr, obmCount] = await Promise.all([
                 supabaseAdmin.from('militares').select('count', { count: 'exact', head: true }).eq('ativo', true),
                 supabaseAdmin.from('viaturas').select('count', { count: 'exact', head: true }).eq('ativa', true),
-                supabaseAdmin.from('obms').select('nome, abreviatura, crbm, telefone, cidade').range(0, RANGE_LIMIT - 1),
-                // Rank breakdown
-                supabaseAdmin.from('militares').select('posto_graduacao').eq('ativo', true).range(0, RANGE_LIMIT - 1),
-                // Militares por OBM
-                supabaseAdmin.from('militares').select('obm_nome, obm').eq('ativo', true).range(0, RANGE_LIMIT - 1),
-                // Viatura Types
-                supabaseAdmin.from('viaturas').select('tipo, obm').eq('ativa', true).range(0, RANGE_LIMIT - 1),
-                // Aeronaves
-                supabaseAdmin.from('aeronaves').select('count', { count: 'exact', head: true }).eq('ativa', true),
-                // Plantoes today
-                supabaseAdmin.from('plantoes').select('id').eq('data_plantao', hoje).range(0, RANGE_LIMIT - 1),
-                // Militares escalados hoje (join)
-                supabaseAdmin.from('militar_plantao').select('militar_id, plantoes!inner(data_plantao)').eq('plantoes.data_plantao', hoje).range(0, RANGE_LIMIT - 1)
+                supabaseAdmin.from('obms').select('count', { count: 'exact', head: true })
             ]);
 
-            // Aggregate Ranks in Memory
-            const rankCounts: Record<string, number> = {};
-            ranks.data?.forEach(m => {
-                const p = m.posto_graduacao || 'Nao Informado';
-                rankCounts[p] = (rankCounts[p] || 0) + 1;
-            });
-
-            // Aggregate Militares per OBM
-            const militaresPorObm: Record<string, number> = {};
-            milObm.data?.forEach(m => {
-                const obmNome = (m.obm_nome || m.obm || 'Sem OBM').trim();
-                militaresPorObm[obmNome] = (militaresPorObm[obmNome] || 0) + 1;
-            });
-
-            // Aggregate Viatura Types
-            const tipoViaturaCounts: Record<string, number> = {};
-            const vtrPorObm: Record<string, number> = {};
-            vtrTypes.data?.forEach(v => {
-                const t = v.tipo || 'Nao Informado';
-                tipoViaturaCounts[t] = (tipoViaturaCounts[t] || 0) + 1;
-                const o = v.obm || 'Sem OBM';
-                vtrPorObm[o] = (vtrPorObm[o] || 0) + 1;
-            });
-
-            // Unique escalados hoje
-            const uniqueEscalados = new Set(escaladosHoje.data?.map((e: any) => e.militar_id) || []);
-
-            contextResults.stats = {
-                total_militares_ativos: mil.count || 0,
-                militares_por_patente: rankCounts,
-                militares_por_obm: militaresPorObm,
-                total_viaturas_ativas: vtr.count || 0,
-                viaturas_por_tipo: tipoViaturaCounts,
-                viaturas_por_obm: vtrPorObm,
-                total_aeronaves_ativas: aeronaves.count || 0,
-                total_obms: obm.data?.length || 0,
-                plantoes_hoje: plantoesHoje.data?.length || 0,
-                militares_escalados_hoje: uniqueEscalados.size
+            const contextData: any = {
+                resumo_sistema: {
+                    militares_ativos: mil.count,
+                    viaturas_ativas: vtr.count,
+                    unidades_obm: obmCount.count
+                },
+                resultados_busca: []
             };
 
-            // B. Contextual Search Query Construction
-            // If the user asks a follow-up like "Qual a obm dele?", we combine with previous context
-            let searchQuery = question.trim();
-            if (history && history.length > 0) {
-                const lastUserMsg = history.reverse().find((h: any) => h.role === 'user');
-                if (lastUserMsg && searchQuery.length < 15) { // Only if current query is short/ambiguous
-                    searchQuery = `${lastUserMsg.content} ${searchQuery}`;
-                    console.log(`[AI Controller] Contexto expandido para busca: "${searchQuery}"`);
+            // 2. Busca Inteligente baseada na pergunta
+            const qLower = question.toLowerCase();
+            const words = qLower.split(' ');
+
+            // Detecção de Intenção Simplificada
+            if (words.some((w: string) => ['busca', 'procure', 'quem', 'militar', 'soldado', 'cabo', 'sargento', 'tenente', 'coronel'].includes(w))) {
+                // Tenta extrair nomes (heurística simples: palavras com mais de 3 letras que não sejam stop words)
+                const potentialNames = words.filter((w: string) => w.length > 3 && !['qual', 'quem', 'onde', 'para', 'como'].includes(w));
+                for (const name of potentialNames.slice(0, 2)) {
+                    const res = await searchTools.findMilitares(name);
+                    if (res.length > 0) contextData.resultados_busca.push({ termo: name, tipo: 'militar', dados: res });
                 }
             }
 
-            const numbersInQuery = searchQuery.match(/\d+/g);
-            const words = searchQuery.split(' ');
-
-            // Search Militar by Matricula (if numbers present)
-            if (numbersInQuery) {
-                for (const num of numbersInQuery) {
-                    if (num.length >= 3) {
-                        console.log(`[AI Controller] Buscando matricula: ${num}`);
-                        const { data: milData, error } = await supabaseAdmin
-                            .from('militares')
-                            .select('*') // Get all fields to be helpful
-                            .ilike('matricula', `%${num}%`)
-                            .limit(1)
-                            .maybeSingle();
-
-                        if (milData) {
-                            console.log(`[AI Controller] Militar encontrado: ${milData.nome}`);
-                            contextResults.searchResults.push({
-                                tipo: 'REGISTRO DE MILITAR (Resultados de Busca do Banco de Dados)',
-                                dados: milData
-                            });
-
-                            // Enrich with OBM details if militar has OBM info
-                            if (milData.obm_nome) {
-                                console.log(`[AI Controller] Buscando OBM do militar: ${milData.obm_nome}`);
-                                const { data: obmData } = await supabaseAdmin
-                                    .from('obms')
-                                    .select('*')
-                                    .or(`abreviatura.ilike.%${milData.obm_nome}%,nome.ilike.%${milData.obm_nome}%`)
-                                    .limit(1);
-
-                                if (obmData && obmData.length > 0) {
-                                    contextResults.searchResults.push({
-                                        tipo: 'OBM DE LOTAÇÃO DO MILITAR',
-                                        dados: obmData[0]
-                                    });
-                                }
-                            }
-                        } else if (error) {
-                            console.log('[AI Controller] Erro busca matricula:', error.message);
-                        }
-                    }
+            if (words.some((w: string) => ['viatura', 'vtr', 'carro', 'caminhao', 'ur', 'abt', 'asa'].includes(w))) {
+                const potentialPrefix = words.find((w: string) => w.toUpperCase().includes('UR-') || w.toUpperCase().includes('ABT-') || w.toUpperCase().includes('ASA-') || /\d{2,}/.test(w));
+                if (potentialPrefix) {
+                    const res = await searchTools.findViatura(potentialPrefix);
+                    if (res.length > 0) contextData.resultados_busca.push({ termo: potentialPrefix, tipo: 'viatura', dados: res });
                 }
             }
 
-            // Search OBM Details (Specific Search)
-            // If query mentions "telefone", "contato", "onde fica", "endereco" + OBM name
-            const isObmSearch = /telefone|contato|endereço|localiza|onde|fica|email/i.test(searchQuery);
-            if (isObmSearch || words.length < 5) {
-                // Clean query to find potential OBM name (e.g. "telefone do COB" -> "COB")
-                const obmQuery = searchQuery.replace(/telefone|celular|contato|do|da|de|qual|o|a|é|onde|fica|endereco|email/gi, '').trim();
-                if (obmQuery.length >= 2) {
-                    console.log(`[AI Controller] Buscando dados de OBM: ${obmQuery}`);
-                    const { data: obmData } = await supabaseAdmin
-                        .from('obms')
-                        .select('*')
-                        .or(`abreviatura.ilike.%${obmQuery}%,nome.ilike.%${obmQuery}%`)
-                        .limit(3);
-
-                    if (obmData && obmData.length > 0) {
-                        console.log(`[AI Controller] OBMs encontradas: ${obmData.length}`);
-                        contextResults.searchResults.push({
-                            tipo: 'DETALHES DA UNIDADE (OBM)',
-                            dados: obmData
-                        });
-                    }
+            if (words.some((w: string) => ['obm', 'unidade', 'quartel', 'batalhao', 'bbm'].includes(w))) {
+                const potentialObm = words.find((w: string) => w.length <= 4 && /\d/.test(w)) || words.find((w: string) => ['cob', 'bopar', 'cmd'].includes(w));
+                if (potentialObm) {
+                    const res = await searchTools.findObm(potentialObm);
+                    if (res.length > 0) contextData.resultados_busca.push({ termo: potentialObm, tipo: 'obm', dados: res });
                 }
             }
 
-            // Search Militar by Name (if query is text-heavy)
-            // Heuristic: If valid text and looks like a name search
-            if (words.length >= 2 && !searchQuery.toLowerCase().includes('quant')) {
-                const potentialName = searchQuery.replace(/qual|quem|o|a|é|nome|do|da|militar|com|matricula|número|id|telefone|celular|contato/gi, '').trim();
-                if (potentialName.length > 3) {
-                    console.log(`[AI Controller] Buscando por nome potencial: ${potentialName}`);
-                    const { data: milNameData } = await supabaseAdmin
-                        .from('militares')
-                        .select('*') // Get all fields including phone
-                        .ilike('nome', `%${potentialName.replace(/ /g, '%')}%`)
-                        .limit(3);
-
-                    if (milNameData && milNameData.length > 0) {
-                        console.log(`[AI Controller] Militares encontrados por nome: ${milNameData.length}`);
-                        contextResults.searchResults.push({
-                            tipo: 'POSSIVEIS MILITARES (Busca por Nome)',
-                            dados: milNameData
-                        });
-                    }
-                }
-            }
-
-            // Create a rich OBM list including phones and cities for context
-            const obmRichList = obm.data?.map(o => {
-                const tel = o.telefone ? ` | Tel: ${o.telefone}` : '';
-                const cid = o.cidade ? ` - ${o.cidade}` : '';
-                return `${o.abreviatura} (${o.nome})${cid}${tel}`;
-            }).join('\n');
-
-            const contextData = {
-                ...contextResults,
-                // Passing full list with phones+cities so AI can answer contact/location questions
-                lista_completa_obms: obmRichList?.slice(0, 5000),
-                lista_militares_por_obm: Object.entries(contextResults.stats.militares_por_obm || {})
-                    .sort((a, b) => (b[1] as number) - (a[1] as number))
-                    .map(([nome, total]) => `${nome}: ${total}`)
-                    .join('\n')
-            };
-
-            // 2. Ask AI
+            // 3. Resposta da IA
+            // Usamos o método antigo (answerSystemQuery) que já sabe lidar com JSON
             const answer = await aiAssistedValidationService.answerSystemQuery(question, contextData, history);
 
             return res.status(200).json({ answer });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('AI Chat Error:', error);
-            return res.status(500).json({ message: 'Erro ao processar chat.' });
+            // Fallback gracioso
+            return res.status(500).json({
+                message: 'O assistente está temporariamente indisponível.',
+                detail: error?.message
+            });
         }
     }
 };

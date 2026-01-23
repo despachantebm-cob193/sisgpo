@@ -20,22 +20,30 @@ const config: { [key: string]: Knex.Config } = {
         connection: process.env.DATABASE_URL || getLocalConnection(),
         migrations: {
             directory: './src/database/migrations',
-            extension: 'js', // Keep strict to JS if migrations are JS, or 'ts' if converted. Current migrations are JS.
+            loadExtensions: ['.ts', '.js'],
         },
         seeds: {
             directory: './src/database/seeds',
-            extension: 'js',
+            loadExtensions: ['.ts', '.js'],
         },
     },
 
     test: {
         client: 'pg',
-        connection: getLocalConnection(),
+        connection: process.env.DATABASE_URL
+            ? {
+                connectionString: process.env.DATABASE_URL,
+                ssl: { rejectUnauthorized: false },
+            }
+            : getLocalConnection(),
+        pool: { min: 0, max: 1 }, // Reduce pool size for tests to avoid connection limits
         migrations: {
             directory: './src/database/migrations',
+            loadExtensions: ['.ts', '.js'],
         },
         seeds: {
             directory: './src/database/seeds',
+            loadExtensions: ['.ts', '.js'],
         },
     },
 

@@ -8,6 +8,9 @@ import { ptBR } from 'date-fns/locale';
 // Importação do store de UI para gerenciar o título da página
 import { useUiStore } from '@/store/uiStore';
 
+// Custom Hook
+import { useDashboardData } from '@/hooks/useDashboardData';
+
 // Componentes de UI
 import StatCard from '@/components/ui/StatCard';
 import Button from '@/components/ui/Button';
@@ -23,55 +26,41 @@ import ViaturaByObmTable from '@/components/dashboard/ViaturaByObmTable';
 import ServicoDiaCard from '@/components/dashboard/ServicoDiaCard';
 import AeronavesCard from '@/components/dashboard/AeronavesCard';
 import CodecCard from '@/components/dashboard/CodecCard';
-import TopFleetSummary from '@/components/dashboard/TopFleetSummary'; // Import the new component
 
 // Interfaces
-// Interfaces
-import {
-  DashboardStats,
-  ChartStat,
-  ViaturaStatAgrupada,
-  ViaturaPorObmStat,
-  ServicoInfo,
-  Aeronave,
-  PlantonistaCodec,
-  Obm,
-  Viatura,
-  Plantao,
-  ApiResponse
-} from '@/types/dashboard';
+import { Obm } from '@/types/entities';
 
 export default function Dashboard() {
   const location = useLocation();
   const isLoggedInArea = location.pathname.startsWith('/app');
   const { setPageTitle, setLastUpdate: setUiLastUpdate } = useUiStore();
 
-  // States for the new TopFleetSummary component
+  // States for TopFleetSummary (kept local for now)
   const [totalViaturasAtivas, setTotalViaturasAtivas] = useState<number | null>(null);
   const [totalViaturasEmpenhadas, setTotalViaturasEmpenhadas] = useState<number | null>(null);
   const [empenhadasViaturasSet, setEmpenhadasViaturasSet] = useState<Set<string>>(new Set());
-  // const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
-  // New state for militares escalados
-  const [militaresEscaladosCount, setMilitaresEscaladosCount] = useState<number | null>(null);
-  const [isLoadingMilitaresEscalados, setIsLoadingMilitaresEscalados] = useState(true);
-
-  // Existing states
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [viaturaTipoStats, setViaturaTipoStats] = useState<ChartStat[]>([]);
-  const [militarStats, setMilitarStats] = useState<ChartStat[]>([]);
-  const [militarByCrbmStats, setMilitarByCrbmStats] = useState<ChartStat[]>([]);
-  const [viaturaDetailStats, setViaturaDetailStats] = useState<ViaturaStatAgrupada[]>([]);
-  const [viaturaPorObmStats, setViaturaPorObmStats] = useState<ViaturaPorObmStat[]>([]);
-  const [servicoDia, setServicoDia] = useState<ServicoInfo[]>([]);
-  const [escalaAeronaves, setEscalaAeronaves] = useState<Aeronave[]>([]);
-  const [escalaCodec, setEscalaCodec] = useState<PlantonistaCodec[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Filter State
   const [obms, setObms] = useState<Obm[]>([]);
   const [selectedObm, setSelectedObm] = useState<string>('');
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Use Custom Hook for Data Fetching
+  const {
+    stats,
+    viaturaTipoStats,
+    militarStats,
+    militarByCrbmStats,
+    viaturaDetailStats,
+    viaturaPorObmStats,
+    servicoDia,
+    escalaAeronaves,
+    escalaCodec,
+    militaresEscaladosCount,
+    isLoading,
+    error
+  } = useDashboardData(selectedObm);
 
   useEffect(() => {
     setPageTitle('Dashboard Operacional');
@@ -93,69 +82,23 @@ export default function Dashboard() {
       toast.error('Não foi possível carregar o resumo da frota.');
     }
   }, [setUiLastUpdate]);
-  const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [
-        statsData,
-        viaturaTipoData,
-        militarStatsData,
-        militarByCrbmStatsData,
-        viaturaDetailData,
-        viaturaPorObmData,
-        servicoDiaData,
-        escalaAeronavesData,
-        escalaCodecData,
-        militaresEscaladosCountVal
-      ] = await Promise.all([
-        dashboardService.getStats(selectedObm),
-        dashboardService.getViaturaStatsPorTipo(selectedObm),
-        dashboardService.getMilitarStats(selectedObm),
-        dashboardService.getMilitarStatsPorCrbm(selectedObm),
-        dashboardService.getViaturaStatsDetalhado(selectedObm),
-        dashboardService.getViaturaStatsPorObm(selectedObm),
-        dashboardService.getServicoDia(selectedObm),
-        dashboardService.getEscalaAeronaves(),
-        dashboardService.getEscalaCodec(),
-        dashboardService.getMilitaresEscaladosCount(selectedObm)
-      ]);
-
-      setStats(statsData);
-      setViaturaTipoStats(viaturaTipoData);
-      setMilitarStats(militarStatsData);
-      setMilitarByCrbmStats(militarByCrbmStatsData);
-      setViaturaDetailStats(viaturaDetailData);
-      setViaturaPorObmStats(viaturaPorObmData);
-      setServicoDia(servicoDiaData);
-      setEscalaAeronaves(escalaAeronavesData);
-      setEscalaCodec(escalaCodecData);
-      setMilitaresEscaladosCount(militaresEscaladosCountVal);
-      setError(null);
-    } catch (err) {
-      setError('Não foi possível carregar os dados do dashboard.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMilitaresEscalados(false);
-    }
-  }, [selectedObm]);
 
   useEffect(() => {
-    fetchFleetSummaryData(); // Fetch summary data
+    fetchFleetSummaryData(); // Fetch summary data independently
+
     if (isLoggedInArea) {
       const fetchAdminData = async () => {
         try {
           const obmsData = await dashboardService.getObms();
           setObms(obmsData);
-          // Metadata fetch temporarily disabled for Supabase-only mode
+          // Metadata fetch temporarily disabled
           // const metadataRes = await api.get('/api/dashboard/metadata/viaturas_last_upload');
           // setLastUpload(new Date(metadataRes.data.value).toLocaleString('pt-BR'));
         } catch (err) { /* Não mostra erro para dados opcionais */ }
       };
       fetchAdminData();
     }
-    fetchDashboardData();
-  }, [fetchDashboardData, isLoggedInArea, fetchFleetSummaryData]);
+  }, [isLoggedInArea, fetchFleetSummaryData]);
 
   const publicUrl = `${window.location.origin}`;
   const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
@@ -173,7 +116,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-4 w-full md:w-auto">
               <select id="obm-filter" value={selectedObm} onChange={(e) => setSelectedObm(e.target.value)} className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                 <option value="">Todas as OBMs</option>
-                {obms.map((obm) => (<option key={obm.id} value={obm.id}>{obm.abreviatura} - {obm.nome}</option>))}
+                {Array.isArray(obms) && obms.map((obm) => (<option key={obm.id || obm.nome} value={obm.id || ''}>{obm.abreviatura} - {obm.nome}</option>))}
               </select>
               <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto !bg-emerald-500 hover:!bg-emerald-600 text-white">
                 <Share2 className="w-4 h-4 mr-2" />
@@ -183,8 +126,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Render the new component here */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        {/* Stats Grid - Vertical on Mobile, Grid on Desktop */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard
             title="Viaturas Ativas"
             value={totalViaturasAtivas ?? 0}
@@ -206,7 +149,7 @@ export default function Dashboard() {
           <StatCard
             title="Militares Escalados"
             value={militaresEscaladosCount ?? 0}
-            isLoading={isLoadingMilitaresEscalados}
+            isLoading={isLoading}
             variant="transparent"
           />
           <StatCard

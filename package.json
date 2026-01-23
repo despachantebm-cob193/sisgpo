@@ -15,7 +15,8 @@
     "build": "tsc && cd sisgpo-frontend && npm install && npm run build",
     "render:build": "npm install",
     "test:setup": "cross-env NODE_ENV=test npm run knex migrate:latest --env test",
-    "test": "cross-env NODE_ENV=test npm run test:setup && cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
+    "test": "cross-env NODE_ENV=test npm run test:setup && cross-env NODE_ENV=test jest --runInBand --detectOpenHandles",
+    "stress:test": "ts-node src/scripts/stress-test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -33,6 +34,7 @@
     "google-auth-library": "^10.4.1",
     "googleapis": "^169.0.0",
     "groq-sdk": "^0.37.0",
+    "helmet": "^8.1.0",
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.0",
     "knex": "^3.1.0",
