@@ -1,7 +1,7 @@
 import React from 'react';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'danger' | 'default' | 'success' | 'primary' | 'warning' | 'secondary' | 'icon';
+  variant?: 'danger' | 'default' | 'success' | 'primary' | 'warning' | 'secondary' | 'icon' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 };
@@ -18,6 +18,7 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'default
     success: 'bg-cardGreen text-textMain hover:bg-cardGreen/80 focus-visible:ring-cardGreen',
     warning: 'bg-premiumOrange text-background hover:bg-premiumOrange/80 focus-visible:ring-premiumOrange',
     icon: 'bg-transparent hover:bg-gray-700/50 focus-visible:ring-gray-500 disabled:hover:bg-transparent',
+    ghost: 'bg-transparent hover:bg-gray-700/30 focus-visible:ring-gray-500',
   };
 
   const sizeClasses = {
@@ -32,9 +33,8 @@ const Button: React.FC<ButtonProps> = ({ children, className, variant = 'default
     lg: 'h-10 w-10',
   };
 
-  const combinedClasses = `${baseClasses} ${
-    variant === 'icon' ? iconSizeClasses[size] : sizeClasses[size]
-  } ${variantClasses[variant]} ${className || ''}`;
+  const combinedClasses = `${baseClasses} ${variant === 'icon' ? iconSizeClasses[size] : sizeClasses[size]
+    } ${variantClasses[variant]} ${className || ''}`;
 
   return (
     <button className={combinedClasses.trim()} disabled={isLoading || props.disabled} {...props}>

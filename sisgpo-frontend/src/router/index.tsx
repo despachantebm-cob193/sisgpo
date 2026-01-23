@@ -89,6 +89,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
   const isPending = useAuthStore((state) => state.isPending);
   const isLoadingProfile = useAuthStore((state) => state.isLoadingProfile);
+  const user = useAuthStore((state) => state.user);
 
   if (isLoadingProfile) {
     return (
@@ -96,6 +97,13 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
         <Spinner className="h-12 w-12 text-primary" />
       </div>
     );
+  }
+
+  // Verificação de Integridade de Sessão:
+  // Se tem token (isAuthenticated) mas o objeto user está inválido/corrompido, força logout.
+  if (isAuthenticated && (!user || !user.id)) {
+    useAuthStore.getState().logout();
+    return <Navigate to="/login" replace />;
   }
 
   if (!isAuthenticated) {

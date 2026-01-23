@@ -358,8 +358,92 @@ const dashboardController = {
     }
   },
 
-  getEscalaAeronaves: async (_req: Request, res: Response) => res.status(200).json([]),
-  getEscalaCodec: async (_req: Request, res: Response) => res.status(200).json([]),
+  getEscalaAeronaves: async (_req: Request, res: Response) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabaseAdmin
+        .from('escala_aeronaves')
+        .select(`
+            status,
+            aeronaves (prefixo, tipo_asa),
+            p1:militares!primeiro_piloto_id (posto_graduacao, nome_guerra, nome_completo),
+            p2:militares!segundo_piloto_id (posto_graduacao, nome_guerra, nome_completo)
+        `)
+        .eq('data', today);
+
+      if (error) {
+        console.error('Erro ao buscar escala de aeronaves:', error);
+        return res.status(200).json([]);
+      }
+
+      const formatPilotName = (piloto: any) => {
+        if (!piloto) return 'N/A';
+        const posto = piloto.posto_graduacao || '';
+        const nome = piloto.nome_guerra || piloto.nome_completo || '';
+        return `${posto} ${nome}`.trim();
+      };
+
+      const result = (data || []).map((item: any) => ({
+        prefixo: item.aeronaves?.prefixo || 'N/A',
+        tipo_asa: item.aeronaves?.tipo_asa || 'rotativa',
+        status: item.status,
+        primeiro_piloto: formatPilotName(item.p1),
+        segundo_piloto: formatPilotName(item.p2)
+      }));
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('ERRO DASHBOARD AERONAVES:', error);
+      return res.status(200).json([]);
+    }
+  },
+  getEscalaCodec: async (_req: Request, res: Response) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabaseAdmin
+        .from('escala_codec')
+        .select(`
+            turno,
+            ordem_plantonista,
+            militares (
+                posto_graduacao,
+                nome_guerra,
+                nome_completo
+            )
+        `)
+        .eq('data', today)
+        .order('turno', { ascending: true })
+        .order('ordem_plantonista', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao buscar escala CODEC:', error);
+        return res.status(200).json([]);
+      }
+
+      const result = (data || []).map((item: any) => {
+        const militar = item.militares;
+        let nome = 'N/A';
+        if (militar) {
+          const pg = militar.posto_graduacao || '';
+          const ng = militar.nome_guerra || militar.nome_completo || '';
+          nome = `${pg} ${ng}`.trim();
+        }
+
+        return {
+          turno: item.turno,
+          ordem_plantonista: item.ordem_plantonista,
+          nome_plantonista: nome
+        };
+      });
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('ERRO AO BUSCAR ESCALA CODEC:', error);
+      return res.status(200).json([]);
+    }
+  },
 
   getMilitaresEscaladosCount: async (_req: Request, res: Response) => {
     try {

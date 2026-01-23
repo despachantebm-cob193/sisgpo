@@ -127,7 +127,7 @@ const EscalaAeronaveForm = ({
 
   const { data: aeronavesData, isLoading: isLoadingAeronaves } = useQuery<Aeronave[]>({
     queryKey: ['aeronaves'],
-    queryFn: () => api.get('/api/admin/viaturas/aeronaves').then((res) => res.data.data),
+    queryFn: () => api.get('/api/admin/aeronaves').then((res) => res.data.data),
   });
 
   const aeronaveOptions =
@@ -163,6 +163,18 @@ const EscalaAeronaveForm = ({
               onChange={(option) => field.onChange(option)}
               isLoading={isLoadingAeronaves}
               placeholder="Selecione o prefixo"
+              styles={{
+                input: (base) => ({ ...base, color: '#333333' }), // Texto digitado
+                singleValue: (base) => ({ ...base, color: '#333333' }), // Valor selecionado
+                placeholder: (base) => ({ ...base, color: '#666666' }), // Placeholder
+                option: (base, state) => ({
+                  ...base,
+                  backgroundColor: state.isFocused ? '#e2e8f0' : 'white', // Cinza claro no hover
+                  color: '#333333', // Texto das opções sempre escuro
+                }),
+                menu: (base) => ({ ...base, zIndex: 9999 }), // Garante que o menu fique sobreposto
+                control: (base) => ({ ...base, backgroundColor: 'white' }), // Fundo do input branco
+              }}
             />
           )}
         />
@@ -186,6 +198,18 @@ const EscalaAeronaveForm = ({
               defaultOptions
               value={field.value}
               onChange={(option) => field.onChange(option)}
+              styles={{
+                input: (base) => ({ ...base, color: '#333333' }),
+                singleValue: (base) => ({ ...base, color: '#333333' }),
+                placeholder: (base) => ({ ...base, color: '#666666' }),
+                option: (base, state) => ({
+                  ...base,
+                  backgroundColor: state.isFocused ? '#e2e8f0' : 'white',
+                  color: '#333333',
+                }),
+                menu: (base) => ({ ...base, zIndex: 9999 }),
+                control: (base) => ({ ...base, backgroundColor: 'white' }),
+              }}
             />
           )}
         />
@@ -210,6 +234,18 @@ const EscalaAeronaveForm = ({
               defaultOptions
               value={field.value}
               onChange={(option) => field.onChange(option)}
+              styles={{
+                input: (base) => ({ ...base, color: '#333333' }),
+                singleValue: (base) => ({ ...base, color: '#333333' }),
+                placeholder: (base) => ({ ...base, color: '#666666' }),
+                option: (base, state) => ({
+                  ...base,
+                  backgroundColor: state.isFocused ? '#e2e8f0' : 'white',
+                  color: '#333333',
+                }),
+                menu: (base) => ({ ...base, zIndex: 9999 }),
+                control: (base) => ({ ...base, backgroundColor: 'white' }),
+              }}
             />
           )}
         />
@@ -223,7 +259,7 @@ const EscalaAeronaveForm = ({
           render={({ field }) => (
             <select
               id="status"
-              className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm focus:outline-none focus-visible:ring-tagBlue focus:border-tagBlue"
+              className="w-full px-3 py-2 border border-borderDark/60 rounded-md shadow-sm focus:outline-none focus-visible:ring-tagBlue focus:border-tagBlue bg-white text-[#333333]"
               value={field.value}
               onChange={field.onChange}
             >
