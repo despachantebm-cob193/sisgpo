@@ -46,7 +46,8 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
   }
 
   // Agrupa os profissionais por função a partir dos dados recebidos da API
-  const profissionaisPorFuncao = data.reduce((acc, servico) => {
+  const safeData = Array.isArray(data) ? data : [];
+  const profissionaisPorFuncao = safeData.reduce((acc, servico) => {
     const { funcao } = servico;
     if (!acc[funcao]) {
       acc[funcao] = [];

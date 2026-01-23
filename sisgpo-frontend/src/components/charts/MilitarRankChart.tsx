@@ -18,10 +18,12 @@ const MilitarRankChart: React.FC<MilitarRankChartProps> = ({ data, isLoading }) 
   const alturaMinima = 250; // Altura mínima do gráfico, mesmo com poucos dados
 
   // Calcula a altura total necessária
-  const alturaCalculada = Math.max(alturaMinima, data.length * alturaPorBarra);
+  const safeData = Array.isArray(data) ? data : [];
+  // Calcula a altura total necessária
+  const alturaCalculada = Math.max(alturaMinima, safeData.length * alturaPorBarra);
   // --- FIM DA LÓGICA ---
 
-  const totalMilitares = data.reduce((acc, item) => acc + item.value, 0);
+  const totalMilitares = safeData.reduce((acc, item) => acc + item.value, 0);
 
   return (
     <ChartCard

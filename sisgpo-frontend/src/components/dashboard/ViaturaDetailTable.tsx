@@ -42,7 +42,7 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
     );
   }
 
-  if (!data || data.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="bg-cardSlate p-4 rounded-lg shadow-md flex justify-center items-center min-h-[300px]">
         <p className="text-textSecondary">Nenhum dado de viatura disponível.</p>
@@ -84,9 +84,8 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
                     Total: {item.quantidade}
                   </span>
                   <ChevronDown
-                    className={`h-5 w-5 text-textSecondary transition-transform ${
-                      isOpen ? 'rotate-180' : ''
-                    }`}
+                    className={`h-5 w-5 text-textSecondary transition-transform ${isOpen ? 'rotate-180' : ''
+                      }`}
                   />
                 </div>
               </button>

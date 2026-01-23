@@ -18,8 +18,9 @@ interface ViaturaTypeChartProps {
 const ViaturaTypeChart: React.FC<ViaturaTypeChartProps> = ({ data, lastUpdated, isLoading }) => {
   const alturaPorBarra = 40;
   const alturaMinima = 200;
-  const alturaCalculada = Math.max(alturaMinima, data.length * alturaPorBarra);
-  const totalDeViaturasNoGrafico = data.reduce((sum, item) => sum + item.value, 0);
+  const safeData = Array.isArray(data) ? data : [];
+  const alturaCalculada = Math.max(alturaMinima, safeData.length * alturaPorBarra);
+  const totalDeViaturasNoGrafico = safeData.reduce((sum, item) => sum + item.value, 0);
 
   const formatarData = (isoString: string | null) => {
     if (!isoString) return 'Nunca atualizado';

@@ -13,7 +13,8 @@ interface MilitarByCrbmChartProps {
 }
 
 const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading }) => {
-    const totalMilitares = data ? data.reduce((acc, item) => acc + item.value, 0) : 0;
+    const safeData = Array.isArray(data) ? data : [];
+    const totalMilitares = safeData.reduce((acc, item) => acc + item.value, 0);
 
     return (
         <ChartCard
