@@ -116,13 +116,13 @@ export default function Dashboard() {
             </p>
           </div>
           {isLoggedInArea && (
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <div className="relative w-full md:w-64 group">
+            <div className="grid grid-cols-2 gap-3 w-full md:flex md:w-auto md:items-center mt-2 md:mt-0">
+              <div className="relative w-full md:w-64 group col-span-1">
                 <select
                   id="obm-filter"
                   value={selectedObm}
                   onChange={(e) => setSelectedObm(e.target.value)}
-                  className="w-full appearance-none bg-[#0f141e] text-slate-200 border border-slate-700 rounded px-4 py-2 font-mono text-sm shadow-[0_0_10px_rgba(0,0,0,0.3)] focus:outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all"
+                  className="w-full appearance-none bg-[#0f141e] text-slate-200 border border-slate-700 rounded px-4 py-2 font-mono text-sm shadow-[0_0_10px_rgba(0,0,0,0.3)] focus:outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all truncate"
                 >
                   <option value="">Todas as OBMs</option>
                   {Array.isArray(obms) && obms.map((obm) => (<option key={obm.id || obm.nome} value={obm.id || ''}>{obm.abreviatura} - {obm.nome}</option>))}
@@ -133,7 +133,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <Button onClick={() => setIsShareModalOpen(true)} className="!w-auto !bg-emerald-500/10 !border !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/20 hover:!shadow-[0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold">
+              <Button onClick={() => setIsShareModalOpen(true)} className="w-full md:!w-auto !bg-emerald-500/10 !border !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/20 hover:!shadow-[0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold col-span-1 flex justify-center">
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </Button>

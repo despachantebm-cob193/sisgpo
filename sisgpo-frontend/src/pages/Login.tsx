@@ -86,7 +86,7 @@ export default function Login() {
 
       {/* CARD PRINCIPAL - FRAME METÁLICO 3D (ATUALIZADO) */}
       <div
-        className="relative z-10 w-full max-w-[420px] p-[6px] rounded-[2.5rem] bg-gradient-to-br from-[#c0c5ce] via-[#e2e6eb] to-[#8a929e] shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-700"
+        className="relative z-10 w-[90%] max-w-[420px] p-[6px] rounded-[2.5rem] bg-gradient-to-br from-[#c0c5ce] via-[#e2e6eb] to-[#8a929e] shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-700"
         style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.8), 0 30px 60px -10px rgba(0,0,0,1), inset 0 1px 0 rgba(255,255,255,0.8)' }}
       >
         {/* Layer Escuro (Profundidade) */}
