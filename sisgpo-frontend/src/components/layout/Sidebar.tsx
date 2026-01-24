@@ -3,13 +3,15 @@ import {
   ClipboardList,
   FileText,
   Home,
-  LogOut,
+
   BellElectric,
   ChevronDown,
   Shield,
   UserCheck,
   Users,
   CheckCircle2,
+  Star,
+  BarChart3,
 } from 'lucide-react';
 import { TfiJoomla } from 'react-icons/tfi';
 import { GiSiren } from 'react-icons/gi';
@@ -36,7 +38,7 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const {
     sidebarMode,
     setSidebarCollapsed,
@@ -53,23 +55,7 @@ export default function Sidebar() {
     }
   };
 
-  const handleLogout = async () => {
-    logout();
-    try {
-      localStorage.removeItem('auth-storage');
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('sb-')) keysToRemove.push(key);
-      }
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error('Logout error:', e);
-    }
-    handleLinkClick();
-    window.location.href = '/login';
-  };
+
 
   const handleMouseEnter = () => {
     if (sidebarMode !== 'hover') return;
@@ -183,7 +169,7 @@ export default function Sidebar() {
             </li>
             <li>
               <NavLink to="/app/comandantes-crbm" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
-                <NavLinkContent isCollapsed={isCollapsed} icon={<Shield className="w-5 h-5" />} text="Comandantes CRBM" />
+                <NavLinkContent isCollapsed={isCollapsed} icon={<Star className="w-5 h-5" />} text="Comandantes CRBM" />
               </NavLink>
             </li>
             <li>
@@ -201,7 +187,7 @@ export default function Sidebar() {
                 </li>
                 <li>
                   <NavLink to="/app/metricas" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
-                    <NavLinkContent isCollapsed={isCollapsed} icon={<Shield className="w-5 h-5" />} text="Métricas" />
+                    <NavLinkContent isCollapsed={isCollapsed} icon={<BarChart3 className="w-5 h-5" />} text="Métricas" />
                   </NavLink>
                 </li>
                 <li>
@@ -229,22 +215,7 @@ export default function Sidebar() {
       </div>
 
       {/* User / Footer Section */}
-      <div className="p-4 border-t border-cyan-500/10 bg-gradient-to-t from-black/40 to-transparent">
-        <NavLink
-          to="/app/perfil"
-          onClick={handleLinkClick}
-          className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''} mb-2`}
-        >
-          <NavLinkContent isCollapsed={false} icon={<UserCheck className="w-5 h-5" />} text="Meu perfil" />
-        </NavLink>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-red-400 hover:text-red-200 hover:bg-red-500/10 transition-colors group"
-        >
-          <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="tracking-wide">Sair</span>
-        </button>
-      </div>
+
 
     </div>
   );
