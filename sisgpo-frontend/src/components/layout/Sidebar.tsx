@@ -87,6 +87,30 @@ export default function Sidebar() {
     }, 20000);
   };
 
+  // Handle Mobile Back Button
+  const closedByBackRef = useRef(false);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      closedByBackRef.current = false;
+      window.history.pushState({ sidebarOpen: true }, '');
+
+      const handlePopState = () => {
+        closedByBackRef.current = true;
+        toggleMobileMenu();
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        if (!closedByBackRef.current) {
+          window.history.back();
+        }
+      };
+    }
+  }, [isMobileMenuOpen, toggleMobileMenu]);
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
