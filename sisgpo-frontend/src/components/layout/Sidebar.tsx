@@ -3,6 +3,7 @@ import {
   ClipboardList,
   FileText,
   Home,
+  LogOut,
 
   BellElectric,
   ChevronDown,
@@ -38,7 +39,7 @@ const NavLinkContent = ({ isCollapsed, icon, text }: NavLinkContentProps) => (
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const {
     sidebarMode,
     setSidebarCollapsed,
@@ -55,7 +56,23 @@ export default function Sidebar() {
     }
   };
 
-
+  const handleLogout = async () => {
+    logout();
+    try {
+      localStorage.removeItem('auth-storage');
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-')) keysToRemove.push(key);
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+    handleLinkClick();
+    window.location.href = '/login';
+  };
 
   const handleMouseEnter = () => {
     if (sidebarMode !== 'hover') return;
@@ -214,7 +231,23 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* User / Footer Section */}
+      {/* User / Footer Section - Mobile Only */}
+      <div className="md:hidden p-4 border-t border-cyan-500/10 bg-gradient-to-t from-black/40 to-transparent">
+        <NavLink
+          to="/app/perfil"
+          onClick={handleLinkClick}
+          className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''} mb-2`}
+        >
+          <NavLinkContent isCollapsed={false} icon={<UserCheck className="w-5 h-5" />} text="Meu perfil" />
+        </NavLink>
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-red-400 hover:text-red-200 hover:bg-red-500/10 transition-colors group"
+        >
+          <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="tracking-wide">Sair</span>
+        </button>
+      </div>
 
 
     </div>
