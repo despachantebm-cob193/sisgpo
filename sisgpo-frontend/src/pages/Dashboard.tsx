@@ -109,20 +109,23 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <p className="text-slate-400 mt-2 font-mono text-sm tracking-wide">
+          <div className="w-full">
+            <p
+              className="text-slate-400 mt-2 font-mono text-xs sm:text-sm tracking-wide whitespace-normal break-words leading-relaxed w-full max-w-full pr-2"
+              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+            >
               <span className="text-cyan-400 mr-2">::</span>
               Visão geral do poder operacional em tempo real
             </p>
           </div>
           {isLoggedInArea && (
-            <div className="grid grid-cols-2 gap-3 w-full md:flex md:w-auto md:items-center mt-2 md:mt-0">
-              <div className="relative w-full md:w-64 group col-span-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+              <div className="relative w-full md:w-64 group">
                 <select
                   id="obm-filter"
                   value={selectedObm}
                   onChange={(e) => setSelectedObm(e.target.value)}
-                  className="w-full appearance-none bg-[#0f141e] text-slate-200 border border-slate-700 rounded px-4 py-2 font-mono text-sm shadow-[0_0_10px_rgba(0,0,0,0.3)] focus:outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all truncate"
+                  className="w-full appearance-none bg-[#0f141e] text-slate-200 border border-slate-700 rounded px-4 py-3 font-mono text-sm shadow-[0_0_10px_rgba(0,0,0,0.3)] focus:outline-none focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all truncate"
                 >
                   <option value="">Todas as OBMs</option>
                   {Array.isArray(obms) && obms.map((obm) => (<option key={obm.id || obm.nome} value={obm.id || ''}>{obm.abreviatura} - {obm.nome}</option>))}
@@ -133,7 +136,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <Button onClick={() => setIsShareModalOpen(true)} className="w-full md:!w-auto !bg-emerald-500/10 !border !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/20 hover:!shadow-[0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold col-span-1 flex justify-center">
+              <Button onClick={() => setIsShareModalOpen(true)} className="w-full sm:!w-auto !bg-emerald-500/10 !border !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/20 hover:!shadow-[0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold flex justify-center py-3">
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </Button>

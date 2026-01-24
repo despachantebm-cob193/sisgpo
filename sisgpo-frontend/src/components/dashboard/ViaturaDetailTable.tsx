@@ -76,7 +76,7 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
   }
 
   return (
-    <div className="bg-[#0a0d14]/80 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl relative overflow-hidden flex flex-col gap-4">
+    <div className="bg-[#0a0d14]/80 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl relative overflow-hidden flex flex-col gap-4 max-w-full">
 
       {/* Header com Search */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-4">
@@ -128,8 +128,8 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
                       return (
                         <td key={cell.id} className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${val === 'Indisponível'
-                              ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                             }`}>
                             {val}
                           </span>
@@ -142,8 +142,8 @@ const ViaturaDetailTable: React.FC<ViaturaDetailTableProps> = ({ data, isLoading
                       return (
                         <td key={cell.id} className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${isEmpenhada
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                              : 'bg-slate-700/30 text-slate-400 border-slate-600/30'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                            : 'bg-slate-700/30 text-slate-400 border-slate-600/30'
                             }`}>
                             {isEmpenhada && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
                             {val}

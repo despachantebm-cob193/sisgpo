@@ -113,7 +113,10 @@ const OperatorCard = ({ item, color }: { item: any, color: 'amber' | 'indigo' })
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className={`text-xs font-bold ${textColor} truncate font-mono`}>
+          <div
+            className={`text-xs font-bold ${textColor} font-mono whitespace-normal break-words leading-snug`}
+            style={{ wordBreak: 'break-word' }}
+          >
             {item.posto_graduacao} {item.nome_guerra}
           </div>
           <div className="flex items-center gap-2 mt-1">

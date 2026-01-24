@@ -40,7 +40,7 @@ const AppLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col gap-0 h-full transition-all duration-300 md:ml-64 ${isMobileMenuOpen ? 'backdrop-blur-[2px]' : ''} relative z-10`}
+        className={`flex-1 flex flex-col gap-0 h-full md:ml-64 ${isMobileMenuOpen ? 'backdrop-blur-[2px]' : ''} relative z-10`}
       >
         {/* Desktop Header */}
         <div className="hidden md:block flex-shrink-0 z-30">
@@ -49,7 +49,10 @@ const AppLayout: React.FC = () => {
 
         {/* Mobile Header */}
         <div className="md:hidden flex-shrink-0 fixed top-0 left-0 right-0 z-50">
-          <div className="flex items-center justify-between bg-[#0a0d14]/90 backdrop-blur-xl px-4 py-3 text-white border-b border-cyan-500/20 shadow-lg">
+          <div
+            className="flex items-center justify-between bg-[#0a0d14]/90 backdrop-blur-xl px-4 py-3 text-white border-b border-cyan-500/20 shadow-lg"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
+          >
             <button onClick={toggleMobileMenu} className="p-2 text-cyan-400 active:text-white">
               <Menu size={24} />
             </button>
@@ -58,7 +61,9 @@ const AppLayout: React.FC = () => {
         </div>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 pt-20 md:pt-6 w-full custom-scrollbar">
+        <main
+          className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 md:p-8 space-y-6 pt-20 pb-24 md:pt-6 md:pb-10 w-full custom-scrollbar mobile-safe-insets"
+        >
           <Outlet />
         </main>
 

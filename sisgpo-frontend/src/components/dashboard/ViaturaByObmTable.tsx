@@ -108,9 +108,15 @@ const ViaturaByObmTable: React.FC<ViaturaByObmTableProps> = ({ data, isLoading, 
                         <div className="p-1.5 bg-cyan-950/30 rounded border border-cyan-500/20">
                           <Truck className="w-4 h-4 text-cyan-400" />
                         </div>
-                        <h5 className="font-bold text-slate-200 text-sm tracking-wide truncate max-w-[120px]" title={obm.nome}>
-                          {obm.abreviatura || obm.nome}
-                        </h5>
+                        <div className="min-w-0">
+                          <h5
+                            className="font-bold text-slate-200 text-sm tracking-wide leading-snug break-words max-w-full"
+                            title={obm.nome}
+                            style={{ wordBreak: 'break-word' }}
+                          >
+                            {obm.abreviatura || obm.nome}
+                          </h5>
+                        </div>
                       </div>
 
                       <div className="flex items-baseline gap-1">

@@ -63,10 +63,13 @@ const ChatWidget: React.FC = () => {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end"
+            style={{ bottom: 'max(calc(env(safe-area-inset-bottom) + 16px), 24px)' }}
+        >
             {/* Chat Window */}
             {isOpen && (
-                <div className="mb-4 w-80 sm:w-96 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-[#0a0d14]/95 backdrop-blur-xl border border-cyan-500/20 overflow-hidden flex flex-col transition-all duration-300 transform origin-bottom-right h-[500px] ring-1 ring-cyan-500/10">
+                <div className="mb-4 w-full max-w-[calc(100vw-2.5rem)] sm:max-w-[24rem] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-[#0a0d14]/95 backdrop-blur-xl border border-cyan-500/20 overflow-hidden flex flex-col transition-all duration-300 transform origin-bottom-right h-[min(75vh,500px)] ring-1 ring-cyan-500/10">
 
                     {/* Header */}
                     <div className="bg-gradient-to-r from-cyan-900/40 to-slate-900/40 border-b border-cyan-500/20 p-4 flex justify-between items-center relative overflow-hidden">

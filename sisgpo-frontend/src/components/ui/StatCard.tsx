@@ -50,7 +50,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoadin
 
       {/* Content */}
       <div className="p-5 flex flex-col items-center justify-between h-full relative z-10">
-        <h3 className={`text-[10px] uppercase tracking-[0.25em] font-bold mb-3 ${titleColorClass}`}>
+        <h3 className={`text-[9px] xs:text-[10px] uppercase tracking-[0.1em] xs:tracking-[0.25em] font-bold mb-3 ${titleColorClass} text-center whitespace-normal`}>
           {title}
         </h3>
 
