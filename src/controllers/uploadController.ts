@@ -6,11 +6,12 @@ import crypto from 'crypto';
 const uploadController = {
     uploadPhoto: async (req: Request, res: Response) => {
         try {
-            if (!req.files || Object.keys(req.files).length === 0) {
+            const files = req.files as any;
+            if (!files || Object.keys(files).length === 0) {
                 throw new AppError('Nenhum arquivo foi enviado.', 400);
             }
 
-            const file = Array.isArray(req.files.file) ? req.files.file[0] : req.files.file;
+            const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
             if (!file) {
                 throw new AppError('Arquivo inválido.', 400);
