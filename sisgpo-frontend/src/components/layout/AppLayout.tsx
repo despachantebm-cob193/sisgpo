@@ -63,7 +63,7 @@ const AppLayout: React.FC = () => {
         {/* Scrollable Content */}
         <main
           className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-3 py-6 md:p-8 space-y-6 pb-24 md:pt-6 md:pb-10 w-full custom-scrollbar mx-auto max-w-full"
-          style={{ paddingTop: 'calc(35px + env(safe-area-inset-top))' }}
+          style={{ paddingTop: 'calc(85px + env(safe-area-inset-top))' }}
         >
           <Outlet />
         </main>
