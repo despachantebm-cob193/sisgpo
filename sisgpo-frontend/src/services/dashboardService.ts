@@ -143,7 +143,13 @@ export const dashboardService = {
         try {
             // OBM list might require auth, relying on default axios config
             const { data } = await api.get('/api/dashboard/obms'); // Protected route usually
-            return data || [];
+            if (data && Array.isArray(data.data)) {
+                return data.data;
+            }
+            if (Array.isArray(data)) {
+                return data;
+            }
+            return [];
         } catch (error) {
             console.error('Error fetching OBMs:', error);
             return [];

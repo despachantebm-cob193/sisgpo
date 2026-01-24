@@ -34,6 +34,6 @@ router.get('/escala-aeronaves', safeHandler(dashboardController, 'getEscalaAeron
 router.get('/escala-codec', safeHandler(dashboardController, 'getEscalaCodec'));
 router.get('/militares-escalados-count', safeHandler(dashboardController, 'getMilitaresEscaladosCount'));
 router.get('/metadata/:key', safeHandler(dashboardController, 'getMetadataByKey'));
-router.get('/obms', obmController.getAll);
+router.get('/obms', safeHandler(obmController, 'getAllSimple'));
 
 export default router;

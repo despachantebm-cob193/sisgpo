@@ -12,19 +12,19 @@ const AppLayout: React.FC = () => {
   const { toggleMobileMenu, isMobileMenuOpen } = useUiStore();
 
   return (
-    <div className="relative h-full bg-[#050608] text-slate-300 overflow-hidden flex font-sans selection:bg-cyan-500/30">
+    <div className="relative min-h-screen w-full bg-[#050608] text-slate-300 overflow-hidden flex font-sans selection:bg-cyan-500/30">
       {/* Background System - Unified with Login "Sci-Fi Industrial" */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#131722] via-[#050608] to-[#000000] z-0" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#131722] via-[#050608] to-[#000000] z-0" />
 
       {/* Grid Pattern Sutil */}
       <div
-        className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none z-0"
+        className="fixed inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none z-0"
         style={{ maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)' }}
       />
 
       {/* Ambient Glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
       {/* Overlay Mobile */}
       <div
