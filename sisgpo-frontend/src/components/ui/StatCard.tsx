@@ -49,8 +49,8 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, description, isLoadin
       <div className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r border-${accentColor}-500/30 rounded-br-sm`} />
 
       {/* Content */}
-      <div className="p-5 flex flex-col items-center justify-between h-full relative z-10">
-        <h3 className={`text-[9px] xs:text-[10px] uppercase tracking-[0.1em] xs:tracking-[0.25em] font-bold mb-3 ${titleColorClass} text-center whitespace-normal`}>
+      <div className="p-4 md:p-5 flex flex-col items-center justify-between h-full relative z-10">
+        <h3 className={`text-[10px] xs:text-xs uppercase tracking-widest font-bold mb-3 ${titleColorClass} text-center whitespace-normal break-words w-full`}>
           {title}
         </h3>
 

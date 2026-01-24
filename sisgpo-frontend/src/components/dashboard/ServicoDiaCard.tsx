@@ -65,7 +65,7 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
             {/* Header do Card Item */}
             <div className="flex items-center gap-2 mb-3 z-10 w-full justify-center">
               {config.icon}
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{config.title}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center whitespace-normal break-words leading-tight">{config.title}</p>
             </div>
 
             {/* Conteúdo */}
@@ -74,8 +74,9 @@ const ServicoDiaCard: React.FC<ServicoDiaCardProps> = ({ data, isLoading }) => {
                 profissionais.map((p, index) => (
                   <div key={index} className="flex flex-col items-center w-full">
                     <span
-                      className="text-sm font-bold text-white tracking-wide font-mono w-full text-center whitespace-normal break-words leading-tight px-1"
+                      className="text-[11px] xs:text-sm font-bold text-white tracking-normal xs:tracking-wide font-mono w-full text-center break-words leading-snug px-1"
                       title={`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}
+                      style={{ overflowWrap: 'anywhere' }}
                     >
                       {`${p.posto_graduacao || ''} ${p.nome_guerra || ''}`.trim()}
                     </span>

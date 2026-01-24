@@ -119,7 +119,7 @@ export default function Dashboard() {
             </p>
           </div>
           {isLoggedInArea && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
               <div className="relative w-full md:w-64 group">
                 <select
                   id="obm-filter"

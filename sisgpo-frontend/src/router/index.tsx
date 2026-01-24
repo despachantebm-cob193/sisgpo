@@ -101,8 +101,13 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Verificação de Integridade de Sessão:
   // Se tem token (isAuthenticated) mas o objeto user está inválido/corrompido, força logout.
+  React.useEffect(() => {
+    if (isAuthenticated && (!user || !user.id)) {
+      useAuthStore.getState().logout();
+    }
+  }, [isAuthenticated, user]);
+
   if (isAuthenticated && (!user || !user.id)) {
-    useAuthStore.getState().logout();
     return <Navigate to="/login" replace />;
   }
 
