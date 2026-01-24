@@ -12,7 +12,7 @@ const AppLayout: React.FC = () => {
   const { toggleMobileMenu, isMobileMenuOpen } = useUiStore();
 
   return (
-    <div className="relative min-h-screen w-full bg-[#050608] text-slate-300 overflow-hidden flex font-sans selection:bg-cyan-500/30">
+    <div className="relative h-screen w-full bg-[#050608] text-slate-300 overflow-hidden flex font-sans selection:bg-cyan-500/30">
       {/* Background System - Unified with Login "Sci-Fi Industrial" */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#131722] via-[#050608] to-[#000000] z-0" />
 
@@ -63,7 +63,7 @@ const AppLayout: React.FC = () => {
         {/* Scrollable Content */}
         <main
           className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-3 py-6 md:p-8 space-y-6 pb-24 md:pt-6 md:pb-10 w-full custom-scrollbar mx-auto max-w-full"
-          style={{ paddingTop: 'calc(85px + env(safe-area-inset-top))' }}
+          style={{ paddingTop: 'calc(35px + env(safe-area-inset-top))' }}
         >
           <Outlet />
         </main>

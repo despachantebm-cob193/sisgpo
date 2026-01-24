@@ -182,7 +182,7 @@ export default function Medicos() {
                         <td className="px-6 py-4 text-xs text-slate-500 font-mono truncate max-w-xs">{medico.observacoes || '-'}</td>
                         {isAdmin && (
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center justify-end gap-2">
                               <button onClick={() => handleOpenFormModal(medico)} className="p-1.5 rounded-md text-sky-500 hover:bg-sky-500/10 hover:shadow-[0_0_10px_rgba(14,165,233,0.2)] transition-all" title="Editar">
                                 <Edit className="w-4 h-4" />
                               </button>

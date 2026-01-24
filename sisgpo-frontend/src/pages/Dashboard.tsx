@@ -28,7 +28,11 @@ import AeronavesCard from '@/components/dashboard/AeronavesCard';
 import CodecCard from '@/components/dashboard/CodecCard';
 
 // Interfaces
-import { Obm } from '@/types/entities';
+// Interfaces
+import { Obm, Militar } from '@/types/entities';
+import MilitarListModal from '@/components/modals/MilitarListModal';
+import MilitarDetailModal from '@/components/modals/MilitarDetailModal';
+
 
 export default function Dashboard() {
   const location = useLocation();
@@ -45,6 +49,12 @@ export default function Dashboard() {
   const [selectedObm, setSelectedObm] = useState<string>('');
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // CRBM Interaction State
+  const [selectedCrbm, setSelectedCrbm] = useState<string>('');
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
+  const [selectedMilitar, setSelectedMilitar] = useState<Militar | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Use Custom Hook for Data Fetching
   const {
@@ -102,6 +112,16 @@ export default function Dashboard() {
 
   const publicUrl = `${window.location.origin}`;
   const shareMessage = `Prezados Comandantes,\n\nSegue a atualização diária dos recursos operacionais do CBMGO, disponível para consulta em tempo real através do link abaixo.\n\nEste painel centraliza as informações sobre o poder operacional para auxiliar na tomada de decisões.\n\nLink: ${publicUrl}\n\nAgradecemos a atenção.`;
+
+  const handleCrbmClick = (crbmName: string) => {
+    setSelectedCrbm(crbmName);
+    setIsListModalOpen(true);
+  };
+
+  const handleMilitarSelect = (militar: Militar) => {
+    setSelectedMilitar(militar);
+    setIsDetailModalOpen(true);
+  };
 
   if (error) return <div className="text-center text-red-600 bg-red-100 p-4 rounded-md">{error}</div>;
 
@@ -194,7 +214,11 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <MilitarByCrbmChart data={militarByCrbmStats} isLoading={isLoading} />
+        <MilitarByCrbmChart
+          data={militarByCrbmStats}
+          isLoading={isLoading}
+          onBarClick={handleCrbmClick}
+        />
       </div>
 
       {isLoggedInArea && (
@@ -205,6 +229,20 @@ export default function Dashboard() {
           shareMessage={shareMessage}
         />
       )}
+
+      {/* Stats Modals */}
+      <MilitarListModal
+        isOpen={isListModalOpen}
+        onClose={() => setIsListModalOpen(false)}
+        crbmName={selectedCrbm}
+        onSelectMilitar={handleMilitarSelect}
+      />
+
+      <MilitarDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        militar={selectedMilitar}
+      />
     </div>
   );
 }

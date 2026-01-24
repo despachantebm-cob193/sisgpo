@@ -34,6 +34,7 @@ export class MilitarService {
       escalado: isTruthy(query.escalado),
       page: toInt(query.page, 1),
       limit: toInt(query.limit, 50),
+      crbm: (query.crbm as string) || undefined,
     };
     return this.repository.list(filters);
   }

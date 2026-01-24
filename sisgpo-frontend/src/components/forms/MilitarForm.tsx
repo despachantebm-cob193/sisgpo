@@ -5,6 +5,10 @@ import Button from '../ui/Button';
 import FormError from '../ui/FormError';
 import Select from '../ui/Select';
 import type { Militar, Obm, ValidationError } from '@/types/entities';
+import { Camera, X } from 'lucide-react';
+import api from '@/services/api';
+import Spinner from '../ui/Spinner';
+import { toast } from 'react-hot-toast';
 
 const TELEFONE_PATTERN_ATTR = '^\\(\\d{2}\\)\\s?\\d{4,5}-\\d{4}$';
 
@@ -22,9 +26,10 @@ type MilitarFormState = {
   nome_completo: string;
   nome_guerra: string;
   posto_graduacao: string;
-  obm_id: string; // Alterado de obm_nome para obm_id
+  obm_id: string;
   ativo: 'ativo' | 'inativo';
   telefone: string;
+  foto_url: string;
 };
 
 const formatTelefone = (value: string): string => {
@@ -58,9 +63,10 @@ const getInitialState = (): MilitarFormState => ({
   nome_completo: '',
   nome_guerra: '',
   posto_graduacao: '',
-  obm_id: '', // Alterado de obm_nome para obm_id
+  obm_id: '',
   ativo: 'ativo',
   telefone: '',
+  foto_url: '',
 });
 
 const mapInitialData = (data: Militar): MilitarFormState => ({
@@ -68,9 +74,10 @@ const mapInitialData = (data: Militar): MilitarFormState => ({
   nome_completo: data.nome_completo ?? '',
   nome_guerra: data.nome_guerra ?? '',
   posto_graduacao: data.posto_graduacao ?? '',
-  obm_id: data.obm_id?.toString() ?? '', // Mapeia obm_id para string
+  obm_id: data.obm_id?.toString() ?? '',
   ativo: data.ativo ? 'ativo' : 'inativo',
   telefone: data.telefone ?? '',
+  foto_url: data.foto_url ?? '',
 });
 
 const MilitarForm: React.FC<MilitarFormProps> = ({
@@ -82,10 +89,16 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
   obms,
 }) => {
   const [formData, setFormData] = useState<MilitarFormState>(getInitialState());
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (initialData) {
       setFormData(mapInitialData(initialData));
+      if (initialData.foto_url) {
+        setPreviewUrl(initialData.foto_url);
+      }
     } else {
       setFormData(getInitialState());
     }
@@ -103,6 +116,28 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validação de tamanho (2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("A imagem deve ter no máximo 2MB.");
+        return;
+      }
+
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setFormData((prev) => ({ ...prev, foto_url: '' })); // Limpa URL antiga para indicar novo upload
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setFormData((prev) => ({ ...prev, foto_url: '' }));
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const form = e.currentTarget as HTMLFormElement;
@@ -110,15 +145,42 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
       form.reportValidity();
       return;
     }
+
+    let finalFotoUrl = formData.foto_url;
+
+    // Upload da foto se houver nova seleção
+    if (selectedFile) {
+      setIsUploading(true);
+      try {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedFile);
+
+        const response = await api.post('/api/admin/upload/photo', uploadFormData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        finalFotoUrl = response.data.url;
+      } catch (error) {
+        console.error('Erro no upload:', error);
+        toast.error('Erro ao fazer upload da foto.');
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     const payload: Record<string, unknown> = {
       id: initialData?.id,
       matricula: formData.matricula.trim(),
       nome_completo: formData.nome_completo.trim(),
       posto_graduacao: formData.posto_graduacao.trim(),
       ativo: formData.ativo === 'ativo',
+      foto_url: finalFotoUrl || null
     };
 
-    // --- CORREÇÃO APLICADA AQUI ---
     if (formData.obm_id) {
       const obmIdAsNumber = parseInt(formData.obm_id, 10);
       if (!isNaN(obmIdAsNumber)) {
@@ -127,7 +189,6 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
     } else if (initialData?.id) {
       payload.obm_id = null;
     }
-    // --- FIM DA CORREÇÃO ---
 
     const nomeGuerra = formData.nome_guerra.trim();
     if (nomeGuerra) {
@@ -148,6 +209,57 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Photo Upload Area */}
+      <div className="flex justify-center mb-6">
+        <div className="relative group">
+          <div className={`w-32 h-32 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-all duration-300 ${previewUrl ? 'border-cyan-500 bg-slate-900' : 'border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800'}`}>
+            {isUploading ? (
+              <Spinner className="w-8 h-8 text-cyan-500" />
+            ) : previewUrl ? (
+              <img src={previewUrl} alt="Foto do Militar" className="w-full h-full object-cover" />
+            ) : (
+              <div className="text-center p-2">
+                <Camera className="w-8 h-8 text-slate-500 mx-auto mb-1 group-hover:text-cyan-400 transition-colors" />
+                <span className="text-[10px] text-slate-500 font-mono uppercase group-hover:text-cyan-400">Adicionar Foto</span>
+              </div>
+            )}
+          </div>
+
+          {/* Hidden Input */}
+          <input
+            type="file"
+            id="foto-upload"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={isSaving || isUploading}
+          />
+
+          {/* Actions */}
+          {!isUploading && (
+            <div className="absolute -bottom-2 -right-2 flex gap-2">
+              <label
+                htmlFor="foto-upload"
+                className="bg-cyan-600 hover:bg-cyan-500 text-white p-2 rounded-full shadow-lg cursor-pointer transition-transform hover:scale-105"
+                title="Alterar foto"
+              >
+                <Camera size={14} />
+              </label>
+              {previewUrl && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full shadow-lg transition-transform hover:scale-105"
+                  title="Remover foto"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="posto_graduacao">Posto/Graduação</Label>
@@ -259,8 +371,8 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
         <Button type="button" onClick={onSuccess} variant="danger">
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? 'Salvando...' : 'Salvar'}
+        <Button type="submit" disabled={isSaving || isUploading}>
+          {isSaving || isUploading ? 'Salvando...' : 'Salvar'}
         </Button>
       </div>
     </form>
@@ -268,4 +380,3 @@ const MilitarForm: React.FC<MilitarFormProps> = ({
 };
 
 export default MilitarForm;
-

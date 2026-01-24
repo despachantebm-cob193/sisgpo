@@ -644,10 +644,11 @@ export default function Viaturas() {
           <table className="min-w-full table-fixed">
             <thead className="bg-white/5 decoration-clone">
               <tr>
-                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Prefixo</th>
-                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>OBM</th>
-                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Cidade</th>
-                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Status</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '15%' : '15%' }}>Prefixo</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '10%' : '15%' }}>OBM</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '15%' : '20%' }}>Cidade</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '25%' }}>Data Último Empenho</th>
+                <th scope="col" className="px-6 py-4 text-left text-[10px] font-bold text-cyan-500/80 uppercase tracking-[0.2em] font-mono border-b border-white/5" style={{ width: isAdmin ? '20%' : '20%' }}>Status</th>
                 {isAdmin && <th scope="col" className="relative px-6 py-4 border-b border-white/5" style={{ width: '20%' }}><span className="sr-only">Ações</span></th>}
               </tr>
             </thead>
@@ -676,16 +677,17 @@ export default function Viaturas() {
                       }}
                       className={`border-b border-white/5 hover:bg-white/5 transition-colors group ${(!viatura.obm_abreviatura || !viatura.cidade) ? 'bg-red-500/5' : ''}`}
                     >
-                      <div className="px-6 py-2 text-sm font-bold font-mono text-white" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.prefixo}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
-                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.cidade || 'N/A'}</div>
+                      <div className="px-6 py-2 text-sm font-bold font-mono text-white" style={{ width: isAdmin ? '15%' : '15%' }}>{viatura.prefixo}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '10%' : '15%' }}>{viatura.obm_abreviatura || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '15%' : '20%' }}>{viatura.cidade || 'N/A'}</div>
+                      <div className="px-6 py-2 whitespace-nowrap text-xs font-mono text-slate-400" style={{ width: isAdmin ? '20%' : '25%' }}>{viatura.last_plantao_date ? new Date(viatura.last_plantao_date).toLocaleDateString('pt-BR') : '-'}</div>
                       <div className="px-6 py-2 whitespace-nowrap text-sm" style={{ width: isAdmin ? '20%' : '25%' }}>
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border ${status.classes}`}>
                           {status.label}
                         </span>
                       </div>
                       {isAdmin && (
-                        <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ width: '20%' }}>
+                        <div className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2" style={{ width: '20%' }}>
                           <Button onClick={() => handleOpenFormModal(viatura)} className="p-1.5 !bg-transparent text-sky-500 hover:text-sky-300 hover:!bg-sky-500/10 !border-0 shadow-none">
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -896,7 +898,8 @@ export default function Viaturas() {
                 <tr>
                   <th className="p-3 font-semibold text-textMain">Prefixo</th>
                   <th className="p-3 font-semibold text-textMain">OBM</th>
-                  <th className="p-3 font-semibold text-textMain">Última Escala</th>
+                  <th className="p-3 font-semibold text-textMain">Data Último Empenho</th>
+                  <th className="p-3 font-semibold text-textMain">Tempo Sem Escala</th>
                   <th className="p-3 font-semibold text-textMain">Status Calculado</th>
                 </tr>
               </thead>
@@ -911,6 +914,12 @@ export default function Viaturas() {
                         {v.last_plantao_date
                           ? new Date(v.last_plantao_date).toLocaleDateString('pt-BR')
                           : <span className="text-spamRed font-semibold">Nunca/Desc.</span>
+                        }
+                      </td>
+                      <td className="p-3 font-mono text-amber-400">
+                        {v.last_plantao_date
+                          ? `${Math.floor((new Date().getTime() - new Date(v.last_plantao_date).getTime()) / (1000 * 3600 * 24))} dias`
+                          : '-'
                         }
                       </td>
                       <td className="p-3">

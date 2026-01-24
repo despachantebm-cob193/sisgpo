@@ -7,8 +7,12 @@
   obm_nome: string | null;
   ativo: boolean;
   telefone: string | null;
+  foto_url?: string | null;
   updated_at?: string;
+  obm_id?: number | null;
 }
+
+export type ValidationError = { field: string; message: string };
 
 export interface Viatura {
   id?: number;

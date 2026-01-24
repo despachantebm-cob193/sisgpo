@@ -11,6 +11,7 @@ export type MilitarRow = {
   ativo: boolean;
   obm_nome?: string | null;
   telefone?: string | null;
+  foto_url?: string | null;
   created_at?: Date;
   updated_at?: Date;
 };
@@ -23,6 +24,7 @@ export type MilitarListFilters = {
   escalado?: boolean;
   page: number;
   limit: number;
+  crbm?: string;
 };
 
 export type MilitarListResult = {
@@ -65,11 +67,12 @@ export class MilitarRepository {
   }
 
   async list(filters: MilitarListFilters): Promise<MilitarListResult> {
-    const { q, ativo, posto_graduacao, obm_nome, escalado, page, limit } = filters;
+    const { q, ativo, posto_graduacao, obm_nome, escalado, page, limit, crbm } = filters;
+    console.log('[MilitarRepository] List filters:', filters);
 
     let query = this.supabase
       .from('militares')
-      .select('id, matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone', { count: 'exact' });
+      .select('id, matricula, nome_completo, nome_guerra, posto_graduacao, ativo, obm_nome, telefone, foto_url', { count: 'exact' });
 
     // Filtro de busca textual
     if (q) {
@@ -86,6 +89,13 @@ export class MilitarRepository {
     }
     if (typeof ativo === 'boolean') {
       query = query.eq('ativo', ativo);
+    }
+    if (crbm) {
+      if (crbm === 'Sem CRBM') {
+        query = query.is('crbm', null);
+      } else {
+        query = query.eq('crbm', crbm);
+      }
     }
 
     // Filtro complexo: Escalado

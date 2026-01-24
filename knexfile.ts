@@ -17,7 +17,14 @@ const getLocalConnection = () => ({
 const config: { [key: string]: Knex.Config } = {
     development: {
         client: 'pg',
-        connection: process.env.DATABASE_URL || getLocalConnection(),
+        connection: {
+            host: 'aws-1-sa-east-1.pooler.supabase.com',
+            port: 6543,
+            user: 'postgres.fskhcmlrionkesvmgihi',
+            password: process.env.DB_PASSWORD || 'SisgpoSupabase2024',
+            database: 'postgres',
+            ssl: { rejectUnauthorized: false }
+        },
         migrations: {
             directory: './src/database/migrations',
             loadExtensions: ['.ts', '.js'],
@@ -36,7 +43,7 @@ const config: { [key: string]: Knex.Config } = {
                 ssl: { rejectUnauthorized: false },
             }
             : getLocalConnection(),
-        pool: { min: 0, max: 1 }, // Reduce pool size for tests to avoid connection limits
+        pool: { min: 0, max: 1 },
         migrations: {
             directory: './src/database/migrations',
             loadExtensions: ['.ts', '.js'],

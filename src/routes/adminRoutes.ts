@@ -39,6 +39,7 @@ const dashboardController = load('../controllers/dashboardController');
 
 const viaturaFileController = load('../controllers/viaturaFileController');
 const militarFileController = load('../controllers/militarFileController');
+const uploadController = load('../controllers/uploadController');
 const obmFileController = load('../controllers/obmFileController');
 
 const router = Router();
@@ -52,6 +53,7 @@ router.use(
 );
 
 router.post('/militares/upload-csv', ensureAdmin, militarFileController.upload);
+router.post('/upload/photo', ensureAdmin, uploadController.uploadPhoto); // New Photo Endpoint
 router.post('/viaturas/upload-validate', ensureAdmin, viaturaFileController.validateUpload);
 router.post('/viaturas/upload-csv', ensureAdmin, viaturaFileController.upload);
 router.post('/obms/upload-csv', ensureAdmin, obmController.uploadCsv);

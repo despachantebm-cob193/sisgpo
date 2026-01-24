@@ -11,11 +11,12 @@ interface ChartData {
 interface MilitarByCrbmChartProps {
     data: ChartData[];
     isLoading: boolean;
+    onBarClick?: (crbmName: string) => void;
 }
 
 const COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
 
-const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading }) => {
+const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading, onBarClick }) => {
     const safeData = Array.isArray(data) ? data : [];
     const totalMilitares = safeData.reduce((acc, item) => acc + item.value, 0);
 
@@ -75,7 +76,17 @@ const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading
                                 itemStyle={{ color: '#10b981', fontFamily: 'monospace' }}
                                 formatter={(value: number) => [`${value} Militares`, 'Efetivo']}
                             />
-                            <Bar dataKey="value" name="Efetivo" radius={[4, 4, 0, 0]}>
+                            <Bar
+                                dataKey="value"
+                                name="Efetivo"
+                                radius={[4, 4, 0, 0]}
+                                onClick={(data) => {
+                                    if (onBarClick && data && data.name) {
+                                        onBarClick(data.name);
+                                    }
+                                }}
+                                className="cursor-pointer hover:opacity-80 transition-opacity"
+                            >
                                 {safeData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}

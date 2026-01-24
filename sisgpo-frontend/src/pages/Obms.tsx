@@ -319,7 +319,7 @@ export default function Obms() {
                       <div className="px-6 py-2 whitespace-nowrap text-slate-400 font-mono" style={{ width: '15%' }}>{obm.telefone || 'N/A'}</div>
                       {isAdmin && (
                         <div className="px-6 py-2 whitespace-nowrap text-right space-x-2" style={{ width: '10%' }}>
-                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex justify-end gap-2">
                             <button onClick={() => handleOpenFormModal(obm)} className="p-1.5 rounded-md text-sky-500 hover:bg-sky-500/10 hover:shadow-[0_0_10px_rgba(14,165,233,0.2)] transition-all"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => handleDeleteClick(obm.id)} className="p-1.5 rounded-md text-rose-500 hover:bg-rose-500/10 hover:shadow-[0_0_10px_rgba(244,63,94,0.2)] transition-all"><Trash2 className="w-4 h-4" /></button>
                           </div>

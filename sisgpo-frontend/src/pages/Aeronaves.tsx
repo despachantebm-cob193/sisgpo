@@ -51,8 +51,8 @@ const Aeronaves: React.FC = () => {
 
   const renderStatusBadge = (ativa: boolean) => (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${ativa
-        ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-        : 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/40'
+      ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
+      : 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/40'
       }`}>
       {ativa ? 'Ativa' : 'Inativa'}
     </span>
@@ -60,8 +60,8 @@ const Aeronaves: React.FC = () => {
 
   const renderTipoAsaBadge = (tipo: Aeronave['tipo_asa']) => (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${tipo === 'fixa'
-        ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
-        : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+      ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+      : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
       }`}>
       <Plane size={12} className={tipo === 'rotativa' ? 'animate-pulse' : ''} />
       {tipo === 'fixa' ? 'Asa Fixa' : 'Asa Rotativa'}
@@ -119,7 +119,7 @@ const Aeronaves: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(aeronave.ativa)}</td>
                       {isAdmin && (
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-2">
                             <button onClick={() => handleOpenFormModal(aeronave)} className="p-1.5 rounded-md text-sky-500 hover:bg-sky-500/10 hover:shadow-[0_0_10px_rgba(14,165,233,0.2)] transition-all" title="Editar">
                               <Edit2 className="w-4 h-4" />
                             </button>
