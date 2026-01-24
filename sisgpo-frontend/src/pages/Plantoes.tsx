@@ -1,4 +1,4 @@
-// Arquivo: frontend/src/pages/Plantoes.tsx (VERS?O FINAL RESPONSIVA)
+// Arquivo: frontend/src/pages/Plantoes.tsx (VERSÃO MODERNIZADA)
 
 import React, { useEffect, useState, useCallback, ChangeEvent } from 'react';
 import toast from 'react-hot-toast';
@@ -391,11 +391,38 @@ export default function Plantoes() {
           <p className="text-textSecondary mt-2">Gerencie as escalas de viaturas, médicos, pilotos e plantonistas.</p>
         </div>
         {isAdmin && (
-          <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-            <Button onClick={() => setIsPlantaoModalOpen(true)} variant="primary"><CalendarPlus className="w-4 h-4 mr-2" />Lançar Plantão VTR</Button>
-            <Button onClick={() => setIsEscalaMedicoModalOpen(true)} className="!bg-emerald-500 hover:!bg-emerald-600 text-white"><Stethoscope className="w-4 h-4 mr-2" />Escala Médicos</Button>
-            <Button onClick={() => setIsAeronaveModalOpen(true)} className="!bg-amber-500 hover:!bg-amber-600 text-white"><Plane className="w-4 h-4 mr-2" />Escala Pilotos</Button>
-            <Button onClick={() => setIsCodecModalOpen(true)} className="bg-codecPurple hover:bg-codecPurple/80 text-white"><Shield className="w-4 h-4 mr-2" />Escala CODEC</Button>
+          <div className="flex flex-wrap gap-4 justify-center md:justify-end">
+            <Button
+              onClick={() => setIsPlantaoModalOpen(true)}
+              className="!bg-cyan-500/10 !border !border-cyan-500/50 !text-cyan-400 hover:!bg-cyan-500/20 hover:!shadow-[0_0_15px_rgba(34,211,238,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-10 px-4"
+            >
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              Lançar Plantão VTR
+            </Button>
+
+            <Button
+              onClick={() => setIsEscalaMedicoModalOpen(true)}
+              className="!bg-emerald-500/10 !border !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/20 hover:!shadow-[0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-10 px-4"
+            >
+              <Stethoscope className="w-4 h-4 mr-2" />
+              Escala Médicos
+            </Button>
+
+            <Button
+              onClick={() => setIsAeronaveModalOpen(true)}
+              className="!bg-amber-500/10 !border !border-amber-500/50 !text-amber-400 hover:!bg-amber-500/20 hover:!shadow-[0_0_15px_rgba(245,158,11,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-10 px-4"
+            >
+              <Plane className="w-4 h-4 mr-2" />
+              Escala Pilotos
+            </Button>
+
+            <Button
+              onClick={() => setIsCodecModalOpen(true)}
+              className="!bg-purple-500/10 !border !border-purple-500/50 !text-purple-400 hover:!bg-purple-500/20 hover:!shadow-[0_0_15px_rgba(168,85,247,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-10 px-4"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Escala CODEC
+            </Button>
           </div>
         )}
       </div>

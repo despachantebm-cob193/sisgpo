@@ -41,7 +41,7 @@ const MilitarByCrbmChart: React.FC<MilitarByCrbmChartProps> = ({ data, isLoading
                 {/* Status Badge */}
                 <div className="px-2 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded text-[9px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                    ONLINE
+                    ATIVOS
                 </div>
             </div>
 

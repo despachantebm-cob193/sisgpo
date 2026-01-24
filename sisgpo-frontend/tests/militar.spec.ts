@@ -5,12 +5,12 @@ import { test, expect, Page } from '@playwright/test';
 // Função de login reutilizável e robusta
 async function login(page: Page) {
   await page.goto('/login');
-  await page.locator('input[id="login"]').fill('admin');
-  await page.locator('input[id="senha"]').fill('cbmgo@2025');
+  await page.locator('input[id="login"]').fill('timbo.correa@gmail.com');
+  await page.locator('input[id="senha"]').fill('22091975');
   await page.locator('button[type="submit"]').click();
   // **A CORREÇÃO MAIS IMPORTANTE:** Espera por um elemento do layout principal
   // para garantir que a página carregou antes de prosseguir.
-  await expect(page.getByText('Bem-vindo, admin')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Alexandre')).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Fluxo de CRUD para Militares', () => {
@@ -18,14 +18,14 @@ test.describe('Fluxo de CRUD para Militares', () => {
   const nomeMilitar = `Militar Teste ${timestamp}`;
   const nomeGuerraMilitar = `Guerra ${timestamp}`;
   const matriculaMilitar = `mil-${timestamp}`;
-  
+
   test('deve criar, ler, atualizar e deletar um Militar', async ({ page }) => {
     // 1. Login e Navegação
     await login(page);
-    
+
     // Use getByRole para uma seleção mais semântica e robusta
     await page.getByRole('link', { name: 'Militares' }).click();
-    await expect(page.locator('h2:has-text("Efetivo (Militares)")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Efetivo (Militares)")')).toBeVisible();
 
     // --- ETAPA DE CRIAÇÃO (CREATE) ---
     await page.getByRole('button', { name: 'Adicionar Militar' }).click();

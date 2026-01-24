@@ -5,10 +5,10 @@ import { test, expect, Page } from '@playwright/test';
 // Função de login reutilizável e robusta
 async function login(page: Page) {
   await page.goto('/login');
-  await page.locator('input[id="login"]').fill('admin');
-  await page.locator('input[id="senha"]').fill('cbmgo@2025');
+  await page.locator('input[id="login"]').fill('timbo.correa@gmail.com');
+  await page.locator('input[id="senha"]').fill('22091975');
   await page.locator('button[type="submit"]').click();
-  await expect(page.getByText('Bem-vindo, admin')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Alexandre')).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Fluxo de CRUD para OBMs', () => {
@@ -19,9 +19,9 @@ test.describe('Fluxo de CRUD para OBMs', () => {
 
   test('deve criar, ler, atualizar e deletar uma OBM', async ({ page }) => {
     await login(page);
-    
+
     await page.getByRole('link', { name: 'OBMs' }).click();
-    await expect(page.locator('h2:has-text("OBMs")')).toBeVisible();
+    await expect(page.locator('h1:has-text("OBMs")')).toBeVisible();
 
     await page.getByRole('button', { name: 'Adicionar Nova OBM' }).click();
     await expect(page.locator('h3:has-text("Adicionar Nova OBM")')).toBeVisible();
@@ -35,7 +35,7 @@ test.describe('Fluxo de CRUD para OBMs', () => {
     await page.locator('input[name="abreviatura"]').fill(abreviaturaObmTeste);
     await page.locator('input[name="cidade"]').fill('Cidade Teste');
     await page.locator('input[name="telefone"]').fill('62999998888');
-    
+
     await page.getByRole('button', { name: 'Salvar' }).click();
     await expect(page.getByText('OBM criada com sucesso!')).toBeVisible();
 
@@ -46,12 +46,12 @@ test.describe('Fluxo de CRUD para OBMs', () => {
 
     await obmItem.getByRole('button', { name: 'Editar' }).click();
     await expect(page.locator('h3:has-text("Editar OBM")')).toBeVisible();
-    
+
     await page.locator('input[name="cidade"]').fill(cidadeAtualizada);
     await page.getByRole('button', { name: 'Salvar' }).click();
     await expect(page.getByText('OBM atualizada com sucesso!')).toBeVisible();
     await expect(obmItem).toContainText(cidadeAtualizada);
-    
+
     await obmItem.getByRole('button', { name: 'Excluir' }).click();
     await page.getByRole('button', { name: 'Confirmar Exclusão' }).click();
     await expect(page.getByText('OBM excluída com sucesso!')).toBeVisible();

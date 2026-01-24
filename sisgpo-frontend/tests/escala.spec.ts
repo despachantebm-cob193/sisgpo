@@ -5,11 +5,11 @@ import { test, expect, Page } from '@playwright/test';
 // Função de login reutilizável e robusta
 async function login(page: Page) {
   await page.goto('/login');
-  await page.locator('input[id="login"]').fill('admin');
-  await page.locator('input[id="senha"]').fill('cbmgo@2025');
+  await page.locator('input[id="login"]').fill('timbo.correa@gmail.com');
+  await page.locator('input[id="senha"]').fill('22091975');
   await page.locator('button[type="submit"]').click();
   // Espera por um elemento do layout principal para garantir que a página carregou
-  await expect(page.getByText('Bem-vindo, admin')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Alexandre')).toBeVisible({ timeout: 15000 });
 }
 
 test.describe('Fluxo de CRUD para Cadastro de Médicos', () => {
@@ -20,9 +20,9 @@ test.describe('Fluxo de CRUD para Cadastro de Médicos', () => {
 
   test('deve criar, ler, atualizar e deletar um médico', async ({ page }) => {
     await login(page);
-    
+
     await page.getByRole('link', { name: 'Cadastro de Médicos' }).click();
-    await expect(page.locator('h2:has-text("Cadastro de Médicos")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Cadastro de Médicos")')).toBeVisible();
 
     await page.getByRole('button', { name: 'Adicionar Médico' }).click();
     await expect(page.locator('h3:has-text("Adicionar Médico")')).toBeVisible();
@@ -43,7 +43,7 @@ test.describe('Fluxo de CRUD para Cadastro de Médicos', () => {
 
     // A mensagem de toast agora deve estar visível
     await expect(page.getByText('Médico criado com sucesso!')).toBeVisible();
-    
+
     await page.locator('input[placeholder="Filtrar por nome..."]').fill(nomeMedico);
     const registroItem = page.locator('tr').filter({ hasText: nomeMedico });
     await expect(registroItem).toBeVisible();

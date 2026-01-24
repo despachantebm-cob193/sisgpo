@@ -1,6 +1,6 @@
 ﻿import React, { useState, ChangeEvent, useEffect, useCallback, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Upload, Edit, Trash2, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Upload, Edit, Trash2, ChevronDown, AlertTriangle, PlusIcon } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import api from '../services/api';
@@ -462,14 +462,29 @@ export default function Viaturas() {
     <div>
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         {isAdmin && (
-          <div className="flex gap-2 w-full md:w-auto">
-            <Button onClick={() => setIsUploadModalOpen(true)} variant="warning" className="w-full md:w-auto">
+          <div className="flex gap-4 w-full md:w-auto">
+            <Button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="w-full md:w-auto !bg-amber-500/10 !border !border-amber-500/50 !text-amber-400 hover:!bg-amber-500/20 hover:!shadow-[0_0_15px_rgba(245,158,11,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-12"
+            >
               <Upload className="w-4 h-4 mr-2" />
-              Importar Viaturas
+              Importar
             </Button>
-            <Button onClick={() => handleOpenFormModal()} variant="primary" className="w-full md:w-auto">Adicionar Viatura</Button>
-            <Button onClick={() => { setImpactAck(false); setIsImpactModalOpen(true); }} className="!bg-rose-500 hover:!bg-rose-600 w-full md:w-auto text-white">
-              <Trash2 className="w-4 h-4 mr-2" /> Limpar Tabela
+
+            <Button
+              onClick={() => handleOpenFormModal()}
+              className="w-full md:w-auto !bg-cyan-500/10 !border !border-cyan-500/50 !text-cyan-400 hover:!bg-cyan-500/20 hover:!shadow-[0_0_15px_rgba(34,211,238,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-12"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Adicionar Viatura
+            </Button>
+
+            <Button
+              onClick={() => { setImpactAck(false); setIsImpactModalOpen(true); }}
+              className="w-full md:w-auto !bg-rose-500/10 !border !border-rose-500/50 !text-rose-400 hover:!bg-rose-500/20 hover:!shadow-[0_0_15px_rgba(244,63,94,0.4)] backdrop-blur-sm transition-all font-mono tracking-wide uppercase text-xs font-bold h-12"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Limpar Tabela
             </Button>
           </div>
         )}
