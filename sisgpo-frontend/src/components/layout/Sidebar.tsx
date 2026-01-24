@@ -52,6 +52,8 @@ export default function Sidebar() {
 
   const handleLinkClick = () => {
     if (isMobileMenuOpen) {
+      // Prevent history.back() in cleanup since we are navigating forward
+      closedByBackRef.current = true;
       toggleMobileMenu();
     }
   };
