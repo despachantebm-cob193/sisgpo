@@ -66,20 +66,7 @@ export default function Sidebar() {
   };
 
   const handleLogout = async () => {
-    logout();
-    try {
-      localStorage.removeItem('auth-storage');
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('sb-')) keysToRemove.push(key);
-      }
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error('Logout error:', e);
-    }
-    window.location.href = '/login';
+    await useAuthStore.getState().signOut();
   };
 
   const handleMouseEnter = () => {

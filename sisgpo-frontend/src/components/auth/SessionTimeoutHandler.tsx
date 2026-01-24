@@ -14,7 +14,7 @@ export const SessionTimeoutHandler = () => {
 
     const handleLogout = useCallback(() => {
         if (isAuthenticated()) {
-            logout();
+            useAuthStore.getState().signOut();
             toast('Sessão expirada por inatividade (20m).', {
                 icon: '🔒',
                 duration: 6000,
@@ -25,7 +25,7 @@ export const SessionTimeoutHandler = () => {
                 },
             });
         }
-    }, [logout, isAuthenticated]);
+    }, [isAuthenticated]);
 
     const resetTimer = useCallback(() => {
         if (timerRef.current) {

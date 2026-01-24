@@ -33,24 +33,7 @@ const Header: React.FC = () => {
   }, [isAdmin]);
 
   const handleLogout = async () => {
-    logout();
-    try {
-      localStorage.removeItem('auth-storage');
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('sb-')) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-    } catch (e) { console.error(e); }
-
-    try {
-      await supabase.auth.signOut();
-    } catch (err) { console.error(err); }
-
-    window.location.href = '/login';
+    await useAuthStore.getState().signOut();
   };
 
   return (

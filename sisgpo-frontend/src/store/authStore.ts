@@ -15,7 +15,10 @@ interface AuthState {
   setPending: (isPending: boolean) => void;
   setLoadingProfile: (isLoading: boolean) => void;
   isAuthenticated: () => boolean; // Adicionamos este getter
+  signOut: () => Promise<void>; // Added centralized signOut
 }
+
+import { supabase } from '../config/supabase';
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -28,8 +31,30 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ token: null, user: null, isPending: false, isLoadingProfile: false }),
       setPending: (isPending) => set({ isPending }),
       setLoadingProfile: (isLoadingProfile) => set({ isLoadingProfile }),
-      // A implementação do getter verifica a existência do token
       isAuthenticated: () => !!get().token,
+      signOut: async () => {
+        // 1. Clear State
+        set({ token: null, user: null, isPending: false, isLoadingProfile: false });
+
+        // 2. Clear Local Storage
+        try {
+          localStorage.removeItem('auth-storage');
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-')) keysToRemove.push(key);
+          }
+          keysToRemove.forEach((k) => localStorage.removeItem(k));
+        } catch (e) { console.error('Error clearing local storage:', e); }
+
+        // 3. Sign Out from Supabase
+        try {
+          await supabase.auth.signOut();
+        } catch (e) { console.error('Error signing out from supabase:', e); }
+
+        // 4. Force Redirect
+        window.location.href = '/login';
+      }
     }),
     {
       name: 'auth-storage',
