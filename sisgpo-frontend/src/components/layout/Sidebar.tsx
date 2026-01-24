@@ -50,12 +50,19 @@ export default function Sidebar() {
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const timerRef = useRef<number | null>(null);
 
-  const handleLinkClick = () => {
+  const handleNavigation = (path: string) => {
     if (isMobileMenuOpen) {
-      // Prevent history.back() in cleanup since we are navigating forward
-      closedByBackRef.current = true;
-      toggleMobileMenu();
+      toggleMobileMenu(); // This triggers the useEffect cleanup -> history.back()
+      // Small delay to ensure "back" completes before "push"
+      setTimeout(() => navigate(path), 50);
+    } else {
+      navigate(path);
     }
+  };
+
+  const handleLinkClick = (e: React.MouseEvent, path: string) => {
+    e.preventDefault();
+    handleNavigation(path);
   };
 
   const handleLogout = async () => {
@@ -72,7 +79,6 @@ export default function Sidebar() {
     } catch (e) {
       console.error('Logout error:', e);
     }
-    handleLinkClick();
     window.location.href = '/login';
   };
 
@@ -153,12 +159,12 @@ export default function Sidebar() {
         <p className="px-2 text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold mb-2">Principal</p>
         <ul className="space-y-1">
           <li>
-            <NavLink to="/app/dashboard" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+            <NavLink to="/app/dashboard" onClick={(e) => handleLinkClick(e, '/app/dashboard')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
               <NavLinkContent isCollapsed={isCollapsed} icon={<Home className="w-5 h-5" />} text="Dashboard" />
             </NavLink>
           </li>
           <li>
-            <NavLink to="/app/dashboard-ocorrencias" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+            <NavLink to="/app/dashboard-ocorrencias" onClick={(e) => handleLinkClick(e, '/app/dashboard-ocorrencias')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
               <NavLinkContent isCollapsed={isCollapsed} icon={<GiSiren className="w-5 h-5" />} text="Ocorrências" />
             </NavLink>
           </li>
@@ -180,43 +186,43 @@ export default function Sidebar() {
           <ul className="space-y-1">
             {user?.perfil === 'admin' && (
               <li>
-                <NavLink to="/app/servico-dia" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                <NavLink to="/app/servico-dia" onClick={(e) => handleLinkClick(e, '/app/servico-dia')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                   <NavLinkContent isCollapsed={isCollapsed} icon={<ClipboardList className="w-5 h-5" />} text="Serviço do Dia" />
                 </NavLink>
               </li>
             )}
             <li>
-              <NavLink to="/app/militares" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/militares" onClick={(e) => handleLinkClick(e, '/app/militares')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<Users className="w-5 h-5" />} text="Militares" />
               </NavLink>
             </li>
             <li>
-              <NavLink to="/app/medicos" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/medicos" onClick={(e) => handleLinkClick(e, '/app/medicos')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<IoMedicalSharp className="w-5 h-5" />} text="Médicos" />
               </NavLink>
             </li>
             <li>
-              <NavLink to="/app/viaturas" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/viaturas" onClick={(e) => handleLinkClick(e, '/app/viaturas')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<MdFireTruck className="w-5 h-5" />} text="Viaturas" />
               </NavLink>
             </li>
             <li>
-              <NavLink to="/app/aeronaves" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/aeronaves" onClick={(e) => handleLinkClick(e, '/app/aeronaves')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<FaHelicopter className="w-5 h-5" />} text="Aeronaves" />
               </NavLink>
             </li>
             <li>
-              <NavLink to="/app/obms" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/obms" onClick={(e) => handleLinkClick(e, '/app/obms')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<BellElectric className="w-5 h-5" />} text="OBMs" />
               </NavLink>
             </li>
             <li>
-              <NavLink to="/app/comandantes-crbm" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/comandantes-crbm" onClick={(e) => handleLinkClick(e, '/app/comandantes-crbm')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<Star className="w-5 h-5" />} text="Comandantes CRBM" />
               </NavLink>
             </li>
             <li>
-              <NavLink to="/app/plantoes" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+              <NavLink to="/app/plantoes" onClick={(e) => handleLinkClick(e, '/app/plantoes')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                 <NavLinkContent isCollapsed={isCollapsed} icon={<Shield className="w-5 h-5" />} text="Plantões" />
               </NavLink>
             </li>
@@ -224,17 +230,17 @@ export default function Sidebar() {
               <>
                 <div className="pt-2"></div>
                 <li>
-                  <NavLink to="/app/usuarios" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                  <NavLink to="/app/usuarios" onClick={(e) => handleLinkClick(e, '/app/usuarios')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                     <NavLinkContent isCollapsed={isCollapsed} icon={<UserCheck className="w-5 h-5" />} text="Usuários" />
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/app/metricas" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                  <NavLink to="/app/metricas" onClick={(e) => handleLinkClick(e, '/app/metricas')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                     <NavLinkContent isCollapsed={isCollapsed} icon={<BarChart3 className="w-5 h-5" />} text="Métricas" />
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/app/saude" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                  <NavLink to="/app/saude" onClick={(e) => handleLinkClick(e, '/app/saude')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                     <NavLinkContent isCollapsed={isCollapsed} icon={<CheckCircle2 className="w-5 h-5" />} text="Saúde do Sistema" />
                   </NavLink>
                 </li>
@@ -247,7 +253,7 @@ export default function Sidebar() {
                 </div>
                 <p className="px-2 text-[10px] uppercase tracking-[0.2em] text-slate-600 font-bold mb-2">Relatórios</p>
                 <li>
-                  <NavLink to="/app/relatorio" onClick={handleLinkClick} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
+                  <NavLink to="/app/relatorio" onClick={(e) => handleLinkClick(e, '/app/relatorio')} className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''}`}>
                     <NavLinkContent isCollapsed={isCollapsed} icon={<FileText className="w-5 h-5" />} text="Escalas" />
                   </NavLink>
                 </li>
@@ -261,7 +267,7 @@ export default function Sidebar() {
       <div className="md:hidden p-4 border-t border-cyan-500/10 bg-gradient-to-t from-black/40 to-transparent">
         <NavLink
           to="/app/perfil"
-          onClick={handleLinkClick}
+          onClick={(e) => handleLinkClick(e, '/app/perfil')}
           className={({ isActive }) => `${navLinkClass} ${isActive ? activeNavLinkClass : ''} mb-2`}
         >
           <NavLinkContent isCollapsed={false} icon={<UserCheck className="w-5 h-5" />} text="Meu perfil" />
