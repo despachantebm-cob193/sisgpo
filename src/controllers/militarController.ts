@@ -9,6 +9,7 @@ const service = new MilitarService(repo);
 
 const militarController = {
   getAll: async (req: Request, res: Response) => {
+    console.log('[MilitarController] getAll called with Query:', req.query);
     const result = await service.list(req.query);
     return res.status(200).json(result);
   },

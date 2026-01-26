@@ -5,6 +5,10 @@ import bcrypt from 'bcryptjs';
 import AppError from '../utils/AppError';
 import UserRepository from '../repositories/UserRepository';
 import { supabaseAdmin } from '../config/supabase';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import env from '../config/env';
+import { registerSession } from '../middlewares/authMiddleware';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
@@ -128,7 +132,7 @@ const authController = {
   },
 
   me: async (req: Request, res: Response) => {
-    const userId = req.userId;
+    const userId = (req as any)['userId'];
 
     if (!userId) {
       throw new AppError('Usuário não identificado no contexto.', 401);
@@ -146,6 +150,65 @@ const authController = {
     return res.status(200).json({
       user: userResponse
     });
+  },
+
+  ssoLogin: async (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Token de SSO não fornecido.' });
+    }
+    const token = authHeader.split(' ')[1];
+
+    if (!env.SSO_SHARED_SECRET) {
+      console.error('[SSO] SSO_SHARED_SECRET não configurado.');
+      return res.status(500).json({ message: 'SSO não configurado.' });
+    }
+
+    try {
+      const decoded = jwt.verify(token, env.SSO_SHARED_SECRET) as any;
+      const { email } = decoded;
+
+      if (!email) {
+        return res.status(400).json({ message: 'Token SSO sem email.' });
+      }
+
+      // Find user
+      const user = await UserRepository.findByEmail(email);
+
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado no SISGPO.' });
+      }
+
+      if (!user.ativo) {
+        return res.status(403).json({ message: 'Usuário inativo.' });
+      }
+
+      if (!user.supabase_id) {
+        return res.status(403).json({ message: 'Usuário sem vínculo Supabase.' });
+      }
+
+      // Generate Session Token
+      const sessionToken = crypto.randomBytes(32).toString('hex');
+
+      const sessionUser = {
+        id: user.supabase_id,
+        email: user.email,
+        user_metadata: { nome: user.nome },
+        app_metadata: {},
+        aud: 'authenticated'
+      };
+
+      registerSession(sessionToken, sessionUser);
+
+      return res.status(200).json({
+        token: sessionToken,
+        message: 'SSO Login realizado com sucesso.'
+      });
+
+    } catch (err: any) {
+      console.error('[SSO] Erro na verificação do token:', err.message);
+      return res.status(401).json({ message: 'Token SSO inválido ou expirado.' });
+    }
   }
 };
 

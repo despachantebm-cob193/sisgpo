@@ -27,7 +27,7 @@ export class MilitarService {
 
   async list(query: Record<string, unknown>): Promise<MilitarListResult> {
     const filters: MilitarListFilters = {
-      q: (query.q as string) || undefined,
+      q: (query.q as string) || (query.nome_completo as string) || undefined,
       posto_graduacao: (query.posto_graduacao as string) || undefined,
       obm_nome: (query.obm_nome as string) || undefined,
       ativo: typeof query.ativo === 'string' ? query.ativo === 'true' : undefined,

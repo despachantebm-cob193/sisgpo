@@ -4,6 +4,7 @@ type Env = {
   FRONTEND_URLS: string[];
   ALLOW_RENDER_ORIGINS: boolean;
   JWT_SECRET: string;
+  SSO_SHARED_SECRET?: string;
   SSO_AUDIENCE?: string;
   SSO_ISSUER?: string;
   SSO_ALGORITHM?: string;
@@ -52,6 +53,7 @@ export const env: Env = {
   FRONTEND_URLS: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map((s) => s.trim()).filter(Boolean) : [],
   ALLOW_RENDER_ORIGINS: process.env.ALLOW_RENDER_ORIGINS !== 'false',
   JWT_SECRET: process.env.JWT_SECRET || '',
+  SSO_SHARED_SECRET: process.env.SSO_SHARED_SECRET,
   SSO_AUDIENCE: process.env.SSO_AUDIENCE,
   SSO_ISSUER: process.env.SSO_ISSUER,
   SSO_ALGORITHM: process.env.SSO_ALGORITHM,

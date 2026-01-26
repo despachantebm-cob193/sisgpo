@@ -70,6 +70,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     req.userPerfil = sistemaUser.perfil;
     req.authUserId = user.id;
 
+    console.log(`[AuthMiddleware] Authenticated user: ${sistemaUser.id} (${sistemaUser.nome})`);
     return next();
 
   } catch (err) {
@@ -78,4 +79,8 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-export = authMiddleware;
+export const registerSession = (token: string, user: any, ttl = CACHE_TTL) => {
+  authCache.set(token, { user, expiresAt: Date.now() + ttl });
+};
+
+export default authMiddleware;
