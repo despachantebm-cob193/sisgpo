@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 import { supabase } from '../config/supabase';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
 import Input from '../components/ui/Input';
@@ -17,11 +18,12 @@ interface LoginResponse {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login: authLogin, token: authToken } = useAuthStore();
+  const { login: authLogin, token: authToken, setPending } = useAuthStore();
 
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,7 +45,7 @@ export default function Login() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (isLoading) return;
+    if (isLoading || isGoogleLoading) return;
     setIsLoading(true);
 
     try {
@@ -65,6 +67,46 @@ export default function Login() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (isLoading || isGoogleLoading) return;
+    setIsGoogleLoading(true);
+
+    try {
+      if (!credentialResponse.credential) {
+        throw new Error('Falha ao obter credencial do Google.');
+      }
+
+      const response = await api.post<LoginResponse>('/api/auth/google/callback', {
+        credential: credentialResponse.credential,
+      });
+
+      const { token, refreshToken, user } = response.data;
+      authLogin(token, user);
+
+      if (refreshToken) {
+        supabase.auth.setSession({ access_token: token, refresh_token: refreshToken })
+          .catch(err => console.error("Sync session error:", err));
+      }
+
+      toast.success('Acesso autorizado.');
+      navigate('/app/dashboard');
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'Falha na autenticação com Google.';
+      if (String(errorMsg).toLowerCase().includes('pendente')) {
+        setPending(true);
+        navigate('/pending-approval', { replace: true });
+        return;
+      }
+      toast.error(errorMsg);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error('Falha ao autenticar com Google.');
   };
 
   if (authToken) {
@@ -162,9 +204,9 @@ export default function Login() {
             {/* Botão High-End */}
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
               className={`w-full h-14 !rounded-full mt-8 text-sm font-bold tracking-[0.2em] uppercase transition-all duration-300 relative overflow-hidden group border
-                ${isLoading
+                ${(isLoading || isGoogleLoading)
                   ? 'bg-slate-900 border-slate-700 text-slate-500'
                   : 'bg-black/80 border-cyan-500/60 text-cyan-400 hover:text-cyan-100 hover:border-cyan-400 hover:shadow-[0_0_25px_rgba(34,211,238,0.3)]'
                 }`}
@@ -177,6 +219,19 @@ export default function Login() {
                 {isLoading ? <Spinner className="w-4 h-4 text-current" /> : 'ACESSAR SISTEMA'}
               </span>
             </Button>
+
+            <div className="flex justify-center pt-2">
+              <div className={`transition-opacity ${isGoogleLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  shape="pill"
+                  text="signin_with"
+                />
+              </div>
+            </div>
 
             {/* Link Solicitar Acesso - Restaurado */}
             <div className="pt-2 text-center">
