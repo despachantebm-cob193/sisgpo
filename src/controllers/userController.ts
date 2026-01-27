@@ -47,6 +47,7 @@ const userController = {
     await UserRepository.update(userId, {
       status: 'approved',
       perfil: perfilAprovado,
+      ativo: true,
       aprovado_por: adminId ?? null,
       aprovado_em: new Date(),
     });
@@ -63,7 +64,7 @@ const userController = {
       throw new AppError('Usuario nao encontrado.', 404);
     }
 
-    await UserRepository.update(userId, { status: 'rejected' });
+    await UserRepository.update(userId, { status: 'rejected', ativo: false });
     return res.status(200).json({ message: 'Usuario rejeitado com sucesso!' });
   },
 
